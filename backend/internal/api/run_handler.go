@@ -1,0 +1,239 @@
+package api
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/labstack/echo/v4"
+	"lari-backend/internal/service"
+)
+
+type RunHandler struct {
+	db      *pgxpool.Pool
+	algo    *service.AlgorithmService
+	spatial *service.SpatialEngine
+}
+
+func NewRunHandler(db *pgxpool.Pool) *RunHandler {
+	return &RunHandler{
+		db:      db,
+		algo:    service.NewAlgorithmService(),
+		spatial: service.NewSpatialEngine(db),
+	}
+}
+
+type SyncRunRequest struct {
+	ID        string          `json:"id"`
+	UserID    string          `json:"user_id"`
+	Points    []service.Point `json:"points"`
+	Status    string          `json:"status"` // 'running', 'paused', 'finished'
+	CreatedAt time.Time       `json:"created_at"`
+}
+
+type SyncRunResponse struct {
+	Message             string                  `json:"message"`
+	Summary             service.ActivitySummary `json:"summary"`
+	NewlyCapturedAreaM2 float64                 `json:"newly_captured_area"`
+}
+
+// SyncRun godoc
+// @Summary Sync running data and process conquest
+// @Description Receives raw GPS points, calculates Strava-level metrics, and merges territories via Integrity Protocol.
+// @Tags run
+// @Accept  json
+// @Produce  json
+// @Param request body SyncRunRequest true "Running Data"
+// @Success 200 {object} SyncRunResponse
+// @Failure 400 {object} map[string]string
+// @Router /sync/run [post]
+func (h *RunHandler) SyncRun(c echo.Context) error {
+	req := new(SyncRunRequest)
+	if err := c.Bind(req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
+	}
+
+	if len(req.Points) < 2 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "insufficient points for sync"})
+	}
+
+	ctx := context.Background()
+
+	// 1. Calculate Metrics (Algorithm Service)
+	summary := h.algo.CalculateSummary(req.Points)
+
+	// Anti-Spoofing: Velocity Check (Max 40 km/h)
+	if summary.MovingDurationSec > 0 {
+		velocityKmh := (summary.TotalDistanceMeters / 1000.0) / (float64(summary.MovingDurationSec) / 3600.0)
+		if velocityKmh > 40.0 {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "velocity anomaly detected: speed exceeds human limits"})
+		}
+	}
+
+	// 2. Process Conquest & Integrity Protocol (Spatial Engine)
+	capturedArea, err := h.spatial.ProcessConquest(ctx, req.UserID, req.Points)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "conquest processing failed: " + err.Error()})
+	}
+
+	// 3. Persist the Run record (Historical)
+	wktPath := h.pointsToWKT(req.Points)
+	_, err = h.db.Exec(ctx, `
+		INSERT INTO runs (id, user_id, distance_km, duration_sec, calories, status, path_geometry, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromText($7, 4326), $8)
+		ON CONFLICT (id) DO UPDATE SET
+			distance_km = EXCLUDED.distance_km,
+			duration_sec = EXCLUDED.duration_sec,
+			status = EXCLUDED.status,
+			path_geometry = EXCLUDED.path_geometry
+	`, req.ID, req.UserID, summary.TotalDistanceMeters/1000.0, summary.MovingDurationSec, 0, req.Status, wktPath, req.CreatedAt)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to persist run data: " + err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, SyncRunResponse{
+		Message:             "Grid synchronization complete.",
+		Summary:             summary,
+		NewlyCapturedAreaM2: capturedArea,
+	})
+}
+
+// GetRuns godoc
+// @Summary Get run history for a user
+// @Description Fetches historical runs for a specific user ID.
+// @Tags run
+// @Produce  json
+// @Param user_id query string true "User ID"
+// @Success 200 {array} map[string]interface{}
+// @Router /runs [get]
+func (h *RunHandler) GetRuns(c echo.Context) error {
+	userID := c.QueryParam("user_id")
+	if userID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "user_id is required"})
+	}
+
+	rows, err := h.db.Query(context.Background(), `
+		SELECT id, user_id, distance_km, duration_sec, status, ST_AsText(path_geometry), created_at 
+		FROM runs 
+		WHERE user_id = $1 
+		ORDER BY created_at DESC
+	`, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	defer rows.Close()
+
+	var runs []map[string]interface{}
+	for rows.Next() {
+		var id, uid, status, pathWKT string
+		var distance float64
+		var duration int
+		var createdAt time.Time
+		err := rows.Scan(&id, &uid, &distance, &duration, &status, &pathWKT, &createdAt)
+		if err != nil {
+			continue
+		}
+		runs = append(runs, map[string]interface{}{
+			"id":            id,
+			"user_id":       uid,
+			"distance_km":   distance,
+			"duration_sec":  duration,
+			"status":        status,
+			"path_geometry": pathWKT,
+			"created_at":    createdAt,
+		})
+	}
+
+	if runs == nil {
+		runs = []map[string]interface{}{}
+	}
+
+	return c.JSON(http.StatusOK, runs)
+}
+
+// DeleteRuns godoc
+// @Summary Clear run history
+// @Description Deletes all run records for a specific user ID.
+// @Tags run
+// @Param user_id query string true "User ID"
+// @Success 200 {object} map[string]string
+// @Router /runs [delete]
+func (h *RunHandler) DeleteRuns(c echo.Context) error {
+	userID := c.QueryParam("user_id")
+	if userID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "user_id is required"})
+	}
+
+	_, err := h.db.Exec(context.Background(), "DELETE FROM runs WHERE user_id = $1", userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "mission archives erased"})
+}
+
+// GetGlobalRuns fetches the latest runs from all users for the social feed
+func (h *RunHandler) GetGlobalRuns(c echo.Context) error {
+	rows, err := h.db.Query(context.Background(), `
+		SELECT 
+			r.id, 
+			r.user_id, 
+			p.display_name, 
+			p.territory_color,
+			r.distance_km, 
+			r.duration_sec, 
+			r.status, 
+			r.created_at 
+		FROM runs r
+		JOIN profiles p ON r.user_id = p.id
+		ORDER BY r.created_at DESC
+		LIMIT 20
+	`)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	defer rows.Close()
+
+	var runs []map[string]interface{}
+	for rows.Next() {
+		var id, uid, displayName, color, status string
+		var distance float64
+		var duration int
+		var createdAt time.Time
+		err := rows.Scan(&id, &uid, &displayName, &color, &distance, &duration, &status, &createdAt)
+		if err != nil {
+			continue
+		}
+		runs = append(runs, map[string]interface{}{
+			"id":              id,
+			"user_id":         uid,
+			"display_name":    displayName,
+			"territory_color": color,
+			"distance_km":     distance,
+			"duration_sec":    duration,
+			"status":          status,
+			"created_at":      createdAt,
+		})
+	}
+
+	if runs == nil {
+		runs = []map[string]interface{}{}
+	}
+
+	return c.JSON(http.StatusOK, runs)
+}
+
+func (h *RunHandler) pointsToWKT(points []service.Point) string {
+	res := "LINESTRING("
+	for i, p := range points {
+		res += fmt.Sprintf("%f %f", p.Lng, p.Lat)
+		if i < len(points)-1 {
+			res += ", "
+		}
+	}
+	res += ")"
+	return res
+}

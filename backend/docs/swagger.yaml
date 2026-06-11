@@ -1,0 +1,187 @@
+basePath: /
+definitions:
+  api.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  api.RegisterRequest:
+    properties:
+      display_name:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  api.SyncRunRequest:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      points:
+        items:
+          $ref: '#/definitions/service.Point'
+        type: array
+      status:
+        description: '''running'', ''paused'', ''finished'''
+        type: string
+      user_id:
+        type: string
+    type: object
+  api.SyncRunResponse:
+    properties:
+      message:
+        type: string
+      newly_captured_area:
+        type: number
+      summary:
+        $ref: '#/definitions/service.ActivitySummary'
+    type: object
+  service.ActivitySummary:
+    properties:
+      average_pace:
+        type: number
+      elapsed_duration:
+        type: integer
+      moving_duration:
+        type: integer
+      total_distance:
+        type: number
+    type: object
+  service.Point:
+    properties:
+      accuracy:
+        type: number
+      lat:
+        type: number
+      lng:
+        type: number
+      timestamp:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: High-performance territorial conquest API for LARI agents.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: LARI API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and get session ID
+      parameters:
+      - description: Login Credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login agent
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account and profile
+      parameters:
+      - description: Registration Info
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new agent
+      tags:
+      - auth
+  /sync/run:
+    post:
+      consumes:
+      - application/json
+      description: Receives raw GPS points, calculates Strava-level metrics, and merges
+        territories via Integrity Protocol.
+      parameters:
+      - description: Running Data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.SyncRunRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.SyncRunResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Sync running data and process conquest
+      tags:
+      - run
+swagger: "2.0"
