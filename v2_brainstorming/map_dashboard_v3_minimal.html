@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LARI V3 - Full Map Minimal HUD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;700&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #000; color: #fff; font-family: 'Space Grotesk', sans-serif; margin: 0; overflow: hidden; }
+        .font-bebas { font-family: 'Bebas Neue', cursive; }
+        
+        .container-mobile {
+            width: 380px;
+            height: 800px;
+            border: 8px solid #333;
+            border-radius: 40px;
+            position: relative;
+            overflow: hidden;
+            margin: 20px auto;
+            background-color: #000;
+        }
+
+        /* FULL MAP BACKGROUND MOCKUP */
+        .map-bg {
+            position: absolute;
+            inset: 0;
+            background: url('https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/108.48, -6.98,12,0/800x1200?access_token=pk.eyJ1IjoicGxhY2Vob2xkZXIiLCJhIjoiY2p4eHh4eHh4eHh4eHh4eHh4eHh4eHh4In0.placeholder') center center;
+            background-size: cover;
+            filter: saturate(0.5) contrast(1.2);
+        }
+
+        /* VIGNETTE EFFECT */
+        .vignette {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.8) 100%);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* MINIMIZED PARALLEL SLANT HEADER */
+        .level-patch {
+            background-color: #ccff00;
+            color: #000;
+            padding: 6px 20px 6px 12px;
+            clip-path: polygon(0 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
+            z-index: 20;
+        }
+        .name-patch {
+            background-color: rgba(26, 26, 30, 0.8);
+            backdrop-filter: blur(10px);
+            color: #fff;
+            padding: 6px 15px 6px 20px;
+            clip-path: polygon(15px 0, 100% 0, 100% 100%, 0 100%);
+            margin-left: -15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* COMPACT DISTRICT BOX */
+        .district-box {
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            border-left: 3px solid #ccff00;
+            padding: 8px 12px;
+        }
+
+        /* FLOATING NAV SKEWED */
+        .nav-island {
+            background: #fff;
+            padding: 1px;
+            transform: rotate(-1deg) skewX(2deg);
+            width: 85%;
+        }
+
+        .hazard-bg-neon {
+            background: repeating-linear-gradient(-45deg, #ccff00, #ccff00 3px, #000 3px, #000 6px);
+        }
+    </style>
+</head>
+<body class="bg-zinc-950">
+
+    <div class="container-mobile">
+        <!-- THE HERO: MAP -->
+        <div class="map-bg"></div>
+        <div class="vignette"></div>
+
+        <!-- OVERLAY HUD (Layered on top of map) -->
+        <div class="absolute inset-0 z-10 p-6 flex flex-col pointer-events-none">
+            
+            <!-- TOP HUD: MINIMIZED HEADER -->
+            <div class="flex items-stretch pointer-events-auto">
+                <div class="level-patch flex flex-col justify-center">
+                    <span class="text-[7px] font-black uppercase opacity-60 leading-none">LVL</span>
+                    <span class="text-2xl font-bebas leading-none">42</span>
+                </div>
+                <div class="name-patch flex flex-col justify-center">
+                    <span class="text-[10px] font-black italic tracking-tighter">AGENT_JRILLYM</span>
+                    <div class="w-24 h-1 bg-black/40 mt-1">
+                        <div class="h-full bg-[#ccff00] w-[75%] shadow-[0_0_5px_#ccff00]"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DISTRICT INFO: MEDIUM-SMALL -->
+            <div class="mt-4 district-box pointer-events-auto w-fit">
+                <p class="text-[8px] font-mono text-[#ccff00] tracking-tighter uppercase">Operational_Sector</p>
+                <h2 class="text-2xl font-bebas leading-none">CILIMUS <span class="text-zinc-500 font-normal">/ KUNINGAN</span></h2>
+            </div>
+
+            <!-- SPACER TO PUSH NAV DOWN -->
+            <div class="flex-1"></div>
+
+            <!-- BOTTOM HUD: ACTIONS & NAV -->
+            <div class="space-y-6 flex flex-col items-center w-full pointer-events-auto">
+                
+                <!-- COMPACT START BUTTON -->
+                <button class="bg-black/80 border border-white/50 backdrop-blur-md px-8 py-3 flex items-center gap-3 group active:scale-95 transition-transform">
+                    <div class="w-2 h-8 hazard-bg-neon"></div>
+                    <span class="font-bebas text-2xl tracking-widest">START_MISSION</span>
+                </button>
+
+                <!-- SKEWED NAV ISLAND -->
+                <div class="nav-island">
+                    <nav class="bg-black p-3 flex justify-between items-center px-8">
+                        <div class="w-5 h-5 bg-[#ccff00]"></div>
+                        <div class="w-5 h-5 border border-white/40 rotate-45"></div>
+                        <div class="w-5 h-5 border border-white/40"></div>
+                        <div class="w-5 h-5 border border-white/40 rounded-full"></div>
+                    </nav>
+                </div>
+
+                <p class="text-[7px] font-mono opacity-30 tracking-[0.6em] mb-2 uppercase">LARI_SATELLITE_FEED_ACTIVE</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-xl mx-auto mt-8 text-zinc-400 text-sm text-center p-4">
+        <p><strong class="text-white">Full Map Focus:</strong> HUD sekarang bersifat "Lapisan" (Overlay) di atas peta. Ukuran kartu diperkecil agar tidak menutupi visibilitas wilayah.</p>
+        <p class="mt-2"><strong class="text-white">Vignette:</strong> Gradasi gelap di pinggir layar (Radial Gradient) membuat peta terasa lebih dramatis dan fokus ke posisi user di tengah.</p>
+    </div>
+
+</body>
+</html>

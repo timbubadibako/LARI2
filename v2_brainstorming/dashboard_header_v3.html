@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LARI V3 - Header & Game Info</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;700&family=JetBrains+Mono:wght@800&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #000; color: #fff; font-family: 'Space Grotesk', sans-serif; p: 20px; }
+        .font-bebas { font-family: 'Bebas Neue', cursive; }
+        
+        .hazard-bg {
+            background: repeating-linear-gradient(-45deg, #ccff00, #ccff00 5px, #000 5px, #000 10px);
+        }
+
+        .skew-box {
+            clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
+        }
+
+        .patch-skew-left {
+            clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%);
+        }
+
+        .patch-skew-right {
+            clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%);
+        }
+
+        .mobile-preview {
+            width: 360px;
+            min-height: 400px;
+            background-color: #050505;
+            border: 4px solid #1a1a1a;
+            position: relative;
+            overflow: hidden;
+            margin: auto;
+        }
+
+        .xp-bar {
+            height: 4px;
+            background: #111;
+            position: relative;
+            overflow: hidden;
+        }
+        .xp-progress {
+            height: 100%;
+            background: #ccff00;
+            box-shadow: 0 0 10px #ccff00;
+        }
+    </style>
+</head>
+<body class="bg-zinc-900 p-8 flex flex-col items-center gap-12">
+
+    <div class="text-center">
+        <h1 class="font-bebas text-4xl tracking-widest text-white">DASHBOARD_HEADER_V3</h1>
+        <p class="text-zinc-500 text-xs mt-2 uppercase font-mono">Concept: Industrial Digital Patches</p>
+    </div>
+
+    <div class="mobile-preview p-6 space-y-8">
+        
+        <!-- TOP ROW: LEVEL & XP -->
+        <div class="flex items-start gap-0">
+            <!-- LEVEL PATCH -->
+            <div class="patch-skew-left bg-[#ccff00] text-black p-3 pr-8">
+                <p class="text-[8px] font-black uppercase leading-none opacity-60">Level</p>
+                <p class="text-4xl font-bebas leading-none mt-1">42</p>
+            </div>
+            <!-- XP & NAME INFO -->
+            <div class="flex-1 patch-skew-right bg-zinc-900 border-t-2 border-r-2 border-zinc-800 p-3 ml-[-15px]">
+                <div class="flex justify-between items-end mb-1">
+                    <p class="text-xs font-bold tracking-tight">AGENT_JRILLYM</p>
+                    <p class="text-[8px] font-mono opacity-40">750/1000 XP</p>
+                </div>
+                <div class="xp-bar">
+                    <div class="xp-progress" style="width: 75%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DISTRICT INFO: KUNINGAN -->
+        <div class="relative">
+            <div class="absolute -top-3 -left-2 bg-white text-black font-bebas px-2 py-0.5 text-[10px] transform -rotate-2 z-10">
+                CURRENT_SECTOR
+            </div>
+            <div class="border-2 border-zinc-800 p-4 pt-6 bg-black/40 backdrop-blur-sm relative overflow-hidden">
+                <!-- Decorative Grid in background -->
+                <div class="absolute inset-0 opacity-5" style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 10px 10px;"></div>
+                
+                <div class="relative z-20">
+                    <p class="text-[10px] font-mono text-[#ccff00] mb-1 tracking-tighter">ID: KNGN-32.08.15</p>
+                    <h2 class="text-4xl font-bebas leading-none tracking-tight">KEC. CILIMUS</h2>
+                    <h3 class="text-lg font-bebas text-zinc-500 tracking-wider">KABUPATEN KUNINGAN</h3>
+                </div>
+
+                <!-- DOMINION METER -->
+                <div class="mt-4 flex items-center gap-4 border-t border-zinc-800 pt-3">
+                    <div class="flex-1">
+                        <p class="text-[8px] font-black opacity-40 uppercase">Faction_Dominion</p>
+                        <p class="text-xl font-bebas">12.4% <span class="text-[10px] text-zinc-600">HELD</span></p>
+                    </div>
+                    <div class="w-12 h-12 rounded-full border-4 border-[#ccff00] flex items-center justify-center">
+                        <span class="text-[10px] font-black text-[#ccff00]">#1</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Hazard Stripe accent at bottom -->
+            <div class="h-1.5 w-3/4 hazard-bg mx-auto mt-[-1px]"></div>
+        </div>
+
+        <!-- QUICK STATS (OPTIONAL HUD ELEMENTS) -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-zinc-900/50 border-l-2 border-white p-3">
+                <p class="text-[8px] opacity-40 uppercase">Active_Bounty</p>
+                <p class="text-xl font-bebas">350 <span class="text-xs">CR</span></p>
+            </div>
+            <div class="bg-zinc-900/50 border-l-2 border-[#ccff00] p-3">
+                <p class="text-[8px] opacity-40 uppercase">Conflict_Alert</p>
+                <p class="text-xl font-bebas text-[#ccff00]">LOW</p>
+            </div>
+        </div>
+
+        <!-- MASKING EFFECT (BOTTOM FADE) -->
+        <div class="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-black to-transparent pointer-events-none"></div>
+    </div>
+
+    <div class="max-w-xl text-zinc-400 text-sm space-y-4">
+        <p><strong class="text-white">Industrial Patch Concept:</strong> Informasi Level dan XP tidak diletakkan di dalam bar lurus, melainkan menggunakan bentuk potongan miring yang tumpang tindih (*Digital Patch*).</p>
+        <p><strong class="text-white">Geospatial Focus:</strong> Lokasi (Kecamatan & Kabupaten) dibuat sangat besar dan tegas, menekankan bahwa ini adalah game penguasaan wilayah asli di Kuningan.</p>
+    </div>
+
+</body>
+</html>

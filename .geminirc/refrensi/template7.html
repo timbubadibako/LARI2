@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>STRIDE_IO - Prestige Status</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Jost', sans-serif; background: #010413; color: #f1f5f9; }
+        .font-bulky { font-family: 'DM Serif Display', serif; }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .cyber-grid {
+            background-image:
+                linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+        .hexagon-clip {
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#38bdf8",
+                        sapphire: "#0ea5e9",
+                        background: "#010413",
+                    },
+                    fontFamily: {
+                        bulky: ["DM Serif Display", "serif"],
+                        body: ["Jost", "sans-serif"],
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+
+<body class="bg-background min-h-screen overflow-x-hidden">
+    <!-- Cyber-Grid Overlay -->
+    <div class="fixed inset-0 cyber-grid pointer-events-none opacity-40"></div>
+
+    <!-- Top Navigation -->
+    <header class="fixed top-0 w-full z-50 flex justify-between items-center px-8 h-20 glass border-b border-white/5">
+        <div class="flex items-center gap-6">
+            <div class="text-primary">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16m-7 6h7" stroke-width="2" stroke-linecap="round"></path></svg>
+            </div>
+            <span class="font-bulky italic text-2xl tracking-tighter text-white uppercase">STRIDE_IO</span>
+        </div>
+        <div class="w-10 h-10 rounded-full border-2 border-primary/20 overflow-hidden">
+            <img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjYw5EGNZuEVGBje_sUIzNV6gE7BJA9eP3mBGK2HsIOtqxSCQ3lWDZ2gx0Z57HJyYAqDsDONnyXxR2vJdlnLDSovLsL7WHoCFkSUwBOe49hS6LPkxhjYA8lZRSL963TCoPadCi-1egCtEi7PCSHdW-GlO9Dsh8IFy_FsZdYe2RYkie2LUz9n4IxCQmMTj1g7w52KIo-cHszDBhuka_Xl6FimosmNXl_QGkXyHrxpbvykqbURvHffhyjdDL8wXecnbDcNXFLRhb20M" />
+        </div>
+    </header>
+
+    <main class="relative z-10 pt-32 pb-40 px-6 flex justify-center items-center">
+        <!-- Main Prestige Share Card -->
+        <div class="w-full max-w-md">
+            <div class="glass rounded-[3rem] p-10 relative overflow-hidden flex flex-col items-center border border-white/10 shadow-2xl">
+                <!-- Header Section -->
+                <div class="text-center mb-12 w-full">
+                    <span class="text-[9px] font-bold text-slate-500 tracking-[0.4em] uppercase block mb-3">Ranking Update</span>
+                    <h1 class="font-bulky italic text-4xl text-white tracking-tighter leading-none">Legend Of Kuningan</h1>
+                    <div class="h-px w-24 bg-primary/40 mx-auto mt-6"></div>
+                </div>
+
+                <!-- Center Rank & Hexagon Grid -->
+                <div class="relative w-full aspect-square flex items-center justify-center mb-12">
+                    <!-- Background Hexagon Decoration -->
+                    <div class="absolute inset-0 grid grid-cols-4 gap-4 opacity-5 pointer-events-none">
+                        <div class="hexagon-clip bg-primary h-16 w-16"></div>
+                        <div class="hexagon-clip bg-primary h-16 w-16"></div>
+                        <div class="hexagon-clip bg-primary h-16 w-16 mt-8"></div>
+                        <div class="hexagon-clip bg-primary h-16 w-16"></div>
+                    </div>
+
+                    <!-- Main Hexagon Achievement Centerpiece -->
+                    <div class="relative z-10 flex flex-col items-center">
+                        <div class="hexagon-clip bg-primary/10 border-2 border-primary/40 p-16 relative flex items-center justify-center shadow-2xl">
+                            <div class="absolute inset-2 border border-primary/20 hexagon-clip"></div>
+                            <span class="font-bulky italic text-[100px] text-white leading-none tracking-tighter">#1</span>
+                        </div>
+                        <div class="mt-8 text-center space-y-2">
+                            <p class="font-bulky italic text-3xl text-white">Syifa Pajril Yaum</p>
+                            <div class="flex items-center justify-center gap-3">
+                                <div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                                <span class="bg-primary/10 text-primary text-[8px] font-bold px-4 py-1 rounded-full border border-primary/20 tracking-[0.2em] uppercase">Elite Tier</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Footer -->
+                <div class="w-full space-y-6">
+                    <div class="glass bg-white/5 p-6 rounded-[2rem] flex justify-between items-center border border-white/5">
+                        <div class="flex items-center gap-4">
+                            <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 4a2 2 0 114 0v1a2 2 0 11-4 0V4zM4 13a2 2 0 114 0v1a2 2 0 11-4 0v-1zM11 13a2 2 0 114 0v1a2 2 0 11-4 0v-1zM18 13a2 2 0 114 0v1a2 2 0 11-4 0v-1z" stroke-width="2" stroke-linecap="round"></path></svg>
+                            <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Territory Control</span>
+                        </div>
+                        <span class="font-bulky italic text-2xl text-primary leading-none">45 Hexes</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 italic text-center leading-relaxed">"The city grid responds to your stride. Kuningan sector synchronized."</p>
+                </div>
+
+                <!-- Action Button -->
+                <button class="w-full mt-10 bg-primary text-black py-5 rounded-full font-bold uppercase text-[10px] tracking-[0.2em] active:scale-95 transition-all shadow-lg shadow-primary/20">
+                    Share Prestige
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="md:hidden fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] glass rounded-full px-8 py-4 flex justify-around items-center z-50 border border-white/10 shadow-2xl">
+        <div class="text-slate-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-width="2"></path></svg></div>
+        <div class="text-slate-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-width="2"></path></svg></div>
+        <div class="text-primary scale-110"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg></div>
+        <div class="text-slate-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" stroke-width="2"></path></svg></div>
+    </nav>
+</body>
+</html>

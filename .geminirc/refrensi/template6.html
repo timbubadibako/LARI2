@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>STRIDE_IO - Path Export</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Jost', sans-serif; background: #010413; color: #f1f5f9; }
+        .font-bulky { font-family: 'DM Serif Display', serif; }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .cyber-grid {
+            background-image:
+                linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+        .neon-tube {
+            filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.6)) drop-shadow(0 0 12px rgba(56, 189, 248, 0.4));
+        }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#38bdf8",
+                        sapphire: "#0ea5e9",
+                        background: "#010413",
+                    },
+                    fontFamily: {
+                        bulky: ["DM Serif Display", "serif"],
+                        body: ["Jost", "sans-serif"],
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+
+<body class="bg-background min-h-screen overflow-x-hidden">
+    <!-- Top Navigation -->
+    <header class="fixed top-0 w-full z-50 flex justify-between items-center px-8 h-20 glass border-b border-white/5">
+        <div class="flex items-center gap-6">
+            <div class="text-primary">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16m-7 6h7" stroke-width="2" stroke-linecap="round"></path></svg>
+            </div>
+            <span class="font-bulky italic text-2xl tracking-tighter text-white uppercase">STRIDE_IO</span>
+        </div>
+        <div class="w-10 h-10 rounded-full border-2 border-primary/20 overflow-hidden">
+            <img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDd0pcW0sXQh1kxGafpDFk_AF8h0R5MAhFT-mvj78Uz_3HbB2sSRd0UAb8Fy-80yW201Ej99X9zLKKI6f5FH8qO1JtBbzXXsKwhD6-Rj6qrOz5_ObsdQHcqxCDA4X4WvqJQkrz8OnUQ4eBR494usXqzBFfKlV4ppxQwS9pdZNzr3NsEw45zueQYtcFGAuH_zxVepvi4ZZDhiEHTawOd9DbcTf5Vfna7s6xvEpasJjHlZfLez_T_CWJDDmMg90oiTG9XmKBq0jm1Lzk" />
+        </div>
+    </header>
+
+    <main class="relative flex items-center justify-center min-h-screen px-6 pt-20 pb-32 cyber-grid">
+        <!-- Share Card Container -->
+        <div class="relative w-full max-w-[440px] aspect-[4/5] bg-slate-950 shadow-2xl rounded-[3rem] overflow-hidden flex flex-col items-center justify-center p-10 border border-white/10">
+            <!-- Pure Path Content -->
+            <div class="relative w-full h-full flex flex-col justify-between z-10">
+                <!-- Header Info -->
+                <div class="flex justify-between items-start w-full">
+                    <div class="glass px-4 py-1 rounded-full border border-primary/20">
+                        <span class="text-[9px] font-bold text-primary uppercase tracking-[0.3em]">Pure Path / 001</span>
+                    </div>
+                    <div class="text-primary/40">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"></path></svg>
+                    </div>
+                </div>
+
+                <!-- Main Visual: The Run Route -->
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none p-16">
+                    <svg class="w-full h-full neon-tube opacity-90" viewBox="0 0 200 200">
+                        <path d="M 40,160 C 40,160 30,120 60,110 C 90,100 80,60 120,50 C 160,40 170,100 140,120 C 110,140 150,170 110,180" fill="none" stroke="#38bdf8" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path>
+                        <circle cx="40" cy="160" fill="#38bdf8" r="3"></circle>
+                        <circle class="animate-pulse" cx="110" cy="180" fill="#7dd3fc" r="4"></circle>
+                    </svg>
+                </div>
+
+                <!-- Stats Footer -->
+                <div class="flex justify-between items-end w-full">
+                    <div class="flex flex-col">
+                        <span class="font-bulky italic text-[64px] text-white leading-none tracking-tighter">12.4</span>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] ml-2">Kilometers</span>
+                    </div>
+                    <!-- Watermark -->
+                    <div class="flex flex-col items-end opacity-40">
+                        <p class="font-bulky italic text-2xl text-primary leading-none">STRIDE_IO</p>
+                        <span class="text-[7px] font-bold text-primary tracking-[0.3em] uppercase mt-1">Telemetry Protocol</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subtle Aesthetic Elements -->
+            <div class="absolute inset-0 pointer-events-none">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
+                <!-- Precision Markers -->
+                <div class="absolute top-10 right-10 flex gap-2">
+                    <div class="w-1 h-6 bg-primary/30"></div>
+                    <div class="w-1 h-3 bg-primary/10"></div>
+                </div>
+                <div class="absolute bottom-10 left-10 flex gap-2 transform rotate-180">
+                    <div class="w-1 h-6 bg-primary/30"></div>
+                    <div class="w-1 h-3 bg-primary/10"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="fixed bottom-24 left-1/2 -translate-x-1/2 flex gap-6">
+            <button class="bg-primary text-black px-12 py-4 rounded-full font-bold uppercase text-[10px] tracking-[0.2em] flex items-center gap-3 active:scale-95 transition-all shadow-lg shadow-primary/20">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"></path></svg>
+                Export Assets
+            </button>
+            <button class="glass px-12 py-4 rounded-full font-bold uppercase text-[10px] tracking-[0.2em] border border-white/10 text-white hover:bg-white/5 transition-all active:scale-95">
+                Customize
+            </button>
+        </div>
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="md:hidden fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] glass rounded-full px-8 py-4 flex justify-around items-center z-50 border border-white/10 shadow-2xl">
+        <div class="text-slate-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-width="2"></path></svg></div>
+        <div class="text-slate-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-width="2"></path></svg></div>
+        <div class="text-slate-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"></path></svg></div>
+        <div class="text-primary scale-110"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"></path></svg></div>
+    </nav>
+</body>
+</html>

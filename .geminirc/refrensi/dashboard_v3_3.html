@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lari-Lari - Tactical Gestalt Dashboard v3.3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Jost:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <style>
+        body { font-family: 'Jost', sans-serif; background: #010413; color: #f1f5f9; overflow: hidden; margin: 0; }
+        .font-bulky { font-family: 'DM Serif Display', serif; }
+        
+        /* Unified Shape Standard: Elite Squircle */
+        .squircle-sm { border-radius: 14px; }
+        .squircle-lg { border-radius: 28px; }
+
+        .glass { 
+            background: rgba(15, 23, 42, 0.6); 
+            backdrop-filter: blur(20px); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+        }
+        
+        .map-bg {
+            position: fixed;
+            inset: 0;
+            background: url('https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/12/2144/1454.png');
+            background-size: cover;
+            filter: brightness(0.4) saturate(1.2);
+            z-index: -1;
+        }
+
+        /* Standardized Glow */
+        .glow-sapphire { shadow-[0_0_20px_rgba(14,165,233,0.3)]; }
+        .glow-active { box-shadow: 0 0 20px rgba(56, 189, 248, 0.4); border-color: rgba(56, 189, 248, 0.4); }
+
+        /* Interaction: Rail Expansion */
+        .rail-item {
+            width: 48px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            white-space: nowrap;
+        }
+        .rail-item:hover { width: 200px; }
+        
+        /* Status Bar Animation */
+        @keyframes strobe-crimson {
+            0%, 100% { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); }
+            50% { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.5); }
+        }
+        .animate-alert { animation: strobe-crimson 2s infinite; }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <!-- Map Context -->
+    <div class="map-bg"></div>
+
+    <!-- 01: Top HUD (Minimalist & Balanced) -->
+    <div class="p-6 flex justify-between items-center z-50">
+        <!-- Brand + OPS Status -->
+        <div class="flex items-center gap-4">
+            <h1 class="text-xl font-bulky italic tracking-tight text-white uppercase">Lari-Lari</h1>
+            <div class="h-4 w-px bg-white/10"></div>
+            <div class="flex items-center gap-2 bg-sky-500/10 px-3 py-1 squircle-sm border border-sky-500/20">
+                <div class="w-1 h-1 bg-sky-500 rounded-full animate-pulse shadow-[0_0_5px_#0ea5e9]"></div>
+                <span class="text-[8px] font-black text-sky-400 uppercase tracking-widest">Protocol Active</span>
+            </div>
+        </div>
+
+        <!-- Profile Widget -->
+        <div class="flex items-center gap-3">
+            <div class="text-right">
+                <p class="text-[10px] font-black uppercase tracking-widest text-white">Ghost_Runner</p>
+                <p class="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Gold Tier • Rank #12</p>
+            </div>
+            <div class="w-12 h-12 squircle-sm glass border-sky-500/20 flex items-center justify-center relative hover:glow-active transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-sky-400">person</span>
+                <div class="absolute -top-1 -right-1 w-5 h-5 bg-sky-500 rounded-full border-2 border-[#010413] flex items-center justify-center shadow-lg shadow-sky-500/30">
+                    <span class="text-[8px] font-black text-[#010413]">42</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 02: Operations Rail (Left) - Unifies Interaction Logic -->
+    <div class="absolute top-32 left-6 space-y-4 z-50">
+        
+        <!-- Daily Bounty Layer Toggle -->
+        <div class="rail-item glass h-12 rounded-2xl flex items-center p-1.5 cursor-pointer group hover:glow-active overflow-hidden">
+            <div class="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/10">
+                <span class="material-symbols-outlined text-amber-500 text-xl">military_tech</span>
+            </div>
+            <div class="ml-4 pr-6">
+                <p class="text-[8px] font-black uppercase text-amber-500 tracking-[0.2em]">Layer: Bounty</p>
+                <p class="text-[10px] font-bold text-white uppercase">3 Hexes Remaining</p>
+            </div>
+        </div>
+
+        <!-- Buff Layer Toggle -->
+        <div class="rail-item glass h-12 rounded-2xl flex items-center p-1.5 cursor-pointer group hover:glow-active overflow-hidden">
+            <div class="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/10">
+                <span class="material-symbols-outlined text-indigo-400 text-xl">bolt</span>
+            </div>
+            <div class="ml-4 pr-6">
+                <p class="text-[8px] font-black uppercase text-indigo-400 tracking-[0.2em]">Layer: Power-ups</p>
+                <p class="text-[10px] font-bold text-white uppercase">1.5x Multiplier</p>
+            </div>
+        </div>
+
+        <!-- Guild War Toggle -->
+        <div class="rail-item glass h-12 rounded-2xl flex items-center p-1.5 cursor-pointer group hover:glow-active overflow-hidden">
+            <div class="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center shrink-0 shadow-lg shadow-red-500/10">
+                <span class="material-symbols-outlined text-red-500 text-xl">swords</span>
+            </div>
+            <div class="ml-4 pr-6">
+                <p class="text-[8px] font-black uppercase text-red-500 tracking-[0.2em]">Layer: Conflict</p>
+                <p class="text-[10px] font-bold text-white uppercase">Vs Red Dragons</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 03: Floating Status Overlay (Floating Center) -->
+    <div class="absolute top-28 left-1/2 -translate-x-1/2 z-40">
+        <div class="glass px-6 py-2 squircle-lg border-red-500/20 flex items-center gap-3 shadow-2xl animate-alert">
+            <span class="material-symbols-outlined text-red-500 text-sm">warning</span>
+            <div class="h-4 w-px bg-white/10"></div>
+            <span class="text-[9px] font-black uppercase tracking-[0.4em] text-white">Zone: Contested Territory</span>
+        </div>
+    </div>
+
+    <!-- Center Viewport (Radar Context) -->
+    <main class="flex-1 flex items-center justify-center relative">
+        <div class="relative">
+            <!-- Ripple Standardized -->
+            <div class="absolute inset-0 w-56 h-56 -translate-x-1/2 -translate-y-1/2 border border-sky-500/10 rounded-full animate-ping" style="animation-duration: 4s;"></div>
+            
+            <!-- Radar Core (Elite Squircle Shape) -->
+            <div class="w-16 h-16 squircle-sm glass flex items-center justify-center border-sky-500/40 shadow-[0_0_30px_rgba(14,165,233,0.2)] pulse">
+                <span class="material-symbols-outlined text-sky-400 text-2xl">radar</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- 04: Bottom Tactical Control -->
+    <footer class="relative pb-10 z-50">
+        <!-- Start Mission -->
+        <div class="flex justify-center mb-[-48px] relative z-10">
+            <button class="w-24 h-24 bg-[#0ea5e9] rounded-full flex flex-col items-center justify-center shadow-[0_20px_50px_rgba(14,165,233,0.4)] border-4 border-[#010413] hover:scale-105 active:scale-95 transition-all">
+                <span class="material-symbols-outlined text-[#010413] text-5xl mb-[-4px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+                <span class="text-[9px] font-bulky italic font-black text-[#010413] tracking-widest mt-1">START</span>
+            </button>
+        </div>
+
+        <!-- Minimalist Dot Nav -->
+        <div class="px-6">
+            <div class="glass max-w-sm mx-auto h-20 squircle-lg flex items-center justify-between px-10 shadow-2xl border-white/10">
+                <div class="flex flex-col items-center justify-center gap-1 cursor-pointer">
+                    <span class="material-symbols-outlined text-2xl text-sky-400" style="font-variation-settings: 'FILL' 1;">explore</span>
+                    <div class="w-1 h-1 rounded-full bg-sky-400 shadow-[0_0_5px_#38bdf8]"></div>
+                </div>
+                <div class="flex flex-col items-center justify-center gap-1 cursor-pointer group">
+                    <span class="material-symbols-outlined text-2xl text-slate-500 group-hover:text-slate-300">history</span>
+                    <div class="w-1 h-1 rounded-full bg-transparent"></div>
+                </div>
+                <div class="w-16"></div> <!-- Gap -->
+                <div class="flex flex-col items-center justify-center gap-1 cursor-pointer group">
+                    <span class="material-symbols-outlined text-2xl text-slate-500 group-hover:text-slate-300">groups</span>
+                    <div class="w-1 h-1 rounded-full bg-transparent"></div>
+                </div>
+                <div class="flex flex-col items-center justify-center gap-1 cursor-pointer group">
+                    <span class="material-symbols-outlined text-2xl text-slate-500 group-hover:text-slate-300">person</span>
+                    <div class="w-1 h-1 rounded-full bg-transparent"></div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

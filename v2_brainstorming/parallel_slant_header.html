@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LARI V3 - Parallel Slant Fix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@800&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #000; color: #fff; font-family: 'JetBrains Mono', monospace; }
+        .font-bebas { font-family: 'Bebas Neue', cursive; }
+        
+        /* 
+           PARALLEL SLANT LOGIC:
+           Use a fixed pixel value (30px) for the slant instead of percentage.
+           This ensures the angle is identical regardless of the box width.
+        */
+        .level-patch {
+            background-color: #ccff00;
+            color: #000;
+            padding: 10px 40px 10px 20px;
+            /* Parallel Slant Right Side: Top at 100%, Bottom at 100% minus 30px */
+            clip-path: polygon(0 0, 100% 0, calc(100% - 30px) 100%, 0 100%);
+            z-index: 10;
+        }
+
+        .name-patch {
+            background-color: #1a1a1e;
+            color: #fff;
+            padding: 10px 20px 10px 30px;
+            /* Parallel Slant Left Side: Top at 30px, Bottom at 0% */
+            clip-path: polygon(30px 0, 100% 0, 100% 100%, 0 100%);
+            /* Shift left by the exact slant width to lock them together */
+            margin-left: -30px; 
+            flex: 1;
+        }
+
+        .xp-bar-container {
+            height: 4px;
+            background-color: #000;
+            margin-top: 8px;
+            width: 100%;
+        }
+        .xp-bar-fill {
+            height: 100%;
+            background-color: #ccff00;
+            width: 75%;
+        }
+
+        .container {
+            width: 400px;
+            margin: 100px auto;
+        }
+    </style>
+</head>
+<body class="p-10">
+
+    <div class="container">
+        <p class="text-zinc-600 text-[9px] uppercase tracking-[0.4em] text-center mb-10">Parallel Slant Protocol // V3.2</p>
+
+        <!-- THE PERFECT PARALLEL HEADER -->
+        <div class="flex items-stretch">
+            <!-- LEVEL CARD (Straight left, Slanted right) -->
+            <div class="level-patch flex flex-col justify-center">
+                <span class="text-[9px] font-black uppercase opacity-60">Level</span>
+                <span class="text-5xl font-bebas leading-none">42</span>
+            </div>
+
+            <!-- NAME CARD (Slanted left, Straight right) -->
+            <div class="name-patch flex flex-col justify-center">
+                <div class="flex justify-between items-baseline mb-1">
+                    <span class="text-sm font-black italic tracking-tighter">AGENT_JRILLYM</span>
+                    <span class="text-[9px] opacity-30">750/1000 XP</span>
+                </div>
+                <div class="xp-bar-container">
+                    <div class="xp-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

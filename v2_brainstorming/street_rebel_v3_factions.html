@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LARI V3 - 7 Factions & Graffiti Wall</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;700&family=Permanent+Marker&family=JetBrains+Mono:wght@800&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #000; color: #fff; font-family: 'Space Grotesk', sans-serif; overflow-x: hidden; }
+        .font-bebas { font-family: 'Bebas Neue', cursive; }
+        .font-graffiti { font-family: 'Permanent Marker', cursive; }
+        
+        .cross-lines {
+            background-image: repeating-linear-gradient(
+                45deg,
+                rgba(255, 255, 255, 0.05),
+                rgba(255, 255, 255, 0.05) 10px,
+                transparent 10px,
+                transparent 20px
+            );
+        }
+
+        .hazard-stripes {
+            background: repeating-linear-gradient(
+                -45deg,
+                #fff,
+                #fff 10px,
+                #000 10px,
+                #000 20px
+            );
+        }
+
+        .graffiti-splash {
+            position: absolute;
+            z-index: -1;
+            opacity: 0.2;
+            font-size: 15rem;
+            transform: rotate(-15deg);
+            filter: blur(2px);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .faction-pill {
+            transition: all 0.2s ease;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+        }
+        .faction-pill:hover {
+            transform: skewX(-5deg) scale(1.05);
+            filter: brightness(1.2) drop-shadow(0 0 15px currentColor);
+        }
+    </style>
+</head>
+<body class="p-8 md:p-16 cross-lines min-h-screen relative">
+
+    <!-- GRAFFITI ELEMENTS PLACEHOLDER -->
+    <div class="graffiti-splash font-graffiti text-white left-[-50px] top-[100px]">LARI</div>
+    <div class="graffiti-splash font-graffiti text-zinc-800 right-[-100px] bottom-[50px]">REBEL_01</div>
+
+    <div class="max-w-5xl mx-auto space-y-16">
+        
+        <!-- HEADER -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+            <div class="relative">
+                <div class="absolute -left-4 top-0 w-1 h-full hazard-stripes"></div>
+                <p class="text-xs font-black tracking-[0.6em] opacity-40 mb-2">SYSTEM_OVERRIDE // V3.0</p>
+                <h1 class="text-8xl font-bebas leading-none tracking-tighter">STREET <span class="text-white bg-white text-black px-2">REBEL</span></h1>
+            </div>
+            <div class="font-bebas text-right">
+                <p class="text-zinc-500 text-sm tracking-widest uppercase">Global_Dominion</p>
+                <p class="text-6xl leading-none">AREA: 12.4%</p>
+            </div>
+        </header>
+
+        <!-- THE 7 FACTION PALETTE -->
+        <section class="space-y-8">
+            <div class="flex items-center gap-4">
+                <h2 class="text-2xl font-bebas tracking-widest uppercase border-b-2 border-white pb-1">7_Guild_Intelligence</h2>
+                <span class="text-[10px] font-mono opacity-40">[SELECT_FREQUENCY]</span>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                <!-- 1. VANGUARD -->
+                <div class="group cursor-pointer">
+                    <div class="faction-pill h-24 bg-[#ccff00] text-black flex items-center justify-center mb-2" style="color: #ccff00">
+                        <span class="font-bebas text-3xl text-black">01</span>
+                    </div>
+                    <p class="text-center text-[10px] font-black uppercase tracking-tighter group-hover:text-[#ccff00]">Neon_Green</p>
+                </div>
+                <!-- 2. SYNDICATE -->
+                <div class="group cursor-pointer">
+                    <div class="faction-pill h-24 bg-[#ff007a] text-black flex items-center justify-center mb-2" style="color: #ff007a">
+                        <span class="font-bebas text-3xl text-black">02</span>
+                    </div>
+                    <p class="text-center text-[10px] font-black uppercase tracking-tighter group-hover:text-[#ff007a]">Ultra_Pink</p>
+                </div>
+                <!-- 3. FLOW -->
+                <div class="group cursor-pointer">
+                    <div class="faction-pill h-24 bg-[#00f0ff] text-black flex items-center justify-center mb-2" style="color: #00f0ff">
+                        <span class="font-bebas text-3xl text-black">03</span>
+                    </div>
+                    <p class="text-center text-[10px] font-black uppercase tracking-tighter group-hover:text-[#00f0ff]">Electric_Blue</p>
+                </div>
+                <!-- 4. APEX -->
+                <div class="group cursor-pointer">
+                    <div class="faction-pill h-24 bg-[#ff5f00] text-black flex items-center justify-center mb-2" style="color: #ff5f00">
+                        <span class="font-bebas text-3xl text-black">04</span>
+                    </div>
+                    <p class="text-center text-[10px] font-black uppercase tracking-tighter group-hover:text-[#ff5f00]">Inferno_Orange</p>
+                </div>
+                <!-- 5. VOID -->
+                <div class="group cursor-pointer">
+                    <div class="faction-pill h-24 bg-[#bc00ff] text-black flex items-center justify-center mb-2" style="color: #bc00ff">
+                        <span class="font-bebas text-3xl text-black">05</span>
+                    </div>
+                    <p class="text-center text-[10px] font-black uppercase tracking-tighter group-hover:text-[#bc00ff]">Phantom_Purple</p>
+                </div>
+                <!-- 6. VOLT -->
+                <div class="group cursor-pointer">
+                    <div class="faction-pill h-24 bg-[#fff000] text-black flex items-center justify-center mb-2" style="color: #fff000">
+                        <span class="font-bebas text-3xl text-black">06</span>
+                    </div>
+                    <p class="text-center text-[10px] font-black uppercase tracking-tighter group-hover:text-[#fff000]">High_Volt</p>
+                </div>
+                <!-- 7. RADAR -->
+                <div class="group cursor-pointer">
+                    <div class="faction-pill h-24 bg-[#ff0000] text-black flex items-center justify-center mb-2" style="color: #ff0000">
+                        <span class="font-bebas text-3xl text-black">07</span>
+                    </div>
+                    <p class="text-center text-[10px] font-black uppercase tracking-tighter group-hover:text-[#ff0000]">Infra_Red</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- GRAFFITI & CONTENT MIX -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div class="border-4 border-zinc-900 p-8 relative">
+                <div class="font-graffiti text-5xl text-zinc-700 absolute -top-8 -left-4 transform -rotate-12 bg-black px-4">CITY IS OURS</div>
+                <div class="space-y-4 mt-4">
+                    <h3 class="text-4xl font-bebas italic">MISSION_REPORT</h3>
+                    <p class="text-sm opacity-60 leading-relaxed">
+                        Anda telah menaklukkan <span class="text-white font-bold">24 Sektor</span> di Jakarta Selatan. 
+                        Target berikutnya: <span class="bg-[#ccff00] text-black px-1 font-bold">Kecamatan Kebayoran Baru</span>.
+                    </p>
+                    <div class="h-12 w-full hazard-stripes opacity-10"></div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-center border-4 border-dashed border-zinc-800 p-12 group hover:border-white transition-colors cursor-crosshair">
+                <div class="text-center">
+                    <p class="font-graffiti text-3xl opacity-20 group-hover:opacity-100 group-hover:text-[#ccff00] transition-all">YOUR_TAG_HERE</p>
+                    <p class="text-[10px] font-mono mt-4 opacity-40 tracking-widest uppercase">Click to draw graffiti on captured territory</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

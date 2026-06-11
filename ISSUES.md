@@ -1,6 +1,6 @@
-# ISSUE — StrideIO Implementation Backlog for AI / Agent
+# ISSUE — Lari-Lari Implementation Backlog for AI / Agent
 
-Dokumen ini adalah sumber kebenaran untuk AI/agent yang akan mengerjakan repo StrideIO.  
+Dokumen ini adalah sumber kebenaran untuk AI/agent yang akan mengerjakan repo Lari-Lari.  
 Agent **harus** membaca file ini, lalu membaca `SUPABASE.md`, lalu membaca daftar GitHub Issues yang relevan sebelum mulai implementasi.
 
 ## Cara kerja agent
@@ -216,7 +216,7 @@ Bagian ini sebagian besar sudah done. Agent hanya perlu memastikan wiring tetap 
 
 ## D2. UI / UX polish
 - [V] Share preview modal: shows what will be shared (image + text).
-- [V] Default text template (editable): "I ran 5.12 km in 28:45 - #StrideIO"
+- [V] Default text template (editable): "I ran 5.12 km in 28:45 - #Lari-Lari"
 - [V] Quality of exported image: map snapshot + gradient overlay + icons + stats in a shareable aspect ratio.
 
 ## D3. State & wiring
@@ -390,7 +390,7 @@ Profile adalah pusat identitas, privacy, dan integrations.
 
 Example comment:
 Implemented party join-by-code flow.  
-PR: https://github.com/timbubadibako/StrideIO/pull/123  
+PR: https://github.com/timbubadibako/Lari-Lari/pull/123  
 Tests:
 - join by code succeeds
 - duplicate join is ignored

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>STRIDE_IO - Biometric Analysis</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Jost', sans-serif; background: #010413; color: #f1f5f9; }
+        .font-bulky { font-family: 'DM Serif Display', serif; }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .cyber-grid {
+            background-image:
+                linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+        .medical-line { background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.5), transparent); }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#38bdf8",
+                        sapphire: "#0ea5e9",
+                        background: "#010413",
+                    },
+                    fontFamily: {
+                        bulky: ["DM Serif Display", "serif"],
+                        body: ["Jost", "sans-serif"],
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+
+<body class="bg-background overflow-hidden min-h-screen">
+    <!-- HUD Background -->
+    <div class="fixed inset-0 cyber-grid pointer-events-none opacity-40"></div>
+
+    <!-- Top Navigation -->
+    <header class="fixed top-0 w-full z-50 flex justify-between items-center px-8 h-20 glass border-b border-white/5">
+        <div class="flex items-center gap-6">
+            <div class="text-primary">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16m-7 6h7" stroke-width="2" stroke-linecap="round"></path></svg>
+            </div>
+            <span class="font-bulky italic text-2xl tracking-tighter text-white uppercase">STRIDE_IO</span>
+        </div>
+        <div class="w-10 h-10 rounded-full border-2 border-primary/20 overflow-hidden">
+            <img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgiumaQxecKy2LkFQQleQAHnQ-Issu78vre6RSm4q-NpkL2l-7iZzfaojtnWrECnisjHmI8R290R1yty_tXFuxU_ojqcY5e2qdyRpe0TBbNGGn1W6avc40KsSdH1gqBGoFCV7dNY6PVcik6f_aKqiherbr1BMDd0Ku_nZdScRsRSxkO7QfyeCR_mah3ed5EA5AZNlIRiPoxM3hjLJYiX1OJ3T25FmWNmS1-Hghhpx-IwTgC040Tmq3tVXigwUNCe3cqG_kO5Ags6Q" />
+        </div>
+    </header>
+
+    <main class="relative flex flex-col items-center justify-center min-h-screen pt-24 pb-32 px-6 z-10 max-w-7xl mx-auto">
+        <!-- Share Card Wrapper -->
+        <div class="relative w-full glass rounded-[3rem] overflow-hidden border border-white/10 p-10 md:p-16 flex flex-col md:flex-row items-center justify-between gap-12 shadow-2xl">
+            <!-- Background Visualization Content -->
+            <div class="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
+                <img class="h-full object-contain mix-blend-screen grayscale contrast-150 brightness-150" src="https://lh3.googleusercontent.com/aida-public/AB6AXuClEXBR3rQnkuVsHMiz58PyBgWjX4_ku79wYXmT4o0JFXdUfUgyzBuB3O-pKLfHHpeAPFQLRMiep8DA_qir2vcM7hnXJzJ1KxJGh6ZGgwEr5EFVKQhSqmJRENMenzA38ne2gGsm2yG7mWrYMpVFg9tgqJvNbPOTwR-lmRrFkmwV1oEfi_D7TunzuVmErHwynvOr90elKuXeM9UzZ9KU4KANuQJZnu4a1XCCaGPT6ZQsuWseniqyroX6VK3WRs5zKIGhG_5aBNf5Ba0" />
+            </div>
+
+            <!-- Left Metrics Column -->
+            <div class="relative z-20 flex flex-col gap-8 w-full md:w-72">
+                <div class="glass p-8 rounded-[2.5rem] border border-white/5 space-y-2 border-l-4 border-l-primary/40">
+                    <span class="text-slate-500 font-bold text-[9px] uppercase tracking-[0.3em]">Distance</span>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-white font-bulky italic text-5xl leading-none">12.4</span>
+                        <span class="text-primary font-bold text-xs">KM</span>
+                    </div>
+                </div>
+                <div class="glass p-8 rounded-[2.5rem] border border-white/5 space-y-2 border-l-4 border-l-primary/20">
+                    <span class="text-slate-500 font-bold text-[9px] uppercase tracking-[0.3em]">Session Pace</span>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-white font-bulky italic text-5xl leading-none">5:24</span>
+                        <span class="text-slate-400 font-bold text-[10px] uppercase">/KM</span>
+                    </div>
+                </div>
+                <div class="glass p-8 rounded-[2.5rem] border border-white/5 space-y-2">
+                    <span class="text-slate-500 font-bold text-[9px] uppercase tracking-[0.3em]">Total Duration</span>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-white font-bulky italic text-5xl leading-none">1:07:22</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Heading (Mobile Only) -->
+            <div class="md:hidden text-center space-y-2">
+                <h1 class="font-bulky italic text-4xl text-white">Biometric Sync</h1>
+                <p class="text-[10px] uppercase tracking-widest text-primary">Protocol Zenith</p>
+            </div>
+
+            <!-- Right Metrics Column -->
+            <div class="relative z-20 flex flex-col gap-8 w-full md:w-72 items-end text-right">
+                <div class="glass p-8 rounded-[2.5rem] border border-white/5 space-y-2 border-r-4 border-r-amber-500/40 w-full">
+                    <span class="text-slate-500 font-bold text-[9px] uppercase tracking-[0.3em]">Energy Burn</span>
+                    <div class="flex items-baseline justify-end gap-2">
+                        <span class="text-white font-bulky italic text-5xl leading-none">840</span>
+                        <span class="text-amber-500 font-bold text-xs italic">KCAL</span>
+                    </div>
+                </div>
+                <div class="glass p-8 rounded-[2.5rem] border border-white/5 space-y-2 border-r-4 border-r-rose-500/40 w-full">
+                    <span class="text-slate-500 font-bold text-[9px] uppercase tracking-[0.3em]">Peak Heart Rate</span>
+                    <div class="flex items-baseline justify-end gap-2">
+                        <span class="text-white font-bulky italic text-5xl leading-none">164</span>
+                        <span class="text-rose-500 font-bold text-xs italic">BPM</span>
+                    </div>
+                </div>
+                <div class="mt-auto px-6 py-2 bg-primary/10 border border-primary/30 text-primary font-bold text-[10px] uppercase tracking-[0.3em] rounded-full">
+                    Zenith Verified
+                </div>
+            </div>
+
+            <!-- Overlay Labels for Hologram (Desktop Only) -->
+            <div class="absolute inset-0 pointer-events-none hidden lg:block">
+                <div class="absolute top-[60%] left-[35%] flex items-center gap-4">
+                    <div class="h-px w-16 medical-line"></div>
+                    <div class="glass px-3 py-1 border border-primary/20 text-primary text-[8px] font-bold uppercase tracking-widest rounded-full">Optimal Quad Recruitment</div>
+                </div>
+                <div class="absolute bottom-[25%] right-[35%] flex flex-row-reverse items-center gap-4">
+                    <div class="h-px w-20 medical-line"></div>
+                    <div class="glass px-3 py-1 border border-primary/20 text-primary text-[8px] font-bold uppercase tracking-widest rounded-full">Kinetic Efficiency: 88%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="mt-16 flex gap-6">
+            <button class="bg-primary text-black px-12 py-4 rounded-full font-bold uppercase text-[10px] tracking-[0.2em] flex items-center gap-3 active:scale-95 transition-all shadow-lg shadow-primary/20">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"></path></svg>
+                Export Analysis
+            </button>
+            <button class="glass px-12 py-4 rounded-full font-bold uppercase text-[10px] tracking-[0.2em] border border-white/10 text-white hover:bg-white/5 transition-all active:scale-95">
+                Save To Vault
+            </button>
+        </div>
+    </main>
+
+    <!-- Mobile Navigation -->
+    <nav class="md:hidden fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] glass rounded-full px-8 py-4 flex justify-around items-center z-50 border border-white/10 shadow-2xl">
+        <div class="text-primary scale-110"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-width="2"></path></svg></div>
+        <div class="text-slate-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" stroke-width="2"></path><path d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" stroke-width="2"></path></svg></div>
+        <div class="text-slate-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-width="2"></path></svg></div>
+        <div class="text-slate-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" stroke-width="2"></path></svg></div>
+    </nav>
+</body>
+</html>

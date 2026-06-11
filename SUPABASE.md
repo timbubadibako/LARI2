@@ -1,10 +1,10 @@
-# StrideIO — Supabase Integration Guide & Schema (Reference for agents)
+# Lari-Lari — Supabase Integration Guide & Schema (Reference for agents)
 
 Dokumen ini menggabungkan semua kebutuhan Supabase: checklist setup, DDL (SQL) untuk tables & indexes, RLS example, example RPC `claim_hexes`, contoh query client (Dart/Flutter + supabase_flutter), storage & background job notes, dan langkah operasi. Tujuannya: jadi sumber kebenaran yang bisa dipakai agent atau engineer ketika mengintegrasikan backend.
 
 ---
 ## Ringkasan singkat
-StrideIO membutuhkan:
+Lari-Lari membutuhkan:
 - Penyimpanan workout summary + encoded polyline
 - Penyimpanan raw GPS points (workout_points)
 - Hex ownership + claims (H3 indices)

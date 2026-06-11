@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LARI V3 - Precision Slant Header</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@700&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #000; color: #fff; font-family: 'JetBrains Mono', monospace; }
+        .font-bebas { font-family: 'Bebas Neue', cursive; }
+        
+        /* PRECISION SLANT ACCORDING TO IMAGE */
+        .level-patch {
+            background-color: #ccff00;
+            color: #000;
+            padding: 10px 25px 10px 15px;
+            /* Slant from top-right to bottom-left (angle \) */
+            clip-path: polygon(0 0, 100% 0, 75% 100%, 0 100%);
+            z-index: 10;
+            position: relative;
+        }
+
+        .name-patch {
+            background-color: #1a1a1e;
+            color: #fff;
+            padding: 10px 15px 10px 40px;
+            /* Parallel slant to the level patch, starting behind it */
+            clip-path: polygon(15% 0, 100% 0, 100% 100%, 0% 100%);
+            margin-left: -30px; /* Overlap effect */
+            flex: 1;
+        }
+
+        .xp-bar-container {
+            height: 4px;
+            background-color: #000;
+            margin-top: 8px;
+            width: 100%;
+            position: relative;
+        }
+        .xp-bar-fill {
+            height: 100%;
+            background-color: #ccff00;
+            width: 75%;
+            box-shadow: 0 0 10px rgba(204, 255, 0, 0.5);
+        }
+
+        .container {
+            width: 380px;
+            margin: 50px auto;
+        }
+    </style>
+</head>
+<body class="p-10">
+
+    <div class="container space-y-12">
+        <p class="text-zinc-500 text-[10px] uppercase tracking-widest text-center mb-8">Precision Slant Match (V3.1)</p>
+
+        <!-- THE HEADER COMPONENT MATCHING IMAGE -->
+        <div class="flex items-stretch">
+            <!-- LEVEL CARD -->
+            <div class="level-patch flex flex-col justify-center">
+                <span class="text-[9px] font-black tracking-tighter uppercase opacity-70">Level</span>
+                <span class="text-4xl font-bebas leading-none">42</span>
+            </div>
+
+            <!-- NAME & XP CARD -->
+            <div class="name-patch flex flex-col justify-center">
+                <div class="flex justify-between items-baseline">
+                    <span class="text-sm font-black tracking-tighter uppercase italic">AGENT_JRILLYM</span>
+                    <span class="text-[9px] opacity-30">750/1000 XP</span>
+                </div>
+                <!-- XP BAR -->
+                <div class="xp-bar-container">
+                    <div class="xp-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADDITIONAL INFO AREA -->
+        <div class="border-l-4 border-white p-6 bg-zinc-900/30">
+            <p class="text-[10px] text-[#ccff00] mb-2 font-bold uppercase">Location_Broadcast</p>
+            <h2 class="text-5xl font-bebas leading-none tracking-tight">KEC. CILIMUS</h2>
+            <h3 class="text-xl font-bebas text-zinc-500 tracking-widest">KAB. KUNINGAN</h3>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,12 +1,12 @@
-# 🏃‍♂️ StrideIO — Run. Capture. Conquer.
+# 🏃‍♂️ Lari-Lari — Run. Capture. Conquer.
 
-StrideIO adalah aplikasi pelacakan lari dan aktivitas bertema cyberpunk yang dibangun dengan Flutter. Bayangkan Strava, lalu tambahkan elemen game: kamu bisa "merebut" kotak-kotak wilayah (hex tiles) di dunia nyata saat berlari. Aplikasi ini memadukan telemetri serius dengan game mechanics ringan — cocok untuk yang suka lari sekaligus main strategi lokasi.
+Lari-Lari adalah aplikasi pelacakan lari dan aktivitas bertema cyberpunk yang dibangun dengan Flutter. Bayangkan Strava, lalu tambahkan elemen game: kamu bisa "merebut" kotak-kotak wilayah (hex tiles) di dunia nyata saat berlari. Aplikasi ini memadukan telemetri serius dengan game mechanics ringan — cocok untuk yang suka lari sekaligus main strategi lokasi.
 
 > Tagline: "Run the map. Capture the grid. Play the city."
 
 ---
 
-## ✨ Mengapa StrideIO?
+## ✨ Mengapa Lari-Lari?
 - Kita rekam lari layaknya Strava: GPS, jarak, pace, durasi, dan ringkasan setelah lari.
 - Bedanya: setiap langkahmu punya makna game — kamu bisa mengklaim area (H3 hex) untuk faction-mu.
 - Fokus UX: dark cyber/neon theme, polish visual, dan social sharing yang eye-catching.
@@ -31,7 +31,7 @@ StrideIO adalah aplikasi pelacakan lari dan aktivitas bertema cyberpunk yang dib
 
 ## Quick start (dev)
 1. Clone:
-   git clone git@github.com:timbubadibako/StrideIO.git
+   git clone git@github.com:timbubadibako/Lari-Lari.git
 2. Install:
    flutter pub get
 3. Run debug:
@@ -39,7 +39,7 @@ StrideIO adalah aplikasi pelacakan lari dan aktivitas bertema cyberpunk yang dib
 4. Dev menu & fake GPS:
    - Buka app di mode debug → Profile tab → Long-press versi footer → Dev Menu
    - Toggle `Fake GPS` untuk simulasi loop (default OFF)
-   - Untuk internal builds: gunakan --dart-define=STRIDEIO_ALLOW_DEV_MENU=true
+   - Untuk internal builds: gunakan --dart-define=LARI-LARI_ALLOW_DEV_MENU=true
 
 ---
 

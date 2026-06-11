@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LARI V3 - Refined Full Map HUD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;700&family=JetBrains+Mono:wght@500;800&family=Permanent+Marker&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #000; color: #fff; font-family: 'Space Grotesk', sans-serif; margin: 0; overflow: hidden; }
+        .font-bebas { font-family: 'Bebas Neue', cursive; }
+        .font-graffiti { font-family: 'Permanent Marker', cursive; }
+        
+        .container-mobile {
+            width: 380px;
+            height: 800px;
+            border: 8px solid #333;
+            border-radius: 40px;
+            position: relative;
+            overflow: hidden;
+            margin: 20px auto;
+            background-color: #000;
+            box-shadow: 0 0 100px rgba(0,0,0,0.5);
+        }
+
+        /* FULL MAP BACKGROUND */
+        .map-bg {
+            position: absolute;
+            inset: 0;
+            background: url('https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/108.48,-6.98,13,0/800x1200?access_token=pk.eyJ1IjoicGxhY2Vob2xkZXIiLCJhIjoiY2p4eHh4eHh4eHh4eHh4eHh4eHh4eHh4In0.placeholder') center center;
+            background-size: cover;
+            filter: saturate(0.3) contrast(1.1) brightness(0.8);
+        }
+
+        /* HEAVY VIGNETTE */
+        .vignette {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.9) 100%);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* PARALLEL SLANT HEADER (MINIMIZED) */
+        .level-patch {
+            background-color: #ccff00;
+            color: #000;
+            padding: 4px 15px 4px 10px;
+            clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+            z-index: 20;
+        }
+        .name-patch {
+            background-color: rgba(20, 20, 20, 0.85);
+            backdrop-filter: blur(10px);
+            color: #fff;
+            padding: 4px 12px 4px 18px;
+            clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%);
+            margin-left: -12px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .location-box {
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            border-left: 2px solid #fff;
+            padding: 6px 12px;
+        }
+
+        /* COMPACT NEON START BUTTON (SIDE-ALIGNED) */
+        .start-btn-compact {
+            width: 74px;
+            height: 74px;
+            background: #000;
+            border: 2px solid #fff;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 15px rgba(204, 255, 0, 0.1);
+            transform: rotate(-2deg);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: auto;
+        }
+        .start-btn-compact:hover { border-color: #ccff00; transform: rotate(0deg) scale(1.05); }
+        .start-btn-compact:active { transform: scale(0.9); }
+
+        /* SKEWED NAV ISLAND (CENTERED) */
+        .nav-island-minimal {
+            background: rgba(255,255,255,0.95);
+            padding: 1px;
+            transform: skewX(3deg);
+            width: 80%;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+
+        .nav-inner {
+            background: #000;
+            padding: 12px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-icon { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); }
+        .nav-icon.active { background: #ccff00; border-color: #ccff00; box-shadow: 0 0 12px #ccff00; }
+        .nav-icon.diamond { transform: rotate(45deg); }
+        .nav-icon.circle { border-radius: 50%; }
+
+    </style>
+</head>
+<body class="bg-zinc-950 flex flex-col items-center py-10">
+
+    <div class="container-mobile">
+        <!-- MAP LAYER -->
+        <div class="map-bg"></div>
+        <div class="vignette"></div>
+
+        <!-- HUD LAYER -->
+        <div class="absolute inset-0 z-10 p-7 flex flex-col pointer-events-none">
+            
+            <!-- TOP SECTION -->
+            <div class="flex items-stretch pointer-events-auto">
+                <div class="level-patch flex flex-col justify-center">
+                    <span class="text-[10px] font-bebas leading-none">L42</span>
+                </div>
+                <div class="name-patch flex flex-col justify-center">
+                    <span class="text-[10px] font-bold tracking-tight uppercase opacity-90">Agent_Jrilym</span>
+                </div>
+            </div>
+
+            <div class="mt-5 location-box pointer-events-auto w-fit">
+                <p class="text-[8px] font-bold text-zinc-500 uppercase tracking-[0.2em]">Current Location</p>
+                <h2 class="text-xl font-bebas leading-none tracking-wide text-white">Cilimus, Kuningan</h2>
+            </div>
+
+            <!-- MIDDLE AREA (CLEAR FOR MAP) -->
+            <div class="flex-1"></div>
+
+            <!-- BOTTOM SECTION -->
+            <div class="space-y-8 w-full pointer-events-auto">
+                
+                <!-- START BUTTON ROW (RIGHT ALIGNED) -->
+                <div class="flex justify-end pr-2">
+                    <div class="flex flex-col items-end gap-3">
+                        <span class="text-[8px] font-black bg-white text-black px-2 py-0.5 skew-x-[-12deg] tracking-widest">READY_TO_RUN</span>
+                        <button class="start-btn-compact group">
+                            <span class="font-graffiti text-3xl text-[#ccff00] group-hover:scale-110 transition-transform">LARI</span>
+                            <span class="text-[7px] font-black text-white mt-[-2px] tracking-widest opacity-40">START</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- NAV BAR (CENTERED) -->
+                <div class="flex justify-center">
+                    <div class="nav-island-minimal">
+                        <div class="nav-inner">
+                            <div class="nav-icon active"></div>
+                            <div class="nav-icon diamond"></div>
+                            <div class="nav-icon"></div>
+                            <div class="nav-icon circle"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SYSTEM FOOTER -->
+                <div class="text-center pb-2">
+                    <p class="text-[7px] font-mono opacity-20 tracking-[0.6em] uppercase">LARI_GRID_LINK_V3.3</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-xl text-center mt-6 text-zinc-500 text-xs space-y-2">
+        <p><strong class="text-zinc-300 uppercase">V3 Refined Features:</strong> Dashboard ini menggunakan Opsi A (Peta Penuh) dengan HUD minimalis. </p>
+        <p>Tombol <span class="text-[#ccff00]">START</span> dipindah ke sisi kanan dengan gaya asimetris untuk membebaskan pandangan ke pusat peta.</p>
+    </div>
+
+</body>
+</html>
