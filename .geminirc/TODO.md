@@ -42,3 +42,24 @@
 - [x] **Conquest Engine:** Integrate `ST_Polygonize` for loop-to-territory conversion.
 - [x] **Cleanup Worker:** Build background cron for expired trail pruning.
 - [x] **Swagger Sync:** Document all spatial endpoints with Swaggo.
+
+## Phase 7: Advanced Tactical & Real-time (Completed)
+- [x] **WebSocket Uplink:** Real-time mission activity broadcast in War Room (Go + StreamProvider).
+- [x] **Identity Recon:** Profile stats (KM, Sectors, Rank) synced with real DB metrics.
+- [x] **Swipe Navigation:** Lateral PageView transitions for History, War Room, and Profile.
+- [x] **Boundary Physics:** Implemented `ClampingScrollPhysics` for a solid UI wall.
+- [x] **Auth Hardening:** Strictly rectangular buttons and square ripple effects.
+- [x] **Session Persistence:** Keep login state across app restarts using SharedPreferences.
+
+## Phase 8: Strategic Operations HQ (Next Focus)
+- [ ] **Faction HQ (Guilds):** Implement full guild management in `GuildScreen` (Members, Alliances).
+- [ ] **System Configuration (Settings):** Implement account updates, privacy toggles, and unit selection.
+- [ ] **Debug Console 2.0:** Add live Hive/Local DB inspector to the `DebugScreen`.
+- [ ] **Graffiti Signature Engine:** Implement custom drawing canvas for territory marking.
+- [ ] **Audio/Haptic Detail:** Add robotic UI sound effects and complex haptic patterns.
+
+## Current System State (2026-06-12)
+- **Backend:** Go Echo Server + PostGIS active. WebSocket hub online at `/ws`.
+- **Frontend:** Flutter + Riverpod. Persistent login session enabled.
+- **UI:** Street Rebel V3 theme fully applied with tactical headers and swipeable tabs.
+

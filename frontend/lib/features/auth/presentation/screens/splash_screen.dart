@@ -35,7 +35,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   }
 
   Future<void> _startTransition() async {
-    await Future.delayed(const Duration(seconds: 3));
+    // 1. Initialize persistent session from disk
+    await ref.read(authControllerProvider).initSession();
+    
+    // 2. Short delay for visual immersion
+    await Future.delayed(const Duration(seconds: 2));
     
     if (!mounted) return;
 

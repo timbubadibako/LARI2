@@ -1,16 +1,39 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/config/api_config.dart';
 import '../../../core/services/supabase_logger.dart';
 import '../../../dev/dev_providers.dart';
 
 class CurrentUserSessionNotifier extends Notifier<String?> {
+  static const String _sessionKey = 'lari_session_user_id';
+
   @override
-  String? build() => null;
+  String? build() {
+    // We can't do async load here directly, but we can return null and let AuthController load it.
+    // Or we can use a FutureProvider for the Initial load.
+    // Let's stick to a simpler approach: AuthController handles the SharedPreferences.
+    return null;
+  }
 
   void setSession(String? userId) {
     state = userId;
+    _persistSession(userId);
+  }
+
+  Future<void> _persistSession(String? userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (userId == null) {
+      await prefs.remove(_sessionKey);
+    } else {
+      await prefs.setString(_sessionKey, userId);
+    }
+  }
+
+  Future<void> loadSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getString(_sessionKey);
   }
 }
 
@@ -34,6 +57,10 @@ class AuthController {
   String? get currentUser => currentUserId;
 
   bool get _logEnabled => _ref.read(supabaseDevLogEnabledProvider);
+
+  Future<void> initSession() async {
+    await _ref.read(currentUserSessionProvider.notifier).loadSession();
+  }
 
   Future<void> resetPasswordForEmail(String email) async {
     // TODO: Implement API call
