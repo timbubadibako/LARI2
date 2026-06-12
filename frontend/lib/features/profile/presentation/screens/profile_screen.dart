@@ -4,9 +4,11 @@ import '../../../../ui/theme/stride_colors.dart';
 import '../../../../ui/theme/stride_typography.dart';
 import '../../../../ui/components/v3_shapes.dart';
 import '../../../../ui/components/tactical_header.dart';
+import '../../../../dev/debug_screen.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../application/profile_controller.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -28,13 +30,13 @@ class ProfileScreen extends ConsumerWidget {
             actions: [
               TacticalIconButton(
                 onPressed: () {
-                  // TODO: Navigate to Debug screen
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DebugScreen()));
                 },
                 icon: Icons.bug_report_outlined,
               ),
               TacticalIconButton(
                 onPressed: () {
-                  // TODO: Navigate to Settings
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
                 },
                 icon: Icons.settings,
               ),

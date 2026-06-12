@@ -8,6 +8,7 @@ import '../../../../ui/components/tactical_header.dart';
 import '../../application/social_controller.dart';
 import '../../domain/models/social_models.dart';
 import '../../../auth/application/auth_controller.dart';
+import 'guild_screen.dart';
 
 class SocialScreen extends ConsumerStatefulWidget {
   const SocialScreen({super.key});
@@ -74,7 +75,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
               TacticalIconButton(
                 onPressed: () {
                   HapticFeedback.lightImpact();
-                  // TODO: Implement Faction/Guild settings
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GuildScreen()));
                 },
                 icon: Icons.shield_outlined,
               ),
