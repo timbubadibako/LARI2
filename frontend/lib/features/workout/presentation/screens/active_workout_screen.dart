@@ -256,8 +256,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                                 Text('SECTOR_INTELLIGENCE', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textSecondary.withOpacity(0.5))),
                                 ref.watch(currentAddressProvider).when(
                                   data: (address) => Text(address, style: StrideTypography.labelBold.copyWith(fontSize: 11)),
-                                  loading: () => Text('SYNCING...', style: StrideTypography.labelBold.copyWith(fontSize: 11, color: StrideColors.textSecondary)),
-                                  error: (e, s) => Text('OFFLINE', style: StrideTypography.labelBold.copyWith(fontSize: 11, color: StrideColors.error)),
+                                  loading: () => Text('SYNCING_GRID...', style: StrideTypography.labelBold.copyWith(fontSize: 11, color: StrideColors.textSecondary.withOpacity(0.5))),
+                                  error: (e, s) => Text('OFFLINE_GRID', style: StrideTypography.labelBold.copyWith(fontSize: 11, color: StrideColors.error.withOpacity(0.5))),
                                 ),
                               ],
                             ),

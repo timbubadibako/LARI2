@@ -242,18 +242,25 @@ class FakeLocationService implements TrackingSource {
   void _emitNextSample() {
     if (_controller == null || _controller!.isClosed || _isPaused) return;
 
-    PositionSample sample;
-    switch (_config.scenario) {
-      case FakeScenario.lasso:
-        sample = _generateLassoSample();
-        break;
-      case FakeScenario.circular:
-      default:
-        sample = _generateCircularSample();
-    }
+    try {
+      PositionSample sample;
+      switch (_config.scenario) {
+        case FakeScenario.lasso:
+          sample = _generateLassoSample();
+          break;
+        case FakeScenario.circular:
+        default:
+          sample = _generateCircularSample();
+      }
 
-    _controller!.add(sample);
-    _emittedSamples++;
+      if (_controller != null && !_controller!.isClosed) {
+        _controller!.add(sample);
+        _emittedSamples++;
+      }
+    } catch (e, stack) {
+      debugPrint('FAKE_LOCATION_EMIT_ERROR: $e\n$stack');
+      // Don't stop the timer, maybe next one works, or we could stop it if critical
+    }
   }
 
   PositionSample _generateCircularSample() {

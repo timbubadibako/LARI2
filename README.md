@@ -18,14 +18,14 @@ Lari-Lari adalah aplikasi pelacakan lari dan aktivitas bertema cyberpunk yang di
   - Real-time distance, pace, elapsed time, dan visual route polyline.
 - ⬡ Hex Grid Domination (H3)
   - Lewati hex untuk jadi calon klaim; nanti server akan memvalidasi klaim-area.
-- 👻 Ghost Mode
-  - Rekam tanpa mempublikasi / tanpa klaim wilayah.
-- 🗺️ Auto-fitting Post-Run Summary
-  - Map hero, filled polygon untuk loop tertutup, dan stat cards.
+- ⚔️ Faction HQ & Dominion
+  - Pilih aliansi (Guild) dan klaim wilayah untuk timmu. Visualisasi real-time dominasi global.
+- 🎨 Graffiti Signature Engine
+  - Gambar tag taktismu sendiri untuk menandai wilayah yang dikuasai.
+- 🧪 Debug Console 2.0
+  - Inspektor Hive, SharedPreferences, dan sistem log real-time untuk developer.
 - 📸 Social Grid Sharing
   - 7 templated share images (cyber-grid) yang bisa langsung ke Instagram/WhatsApp/Strava.
-- 🧪 Dev Tools: Fake GPS (Dev Menu)
-  - Simulasi loop (5km/30min dll) untuk QA tanpa keluar rumah.
 
 ---
 
@@ -66,9 +66,13 @@ Lari-Lari adalah aplikasi pelacakan lari dan aktivitas bertema cyberpunk yang di
 
 ---
 
-## Roadmap (singkat)
+## Documentation
+- [Architecture Overview](.geminirc/ARCHITECTURE.md)
+- [Tactical Testing Guide](docs/TESTING_TACTICAL.md)
+- [Advanced Algorithms & Game Mechanics](docs/ALGORITHMS_AND_MECHANICS.md)
 - MVP complete: Dashboard, Active run, Post-run summary, Share (7 templates) — DONE
-- Next: Social (Party, QR sync, presence), Profile finish, Server claim RPC + PostGIS validation
+- Social & Strategic HQ: Guilds, Settings, Graffiti Engine, WebSocket Activity — DONE
+- Next: District Conquest Maps, Agent Alliances, Vulnerability Radar, Advanced Telemetry.
 - Later: Anti-cheat, wearables, realtime presence filters
 
 ---

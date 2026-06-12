@@ -51,6 +51,7 @@ func main() {
 	guildHandler := api.NewGuildHandler(dbPool)
 	profileHandler := api.NewProfileHandler(dbPool)
 	territoryHandler := api.NewTerritoryHandler(dbPool)
+	graffitiHandler := api.NewGraffitiHandler(dbPool)
 	wsHandler := api.NewWebSocketHandler(wsHub)
 
 	// Initialize Workers
@@ -96,13 +97,19 @@ func main() {
 	e.GET("/guilds", guildHandler.GetGuilds)
 	e.GET("/guilds/dominion", guildHandler.GetFactionDominion)
 	e.POST("/guilds/join", guildHandler.JoinGuild)
+	e.POST("/guilds/leave", guildHandler.LeaveGuild)
 
 	// Profile Routes
 	e.GET("/profiles/:id", profileHandler.GetProfile)
+	e.PUT("/profiles/:id", profileHandler.UpdateProfile)
 
 	// Territory Routes
 	e.GET("/territories", territoryHandler.GetAllTerritories)
 	e.GET("/territories/:userId", territoryHandler.GetUserTerritories)
+
+	// Graffiti Routes
+	e.POST("/graffiti", graffitiHandler.PostGraffiti)
+	e.GET("/graffiti", graffitiHandler.GetRecentGraffiti)
 
 	// Start server
 	log.Printf("Starting server on port %s", cfg.Port)

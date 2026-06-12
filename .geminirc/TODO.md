@@ -51,15 +51,21 @@
 - [x] **Auth Hardening:** Strictly rectangular buttons and square ripple effects.
 - [x] **Session Persistence:** Keep login state across app restarts using SharedPreferences.
 
-## Phase 8: Strategic Operations HQ (Next Focus)
-- [ ] **Faction HQ (Guilds):** Implement full guild management in `GuildScreen` (Members, Alliances).
-- [ ] **System Configuration (Settings):** Implement account updates, privacy toggles, and unit selection.
-- [ ] **Debug Console 2.0:** Add live Hive/Local DB inspector to the `DebugScreen`.
-- [ ] **Graffiti Signature Engine:** Implement custom drawing canvas for territory marking.
-- [ ] **Audio/Haptic Detail:** Add robotic UI sound effects and complex haptic patterns.
+## Phase 8: Strategic Operations HQ (Completed)
+- [x] **Faction HQ (Guilds):** Implement full guild management in `GuildScreen` (Members, Alliances).
+- [x] **System Configuration (Settings):** Implement account updates, privacy toggles, and unit selection.
+- [x] **Debug Console 2.0:** Add live Hive/Local DB inspector to the `DebugScreen`.
+- [x] **Graffiti Signature Engine:** Implement custom drawing canvas for territory marking.
+- [x] **Audio/Haptic Detail:** Add robotic UI sound effects (Pending assets) and complex haptic patterns (Implemented).
+
+## Phase 9: Tactical Expansion (Next Focus)
+- [ ] **District Conquest Maps:** Implement a zoomed-out view of all conquered sectors in a district.
+- [ ] **Agent Alliances:** Implement friend requests and joint conquest missions.
+- [ ] **Vulnerability Radar:** Show "weak" sectors that are about to expire (TTL < 12h).
+- [ ] **Advanced Telemetry:** Add elevation gain and heart rate (if available) to the workout HUD.
 
 ## Current System State (2026-06-12)
-- **Backend:** Go Echo Server + PostGIS active. WebSocket hub online at `/ws`.
-- **Frontend:** Flutter + Riverpod. Persistent login session enabled.
-- **UI:** Street Rebel V3 theme fully applied with tactical headers and swipeable tabs.
+- **Backend:** Go Echo Server + PostGIS active. WebSocket hub online. Guild and Profile update APIs implemented.
+- **Frontend:** Flutter + Riverpod. Persistent login session. Tactical UI with Guilds, Settings, Debug, and Signature screens active.
+- **UI:** Street Rebel V3 theme fully applied. Graffiti Signature Engine integrated into Agent Dossier.
 

@@ -157,18 +157,19 @@ class TacticalHeader extends StatelessWidget {
 // Tactical Icon Button for Actions
 class TacticalIconButton extends StatelessWidget {
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final Color color;
 
   const TacticalIconButton({
     super.key,
     required this.icon,
-    required this.onPressed,
+    this.onPressed,
     this.color = StrideColors.white,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDisabled = onPressed == null;
     return GestureDetector(
       onTap: onPressed,
       child: V3SkewBox(
@@ -178,9 +179,16 @@ class TacticalIconButton extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: StrideColors.surface,
-            border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+            border: Border.all(
+              color: isDisabled ? color.withOpacity(0.05) : color.withOpacity(0.3), 
+              width: 1.5,
+            ),
           ),
-          child: Icon(icon, color: color, size: 20),
+          child: Icon(
+            icon, 
+            color: isDisabled ? color.withOpacity(0.1) : color, 
+            size: 20,
+          ),
         ),
       ),
     );

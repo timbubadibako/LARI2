@@ -5,6 +5,7 @@ import '../../../../ui/theme/stride_colors.dart';
 import '../../../../ui/theme/stride_typography.dart';
 import '../../../../ui/components/v3_shapes.dart';
 import '../../../../ui/components/tactical_header.dart';
+import '../../../../ui/components/signature_painter.dart';
 import '../../application/social_controller.dart';
 import '../../domain/models/social_models.dart';
 import '../../../auth/application/auth_controller.dart';
@@ -37,9 +38,16 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
 
   Future<void> _onRefresh() async {
     HapticFeedback.mediumImpact();
-    ref.invalidate(factionDominionProvider);
-    ref.invalidate(leaderboardProvider('KEC-GLOBAL'));
-    ref.invalidate(globalActivityProvider);
+    try {
+      await Future.wait([
+        ref.refresh(factionDominionProvider.future),
+        ref.refresh(leaderboardProvider('KEC-GLOBAL').future),
+        ref.refresh(globalActivityProvider.future),
+        ref.refresh(recentGraffitiProvider.future),
+      ]);
+    } catch (e) {
+      debugPrint('REFRESH_ERROR: $e');
+    }
   }
 
   @override
@@ -59,6 +67,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
     final dominionAsync = ref.watch(factionDominionProvider);
     final leaderboardAsync = ref.watch(leaderboardProvider('KEC-GLOBAL'));
     final activityAsync = ref.watch(globalActivityProvider);
+    final graffitiAsync = ref.watch(recentGraffitiProvider);
     final currentUserId = ref.watch(currentUserSessionProvider);
 
     return Scaffold(
@@ -80,7 +89,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                 icon: Icons.shield_outlined,
               ),
               TacticalIconButton(
-                onPressed: _onRefresh,
+                onPressed: () => _onRefresh(),
                 icon: Icons.refresh,
               ),
             ],
@@ -111,7 +120,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                             ],
                           ),
                       loading: () => _buildLoadingSection(80),
-                      error: (e, s) => _buildErrorSection('DOMINION_OFFLINE: ${e.toString().split(':').last.trim()}'),
+                      error: (e, s) => _buildErrorSection('DOMINION_OFFLINE: ${e.toString()}'),
                     ),
 
                     // TOP OPERATIVES
@@ -135,40 +144,68 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                             ],
                           ),
                       loading: () => _buildLoadingSection(120),
-                      error: (e, s) => _buildErrorSection('LEADERBOARD_DISRUPTED'),
+                      error: (e, s) => _buildErrorSection('LEADERBOARD_OFFLINE: ${e.toString()}'),
                     ),
 
-                    // RECENT GLOBAL ACTIVITY
-                    activityAsync.when(
-                      data: (activities) => activities.isEmpty 
+                    // GRAFFITI WALL
+                    graffitiAsync.when(
+                      data: (tags) => tags.isEmpty 
                         ? const SizedBox.shrink() 
                         : Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _sectionHeader('RECENT_GLOBAL_ACTIVITY'),
+                              _sectionHeader('GLOBAL_GRAFFITI_WALL'),
                               const SizedBox(height: 16),
-                              ...activities.map((a) {
-                                final paceSec = a.distanceKm > 0 ? (a.durationSec / a.distanceKm) : 0.0;
-                                final paceStr = paceSec > 0 
-                                    ? '${(paceSec / 60).floor().toString().padLeft(2, '0')}:${(paceSec % 60).floor().toString().padLeft(2, '0')}' 
-                                    : '--:--';
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: _buildGlobalMissionDossier(
-                                    a.displayName,
-                                    a.status == 'captured' ? 'GRID_SECURED_OP_${a.id.substring(0, 3).toUpperCase()}' : 'RECON_MISSION_ABORTED',
-                                    a.status.toUpperCase(),
-                                    a.color,
-                                    '${a.distanceKm.toStringAsFixed(1)}KM',
-                                    paceStr,
-                                  ),
-                                );
-                              }),
+                              SizedBox(
+                                height: 120,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: tags.length,
+                                  itemBuilder: (context, index) {
+                                    final tag = tags[index];
+                                    return _buildGraffitiTag(tag);
+                                  },
+                                ),
+                              ),
                               const SizedBox(height: 48),
                             ],
                           ),
+                      loading: () => _buildLoadingSection(100),
+                      error: (e, s) => _buildErrorSection('GRAFFITI_OFFLINE: ${e.toString()}'),
+                    ),
+
+                    // RECENT GLOBAL ACTIVITY
+                    activityAsync.when(
+                      data: (activities) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _sectionHeader('RECENT_GLOBAL_ACTIVITY'),
+                          const SizedBox(height: 16),
+                          if (activities.isEmpty)
+                            _buildEmptyState('NO_MISSION_INTEL', 'Waiting for agents to report...')
+                          else
+                            ...activities.map((a) {
+                              final paceSec = a.distanceKm > 0 ? (a.durationSec / a.distanceKm) : 0.0;
+                              final paceStr = paceSec > 0 
+                                  ? '${(paceSec / 60).floor().toString().padLeft(2, '0')}:${(paceSec % 60).floor().toString().padLeft(2, '0')}' 
+                                  : '--:--';
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _buildGlobalMissionDossier(
+                                  a.displayName,
+                                  a.status == 'captured' ? 'GRID_SECURED_OP_${a.id.substring(0, 3).toUpperCase()}' : 'RECON_MISSION_ABORTED',
+                                  a.status.toUpperCase(),
+                                  a.color,
+                                  '${a.distanceKm.toStringAsFixed(1)}KM',
+                                  paceStr,
+                                ),
+                              );
+                            }),
+                          const SizedBox(height: 48),
+                        ],
+                      ),
                       loading: () => _buildLoadingSection(200),
-                      error: (e, s) => _buildErrorSection('FEED_DATA_LOST'),
+                      error: (e, s) => _buildErrorSection('FEED_OFFLINE: ${e.toString()}'),
                     ),
 
                     // NO DATA STATE (If all are empty)
@@ -333,6 +370,57 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
     );
   }
 
+  Widget _buildGraffitiTag(Graffiti tag) {
+    return Container(
+      width: 160,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: StrideColors.surface,
+        border: Border.all(color: StrideColors.white.withOpacity(0.05)),
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.5,
+              child: CustomPaint(
+                painter: SignaturePainter(
+                  strokes: tag.strokes,
+                  color: tag.color,
+                  strokeWidth: 2.0,
+                  scale: 0.4, // Scale down for preview
+                  showGlow: true,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 8,
+            left: 8,
+            right: 8,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    tag.displayName.toUpperCase(),
+                    style: StrideTypography.labelBold.copyWith(fontSize: 7, color: tag.color),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  'TAG_${tag.id.substring(0, 4)}',
+                  style: StrideTypography.labelTactical.copyWith(fontSize: 6, color: StrideColors.textMuted),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildGlobalMissionDossier(String agent, String title, String status, Color color, String dist, String pace) {
     final isCaptured = status == 'CAPTURED';
     return Container(
@@ -456,7 +544,27 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
         children: [
           Icon(Icons.error_outline, color: StrideColors.error, size: 16),
           const SizedBox(width: 12),
-          Text(message, style: StrideTypography.labelTactical.copyWith(color: StrideColors.error, fontSize: 8)),
+          Expanded(child: Text(message, style: StrideTypography.labelTactical.copyWith(color: StrideColors.error, fontSize: 8))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String title, String subtitle) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: StrideColors.surface,
+        border: Border.all(color: StrideColors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.radar_outlined, color: StrideColors.textMuted, size: 32),
+          const SizedBox(height: 12),
+          Text(title, style: StrideTypography.labelBold.copyWith(fontSize: 10, color: StrideColors.textMuted)),
+          const SizedBox(height: 4),
+          Text(subtitle, style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textMuted.withOpacity(0.5))),
         ],
       ),
     );

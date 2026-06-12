@@ -15,11 +15,30 @@ func NewSpatialEngine(db *pgxpool.Pool) *SpatialEngine {
 	return &SpatialEngine{db: db}
 }
 
+// MapMatchPoints attempts to snap points to the nearest road using a map-matching algorithm.
+// For now, it returns the original points but serves as the entry point for OSRM/GraphHopper integration.
+func (s *SpatialEngine) MapMatchPoints(ctx context.Context, points []Point) ([]Point, error) {
+	// TODO: Integrate with local OSRM instance:
+	// 1. Send points to OSRM /match service
+	// 2. Parse the snapped coordinates
+	// 3. Return the 'cleaned' path
+
+	// Tactical Note: Off-road points should NOT be snapped if the distance to road is > 20m.
+	// This ensures agents running in parks/fields keep their original path.
+	return points, nil
+}
+
 // ProcessConquest handles the "Elastic Trails" and Loop Detection logic.
-// It returns the area of any newly closed loops.
 func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, points []Point) (float64, error) {
+	// A. Snap to Road first to increase accuracy
+	snappedPoints, err := s.MapMatchPoints(ctx, points)
+	if err == nil {
+		points = snappedPoints
+	}
+
 	// 1. Create a WKT LineString from points
 	wktLine := s.pointsToWKT(points)
+...
 
 	// 2. Check for "Integrity Protocol" (Connection to pending trails)
 	// We'll use a SQL transaction to handle atomic trail updates

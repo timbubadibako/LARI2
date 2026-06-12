@@ -6,6 +6,7 @@ class PositionSample {
   final double? altitudeMeters;
   final double? speedMps;
   final double? bearingDeg;
+  final bool isEstimated;
 
   PositionSample({
     required this.ts,
@@ -15,6 +16,7 @@ class PositionSample {
     this.altitudeMeters,
     this.speedMps,
     this.bearingDeg,
+    this.isEstimated = false,
   });
 
   Map<String, dynamic> toJson() {
@@ -26,6 +28,7 @@ class PositionSample {
       'altitudeMeters': altitudeMeters,
       'speedMps': speedMps,
       'bearingDeg': bearingDeg,
+      'isEstimated': isEstimated,
     };
   }
 
@@ -44,6 +47,7 @@ class PositionSample {
       bearingDeg: json['bearingDeg'] != null
           ? (json['bearingDeg'] as num).toDouble()
           : null,
+      isEstimated: json['isEstimated'] as bool? ?? false,
     );
   }
 }

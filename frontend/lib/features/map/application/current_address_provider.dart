@@ -11,11 +11,11 @@ final currentAddressProvider = FutureProvider<String>((ref) async {
   return positionAsync.when(
     data: (position) async {
       try {
-        // 2. Perform reverse geocoding
+        // 2. Perform reverse geocoding with timeout
         List<Placemark> placemarks = await placemarkFromCoordinates(
           position.lat,
           position.lng,
-        );
+        ).timeout(const Duration(seconds: 5));
 
         if (placemarks.isNotEmpty) {
           final p = placemarks.first;

@@ -10,6 +10,7 @@ import '../../application/current_address_provider.dart';
 import '../../../workout/presentation/screens/active_workout_screen.dart';
 import '../../../workout/application/workout_controller.dart';
 import '../../../profile/application/profile_controller.dart';
+import '../../../../core/domain/models/user_profile.dart';
 import '../../../../core/domain/models/workout_session.dart';
 
 class MapDashboardScreen extends ConsumerStatefulWidget {
@@ -49,6 +50,12 @@ class _MapDashboardScreenState extends ConsumerState<MapDashboardScreen> {
     final profileAsync = ref.watch(profileControllerProvider);
     final addressAsync = ref.watch(currentAddressProvider);
     final workout = ref.watch(workoutControllerProvider);
+
+    if (profileAsync.hasValue) {
+      debugPrint('DASHBOARD_PROFILE: ${profileAsync.value?.displayName} (Level: ${profileAsync.value?.level})');
+    } else if (profileAsync.hasError) {
+      debugPrint('DASHBOARD_PROFILE_ERROR: ${profileAsync.error}');
+    }
 
     final minutes = (workout.durationSeconds / 60).floor();
     final seconds = workout.durationSeconds % 60;
@@ -91,7 +98,12 @@ class _MapDashboardScreenState extends ConsumerState<MapDashboardScreen> {
                   // MINIMIZED HEADER (REAL DATA)
                   profileAsync.when(
                     data: (profile) {
-                      if (profile == null) return const SizedBox.shrink();
+                      final effectiveProfile = profile ?? UserProfile(
+                        userId: 'unknown',
+                        displayName: 'GHOST_AGENT',
+                        level: 0,
+                      );
+                      
                       return Row(
                         children: [
                           V3SlantBox(
@@ -104,7 +116,7 @@ class _MapDashboardScreenState extends ConsumerState<MapDashboardScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text('LVL', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.background)),
-                                  Text('${profile.level}', style: StrideTypography.headlineMD.copyWith(fontSize: 24, color: StrideColors.background)),
+                                  Text('${effectiveProfile.level}', style: StrideTypography.headlineMD.copyWith(fontSize: 24, color: StrideColors.background)),
                                 ],
                               ),
                             ),
@@ -125,7 +137,7 @@ class _MapDashboardScreenState extends ConsumerState<MapDashboardScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(profile.displayNameOrFallback.toUpperCase(), style: StrideTypography.labelBold.copyWith(fontSize: 10)),
+                                  Text(effectiveProfile.displayNameOrFallback.toUpperCase(), style: StrideTypography.labelBold.copyWith(fontSize: 10)),
                                   const SizedBox(height: 4),
                                   Container(
                                     width: 80,
@@ -133,7 +145,7 @@ class _MapDashboardScreenState extends ConsumerState<MapDashboardScreen> {
                                     color: StrideColors.background,
                                     child: FractionallySizedBox(
                                       alignment: Alignment.centerLeft,
-                                      widthFactor: (profile.xp % 1000) / 1000,
+                                      widthFactor: (effectiveProfile.xp % 1000) / 1000,
                                       child: Container(color: StrideColors.neonGreen),
                                     ),
                                   ),
@@ -144,8 +156,36 @@ class _MapDashboardScreenState extends ConsumerState<MapDashboardScreen> {
                         ],
                       );
                     },
-                    loading: () => const SizedBox(height: 50, child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: StrideColors.neonGreen))),
-                    error: (e, s) => const SizedBox.shrink(),
+                    loading: () => Row(
+                      children: [
+                        V3SlantBox(
+                          slantWidth: 15,
+                          isRightSlant: true,
+                          color: StrideColors.surface,
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: SizedBox(width: 24, height: 24),
+                          ),
+                        ),
+                        V3SlantBox(
+                          slantWidth: 15,
+                          isLeftSlant: true,
+                          color: StrideColors.surface.withOpacity(0.4),
+                          child: Container(
+                            width: 120,
+                            padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
+                            child: Text('SYNCING...', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textMuted)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    error: (e, s) => Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: StrideColors.error, size: 16),
+                        const SizedBox(width: 8),
+                        Text('LINK_FAILURE', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.error)),
+                      ],
+                    ),
                   ),
 
                   const SizedBox(height: 24),

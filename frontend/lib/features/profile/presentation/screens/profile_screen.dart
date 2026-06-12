@@ -1,17 +1,32 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../ui/theme/stride_colors.dart';
 import '../../../../ui/theme/stride_typography.dart';
 import '../../../../ui/components/v3_shapes.dart';
 import '../../../../ui/components/tactical_header.dart';
+import '../../../../ui/components/signature_painter.dart';
 import '../../../../dev/debug_screen.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../application/profile_controller.dart';
 import 'settings_screen.dart';
+import 'signature_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
+
+  List<List<Offset>> _parseSignature(String? data) {
+    if (data == null || data.isEmpty) return [];
+    try {
+      final List<dynamic> jsonStrokes = jsonDecode(data);
+      return jsonStrokes.map((stroke) => 
+        (stroke as List).map((o) => Offset((o['x'] as num).toDouble(), (o['y'] as num).toDouble())).toList()
+      ).toList();
+    } catch (e) {
+      return [];
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -60,36 +75,74 @@ class ProfileScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
                   Text('SIGNATURE_TAG', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textPrimary.withOpacity(0.4))),
                   const SizedBox(height: 12),
-                  Container(
-                    height: 120,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: StrideColors.surface,
-                      border: Border.all(color: StrideColors.white.withOpacity(0.05)),
-                    ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Background watermark
-                        Text('VERIFIED', style: StrideTypography.displayXL.copyWith(fontSize: 60, color: StrideColors.white.withOpacity(0.02))),
-                        
-                        Transform.rotate(
-                          angle: -0.05,
-                          child: Text('JRILLYM_01', style: StrideTypography.graffitiStyle.copyWith(fontSize: 32, color: StrideColors.neonGreen)),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SignatureScreen()));
+                    },
+                    child: Container(
+                      height: 120,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: StrideColors.surface,
+                        border: Border.all(color: StrideColors.white.withOpacity(0.05)),
+                      ),
+                      child: profileAsync.when(
+                        data: (profile) {
+                          final strokes = _parseSignature(profile?.signatureData);
+                          final hasSignature = strokes.isNotEmpty;
+                          
+                          return Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Background watermark
+                              Text('VERIFIED', style: StrideTypography.displayXL.copyWith(fontSize: 60, color: StrideColors.white.withOpacity(0.02))),
+                              
+                              if (hasSignature)
+                                Center(
+                                  child: CustomPaint(
+                                    painter: SignaturePainter(
+                                      strokes: strokes,
+                                      scale: 0.35, // Scale down to fit the preview
+                                      strokeWidth: 3.0,
+                                    ),
+                                    size: const Size(double.infinity, 120),
+                                  ),
+                                )
+                              else
+                                Transform.rotate(
+                                  angle: -0.05,
+                                  child: Text(profile?.displayNameOrFallback.toUpperCase() ?? 'AGENT_ID', style: StrideTypography.graffitiStyle.copyWith(fontSize: 32, color: StrideColors.neonGreen.withOpacity(0.3))),
+                                ),
+                                
+                              Positioned(
+                                bottom: 12,
+                                right: 12,
+                                child: V3SkewBox(
+                                  skewAmount: -0.15,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    color: StrideColors.white.withOpacity(0.1),
+                                    child: Text(hasSignature ? 'UPDATE_TAG' : 'CREATE_TAG', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.white)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                        loading: () => Center(
+                          child: Text('LOADING_ENCRYPTION...', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textMuted))
                         ),
-                        Positioned(
-                          bottom: 12,
-                          right: 12,
-                          child: V3SkewBox(
-                            skewAmount: -0.15,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              color: StrideColors.white.withOpacity(0.1),
-                              child: Text('EDIT_TAG', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.white)),
-                            ),
-                          ),
+                        error: (e, s) => Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.wifi_off, color: StrideColors.error, size: 16),
+                              const SizedBox(height: 4),
+                              Text('UPLINK_OFFLINE', style: StrideTypography.labelTactical.copyWith(fontSize: 6, color: StrideColors.error)),
+                            ],
+                          )
                         ),
-                      ],
+                      ),
                     ),
                   ),
 
@@ -118,8 +171,20 @@ class ProfileScreen extends ConsumerWidget {
                         ],
                       );
                     },
-                    loading: () => const Center(child: CircularProgressIndicator(color: StrideColors.neonGreen)),
-                    error: (e, s) => Text('DATA_CORRUPTED', style: StrideTypography.labelBold.copyWith(color: StrideColors.error)),
+                    loading: () => Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: _buildStatsCard('TOTAL_CAPTURE', '...', 'KM', StrideColors.neonGreen.withOpacity(0.2))),
+                            const SizedBox(width: 12),
+                            Expanded(child: _buildStatsCard('SECTORS_HELD', '...', 'GRIDS', StrideColors.white.withOpacity(0.2))),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text('SYNCING_DOSSIER...', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted)),
+                      ],
+                    ),
+                    error: (e, s) => _buildStatsCard('DATA_CORRUPTED', 'ERR', 'OFFLINE', StrideColors.error),
                   ),
 
                   const SizedBox(height: 48),

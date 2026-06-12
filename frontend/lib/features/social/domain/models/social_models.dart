@@ -119,3 +119,50 @@ class GlobalActivity {
     }
   }
 }
+
+class Graffiti {
+  final String id;
+  final String userId;
+  final String displayName;
+  final String territoryColor;
+  final List<List<Offset>> strokes;
+  final DateTime createdAt;
+
+  Graffiti({
+    required this.id,
+    required this.userId,
+    required this.displayName,
+    required this.territoryColor,
+    required this.strokes,
+    required this.createdAt,
+  });
+
+  factory Graffiti.fromJson(Map<String, dynamic> json) {
+    final List<dynamic> rawStrokes = json['data'] ?? [];
+    final List<List<Offset>> strokes = rawStrokes.map((s) {
+      final List<dynamic> points = s as List<dynamic>;
+      return points.map((p) => Offset(
+        (p['x'] as num).toDouble(),
+        (p['y'] as num).toDouble(),
+      )).toList();
+    }).toList();
+
+    return Graffiti(
+      id: json['id'] ?? '',
+      userId: json['user_id'] ?? '',
+      displayName: json['display_name'] ?? 'Agent',
+      territoryColor: json['color'] ?? json['territory_color'] ?? '#ffffff',
+      strokes: strokes,
+      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
+    );
+  }
+
+  Color get color {
+    try {
+      final hex = territoryColor.replaceAll('#', '');
+      return Color(int.parse('FF$hex', radix: 16));
+    } catch (_) {
+      return Colors.white;
+    }
+  }
+}

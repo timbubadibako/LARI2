@@ -13,6 +13,7 @@ class UserProfile {
   final double totalDistanceKm;
   final int totalSectorsHeld;
   final int globalRank;
+  final String? signatureData;
 
   UserProfile({
     required this.userId,
@@ -29,11 +30,12 @@ class UserProfile {
     this.totalDistanceKm = 0.0,
     this.totalSectorsHeld = 0,
     this.globalRank = 0,
+    this.signatureData,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
-      userId: json['user_id']?.toString() ?? json['id']?.toString() ?? '',
+      userId: json['id']?.toString() ?? json['user_id']?.toString() ?? '',
       displayName: json['display_name']?.toString(),
       avatarUrl: json['avatar_url']?.toString(),
       factionId: json['guild_id']?.toString() ?? json['faction_id']?.toString(),
@@ -47,6 +49,7 @@ class UserProfile {
       totalDistanceKm: _asDouble(json['total_distance_km'], 0.0),
       totalSectorsHeld: _asInt(json['total_sectors_held'], 0),
       globalRank: _asInt(json['global_rank'], 0),
+      signatureData: json['signature_data']?.toString(),
     );
   }
 
@@ -95,6 +98,7 @@ class UserProfile {
     double? totalDistanceKm,
     int? totalSectorsHeld,
     int? globalRank,
+    String? signatureData,
   }) {
     return UserProfile(
       userId: userId ?? this.userId,
@@ -111,6 +115,7 @@ class UserProfile {
       totalDistanceKm: totalDistanceKm ?? this.totalDistanceKm,
       totalSectorsHeld: totalSectorsHeld ?? this.totalSectorsHeld,
       globalRank: globalRank ?? this.globalRank,
+      signatureData: signatureData ?? this.signatureData,
     );
   }
 
@@ -131,10 +136,11 @@ class UserProfile {
 
   Map<String, dynamic> toJson() {
     return {
+      'id': userId,
       'user_id': userId,
       'display_name': displayName,
       'avatar_url': avatarUrl,
-      'faction_id': factionId,
+      'guild_id': factionId,
       'territory_color': territoryColor,
       'level': level,
       'xp': xp,
@@ -144,6 +150,7 @@ class UserProfile {
       'total_distance_km': totalDistanceKm,
       'total_sectors_held': totalSectorsHeld,
       'global_rank': globalRank,
+      'signature_data': signatureData,
     };
   }
 }

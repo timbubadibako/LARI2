@@ -127,3 +127,24 @@ func (h *GuildHandler) JoinGuild(c echo.Context) error {
 		"territory_color": emblemColor,
 	})
 }
+
+func (h *GuildHandler) LeaveGuild(c echo.Context) error {
+	type LeaveRequest struct {
+		UserID string `json:"user_id"`
+	}
+	req := new(LeaveRequest)
+	if err := c.Bind(req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
+	}
+
+	// Reset guild_id and set territory_color to a default (e.g., #FFFFFF or a neutral color)
+	query := "UPDATE profiles SET guild_id = NULL, territory_color = '#FFFFFF' WHERE id = $1"
+	_, err := h.db.Exec(context.Background(), query, req.UserID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to leave guild"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "successfully left guild",
+	})
+}
