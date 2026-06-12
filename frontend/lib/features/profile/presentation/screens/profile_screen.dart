@@ -13,16 +13,32 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(profileControllerProvider);
+
     return Scaffold(
       backgroundColor: StrideColors.background,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // CONSISTENT TACTICAL HEADER
-          const TacticalHeader(
+          TacticalHeader(
             title: 'AGENT_DOSSIER',
             subTitle: 'IDENTITY_VERIFICATION',
             status: 'RANK: VANGUARD_04',
+            actions: [
+              TacticalIconButton(
+                onPressed: () {
+                  // TODO: Navigate to Debug screen
+                },
+                icon: Icons.bug_report_outlined,
+              ),
+              TacticalIconButton(
+                onPressed: () {
+                  // TODO: Navigate to Settings
+                },
+                icon: Icons.settings,
+              ),
+            ],
           ),
 
           Expanded(
@@ -80,15 +96,29 @@ class ProfileScreen extends ConsumerWidget {
                   // CAREER DOSSIER
                   _sectionHeader('CAREER_STATS'),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: _buildStatsCard('TOTAL_CAPTURE', '1,240', 'KM', StrideColors.neonGreen)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildStatsCard('SECTORS_HELD', '84', 'GRIDS', StrideColors.white)),
-                    ],
+                  profileAsync.when(
+                    data: (profile) {
+                      final dist = profile?.totalDistanceKm ?? 0;
+                      final sectors = profile?.totalSectorsHeld ?? 0;
+                      final rank = profile?.globalRank ?? 0;
+                      
+                      return Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(child: _buildStatsCard('TOTAL_CAPTURE', dist.toStringAsFixed(1), 'KM', StrideColors.neonGreen)),
+                              const SizedBox(width: 12),
+                              Expanded(child: _buildStatsCard('SECTORS_HELD', sectors.toString(), 'GRIDS', StrideColors.white)),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _buildStatsCard('GLOBAL_RANK', rank > 0 ? '#$rank' : 'UNRANKED', 'KUNINGAN_SECTOR', StrideColors.white.withOpacity(0.2)),
+                        ],
+                      );
+                    },
+                    loading: () => const Center(child: CircularProgressIndicator(color: StrideColors.neonGreen)),
+                    error: (e, s) => Text('DATA_CORRUPTED', style: StrideTypography.labelBold.copyWith(color: StrideColors.error)),
                   ),
-                  const SizedBox(height: 12),
-                  _buildStatsCard('GLOBAL_RANK', '#4', 'KUNINGAN_SECTOR', StrideColors.white.withOpacity(0.2)),
 
                   const SizedBox(height: 48),
 

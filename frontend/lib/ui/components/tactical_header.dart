@@ -117,10 +117,19 @@ class TacticalHeader extends StatelessWidget {
               ),
             ),
             
-            // ACTION BUTTONS AREA
+            // ACTION BUTTONS AREA WITH NEON STROKE
             if (actions != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 24, right: 16),
+              Container(
+                margin: const EdgeInsets.only(top: 24),
+                padding: const EdgeInsets.only(left: 16, right: 16, top: 4, bottom: 4),
+                decoration: BoxDecoration(
+                  border: Border(
+                    right: BorderSide(
+                      color: statusColor ?? StrideColors.neonGreen, 
+                      width: 2,
+                    ),
+                  ),
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: actions!,
@@ -140,6 +149,39 @@ class TacticalHeader extends StatelessWidget {
         fontSize: 6,
         color: StrideColors.white.withOpacity(0.3),
         letterSpacing: 1,
+      ),
+    );
+  }
+}
+
+// Tactical Icon Button for Actions
+class TacticalIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+  final Color color;
+
+  const TacticalIconButton({
+    super.key,
+    required this.icon,
+    required this.onPressed,
+    this.color = StrideColors.white,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: V3SkewBox(
+        skewAmount: -0.15,
+        child: Container(
+          margin: const EdgeInsets.only(left: 12),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: StrideColors.surface,
+            border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
       ),
     );
   }

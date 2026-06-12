@@ -40,13 +40,18 @@ func main() {
 	}
 	defer dbPool.Close()
 
+	// Initialize Hub
+	wsHub := api.NewHub()
+	go wsHub.Run()
+
 	// Initialize Handlers
 	authHandler := api.NewAuthHandler(dbPool)
-	runHandler := api.NewRunHandler(dbPool)
+	runHandler := api.NewRunHandler(dbPool, wsHub)
 	leaderboardHandler := api.NewLeaderboardHandler(dbPool)
 	guildHandler := api.NewGuildHandler(dbPool)
 	profileHandler := api.NewProfileHandler(dbPool)
 	territoryHandler := api.NewTerritoryHandler(dbPool)
+	wsHandler := api.NewWebSocketHandler(wsHub)
 
 	// Initialize Workers
 	cleanupWorker := worker.NewCleanupWorker(dbPool)
@@ -59,6 +64,9 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
+
+	// WebSocket Route
+	e.GET("/ws", wsHandler.HandleWS)
 
 	// Swagger Route
 	e.GET("/swagger/*", echoSwagger.WrapHandler)

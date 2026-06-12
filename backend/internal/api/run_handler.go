@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -15,13 +16,15 @@ type RunHandler struct {
 	db      *pgxpool.Pool
 	algo    *service.AlgorithmService
 	spatial *service.SpatialEngine
+	hub     *Hub
 }
 
-func NewRunHandler(db *pgxpool.Pool) *RunHandler {
+func NewRunHandler(db *pgxpool.Pool, hub *Hub) *RunHandler {
 	return &RunHandler{
 		db:      db,
 		algo:    service.NewAlgorithmService(),
 		spatial: service.NewSpatialEngine(db),
+		hub:     hub,
 	}
 }
 
@@ -92,6 +95,17 @@ func (h *RunHandler) SyncRun(c echo.Context) error {
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to persist run data: " + err.Error()})
+	}
+
+	// Broadcast WS event for Real-time feed
+	if h.hub != nil {
+		wsEvent := map[string]interface{}{
+			"type":    "NEW_GLOBAL_ACTIVITY",
+			"user_id": req.UserID,
+		}
+		if msgBytes, err := json.Marshal(wsEvent); err == nil {
+			h.hub.BroadcastMessage(msgBytes)
+		}
 	}
 
 	return c.JSON(http.StatusOK, SyncRunResponse{

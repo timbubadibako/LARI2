@@ -43,6 +43,18 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
+    // Listen to real-time events to trigger refresh
+    ref.listen<AsyncValue<void>>(
+      globalActivityStreamProvider,
+      (_, next) {
+        if (next.hasValue) {
+          // New event received via WS, invalidate feed
+          ref.invalidate(globalActivityProvider);
+          HapticFeedback.lightImpact();
+        }
+      },
+    );
+
     final dominionAsync = ref.watch(factionDominionProvider);
     final leaderboardAsync = ref.watch(leaderboardProvider('KEC-GLOBAL'));
     final activityAsync = ref.watch(globalActivityProvider);
@@ -50,27 +62,34 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
 
     return Scaffold(
       backgroundColor: StrideColors.background,
-      body: RefreshIndicator(
-        onRefresh: _onRefresh,
-        color: StrideColors.neonGreen,
-        backgroundColor: StrideColors.background,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TacticalHeader(
-              title: 'WAR_ROOM',
-              subTitle: 'STRATEGIC_INTEL',
-              status: 'INTEL_FEED_ACTIVE',
-              statusColor: StrideColors.secondary,
-              actions: [
-                IconButton(
-                  onPressed: _onRefresh,
-                  icon: const Icon(Icons.refresh, color: StrideColors.white, size: 28),
-                ),
-              ],
-            ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TacticalHeader(
+            title: 'WAR_ROOM',
+            subTitle: 'STRATEGIC_INTEL',
+            status: 'INTEL_FEED_ACTIVE',
+            statusColor: StrideColors.secondary,
+            actions: [
+              TacticalIconButton(
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  // TODO: Implement Faction/Guild settings
+                },
+                icon: Icons.shield_outlined,
+              ),
+              TacticalIconButton(
+                onPressed: _onRefresh,
+                icon: Icons.refresh,
+              ),
+            ],
+          ),
 
-            Expanded(
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _onRefresh,
+              color: StrideColors.neonGreen,
+              backgroundColor: StrideColors.background,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -179,8 +198,8 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
