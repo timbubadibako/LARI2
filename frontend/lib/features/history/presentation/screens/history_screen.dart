@@ -1,14 +1,16 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../ui/theme/stride_colors.dart';
 import '../../../../ui/theme/stride_typography.dart';
 import '../../../../ui/components/v3_shapes.dart';
 import '../../../../ui/components/app_strings.dart';
 import '../../../../ui/components/tactical_header.dart';
-import '../../../../core/services/sync_queue_service.dart';
+import '../../../../core/services/lari_sync_service.dart';
 import '../../application/history_controller.dart';
 import '../../../../core/domain/models/run_history.dart';
+import '../../../workout/presentation/screens/post_run_summary_screen.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
@@ -65,6 +67,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final historyAsync = ref.watch(userHistoryProvider);
+    final missions = historyAsync.asData?.value ?? [];
+    final hasPending = missions.any((m) => m.syncStatus == 'pending');
 
     return Scaffold(
       backgroundColor: StrideColors.background,
@@ -73,10 +77,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         children: [
           // THE NEW TRIPLE-STACK TACTICAL HEADER WITH ACTIONS
           TacticalHeader(
-            title: 'MISSION_LOGS',
-            subTitle: 'OPERATIONAL_ARCHIVES',
-            status: 'ARCHIVE_MODE_ACTIVE',
+            title: AppStrings.runHistory,
+            subTitle: AppStrings.runHistorySubtitle,
+            status: hasPending ? 'QUEUED_TRANSMISSIONS' : 'DATA_SYNCED',
+            statusColor: hasPending ? StrideColors.warning : StrideColors.neonGreen,
             actions: [
+              if (hasPending)
+                TacticalIconButton(
+                  onPressed: () async {
+                    HapticFeedback.mediumImpact();
+                    await ref.read(lariSyncServiceProvider).processQueue();
+                    ref.invalidate(userHistoryProvider);
+                  },
+                  icon: Icons.sync_outlined,
+                  color: StrideColors.warning,
+                ),
               TacticalIconButton(
                 onPressed: () => ref.invalidate(userHistoryProvider),
                 icon: Icons.refresh,
@@ -117,7 +132,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     separatorBuilder: (_, _) => const SizedBox(height: 16),
                     itemBuilder: (context, index) {
                       final mission = missions[index];
-                      return _buildMissionDossierCard(mission);
+                      return GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PostRunSummaryScreen(missionOverride: mission),
+                            ),
+                          );
+                        },
+                        child: _buildMissionDossierCard(mission),
+                      );
                     },
                   );
                 },
@@ -144,7 +170,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   Widget _buildMissionDossierCard(RunHistory mission) {
     final isCaptured = mission.status == 'captured';
-    final statusColor = isCaptured ? StrideColors.neonGreen : StrideColors.white.withOpacity(0.4);
+    final isPendingSync = mission.syncStatus == 'pending';
+    final statusColor = isPendingSync 
+        ? StrideColors.warning 
+        : (isCaptured ? StrideColors.neonGreen : StrideColors.white.withValues(alpha: 0.4));
     final dateStr = '${mission.createdAt.day}_${_monthName(mission.createdAt.month)}_${mission.createdAt.year}'.toUpperCase();
 
     // Pace calculation
@@ -169,9 +198,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.white.withOpacity(0.05),
+                    Colors.white.withValues(alpha: 0.05),
                     Colors.transparent,
-                    Colors.black.withOpacity(0.2),
+                    Colors.black.withValues(alpha: 0.2),
                   ],
                   stops: const [0.0, 0.5, 1.0],
                 ),
@@ -211,17 +240,31 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(dateStr, style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: Colors.white24)),
+                          const Spacer(),
+                          if (isPendingSync) ...[
+                            V3SkewBox(
+                              skewAmount: -0.1,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                color: StrideColors.warning,
+                                child: Text(
+                                  'SYNC PENDING',
+                                  style: StrideTypography.labelBold.copyWith(fontSize: 7, color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                          ],
                           V3SkewBox(
                             skewAmount: -0.1,
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               color: isCaptured ? StrideColors.neonGreen : Colors.white12,
                               child: Text(
-                                isCaptured ? 'CAPTURED' : 'FAILED',
-                                style: StrideTypography.labelBold.copyWith(fontSize: 7, color: Colors.black),
+                                isCaptured ? 'TERRITORY' : 'ROUTE',
+                                style: StrideTypography.labelBold.copyWith(fontSize: 7, color: isCaptured ? Colors.black : Colors.white),
                               ),
                             ),
                           ),
@@ -229,7 +272,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        isCaptured ? 'GRID_SECURED_OP_${mission.id.substring(0, 3).toUpperCase()}' : 'RECON_MISSION_ABORTED',
+                        isCaptured ? 'Area Acquisition' : 'Standard Activity',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: StrideTypography.headlineMD.copyWith(fontSize: 18, letterSpacing: 0),
