@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/config/api_config.dart';
 import '../../../core/domain/models/user_profile.dart';
+import '../../../core/services/shared_preferences_provider.dart';
 import '../../../core/services/http_client_provider.dart';
-import '../../../core/services/supabase_logger.dart';
+import '../../../core/config/api_config.dart';
+import '../../../core/services/lari_logger.dart';
 import '../../../dev/dev_providers.dart';
 import '../../auth/application/auth_controller.dart';
 
@@ -18,10 +18,7 @@ final profileControllerProvider =
 class ProfileController extends AsyncNotifier<UserProfile?> {
   static const String _profileCacheKey = 'lari_profile_cache';
   
-  bool get _logEnabled => ref.read(supabaseDevLogEnabledProvider);
-  final String _baseUrl = ApiConfig.baseUrl;
-
-  http.Client get _client => ref.read(httpClientProvider);
+  bool get _logEnabled => ref.read(lariDevLogEnabledProvider);
 
   @override
   Future<UserProfile?> build() async {
@@ -33,7 +30,7 @@ class ProfileController extends AsyncNotifier<UserProfile?> {
     }
 
     // Try to load cache first to show something immediately
-    final cached = await _getCache();
+    final cached = await _getCache(userId);
     if (cached != null) {
       debugPrint('ProfileController: Initializing with cache: ${cached.displayName}');
     }
@@ -41,12 +38,19 @@ class ProfileController extends AsyncNotifier<UserProfile?> {
     return _fetchProfile(userId);
   }
 
-  Future<UserProfile?> _getCache() async {
+  Future<UserProfile?> _getCache(String currentUserId) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = ref.read(sharedPreferencesProvider);
       final cachedJson = prefs.getString(_profileCacheKey);
       if (cachedJson != null) {
-        return UserProfile.fromJson(jsonDecode(cachedJson));
+        final profile = UserProfile.fromJson(jsonDecode(cachedJson));
+        // 🔥 VALIDASI: Hanya kembalikan cache jika ID-nya sama
+        if (profile.userId == currentUserId) {
+          return profile;
+        } else {
+          debugPrint('ProfileController: Stale cache detected for different user. Ignoring.');
+          await clearCache();
+        }
       }
     } catch (e) {
       debugPrint('ProfileController: Cache read error: $e');
@@ -54,9 +58,19 @@ class ProfileController extends AsyncNotifier<UserProfile?> {
     return null;
   }
 
+  Future<void> clearCache() async {
+    try {
+      final prefs = ref.read(sharedPreferencesProvider);
+      await prefs.remove(_profileCacheKey);
+      debugPrint('ProfileController: Cache cleared.');
+    } catch (e) {
+      debugPrint('ProfileController: Cache clear error: $e');
+    }
+  }
+
   Future<void> _saveToCache(UserProfile profile) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = ref.read(sharedPreferencesProvider);
       await prefs.setString(_profileCacheKey, jsonEncode(profile.toJson()));
     } catch (e) {
       debugPrint('ProfileController: Cache save error: $e');
@@ -64,25 +78,31 @@ class ProfileController extends AsyncNotifier<UserProfile?> {
   }
 
   Future<UserProfile?> _fetchProfile(String userId) async {
-    debugPrint('ProfileController: Fetching from $_baseUrl/profiles/$userId');
+    debugPrint('ProfileController: Fetching from Go backend for $userId');
     try {
-      final response = await _client.get(Uri.parse('$_baseUrl/profiles/$userId')).timeout(const Duration(seconds: 10));
-      debugPrint('ProfileController: Server Response: ${response.statusCode}');
+      final client = ref.read(httpClientProvider);
+      final baseUrl = ApiConfig.getBaseUrl(ref);
       
+      final response = await client.get(
+        Uri.parse('$baseUrl/profiles/$userId'),
+      ).timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final profile = UserProfile.fromJson(data);
         debugPrint('ProfileController: Parse success: ${profile.displayName}');
         _saveToCache(profile);
         return profile;
+      } else {
+        debugPrint('ProfileController: Backend error ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
       debugPrint('ProfileController: Fetch error: $e');
-      SupabaseLogger.log(_logEnabled, 'Fetch Profile Error', success: false, error: e.toString());
+      LariLogger.log(_logEnabled, 'Fetch Profile Error', success: false, error: e.toString());
     }
 
     // Check if we have a valid cached value to return instead of fallback
-    final cached = await _getCache();
+    final cached = await _getCache(userId);
     if (cached != null) {
       debugPrint('ProfileController: Returning cached data after network failure');
       return cached;
@@ -116,6 +136,9 @@ class ProfileController extends AsyncNotifier<UserProfile?> {
     state = const AsyncValue.loading();
 
     try {
+      final client = ref.read(httpClientProvider);
+      final baseUrl = ApiConfig.getBaseUrl(ref);
+
       final body = <String, dynamic>{};
       if (displayName != null) body['display_name'] = displayName;
       if (bio != null) body['bio'] = bio;
@@ -123,22 +146,20 @@ class ProfileController extends AsyncNotifier<UserProfile?> {
       if (ghostMode != null) body['ghost_mode'] = ghostMode;
       if (signatureData != null) body['signature_data'] = signatureData;
 
-      final response = await _client.put(
-        Uri.parse('$_baseUrl/profiles/$userId'),
+      final response = await client.put(
+        Uri.parse('$baseUrl/profiles/$userId'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );
 
       if (response.statusCode == 200) {
-        SupabaseLogger.log(_logEnabled, 'Update Profile Success');
+        LariLogger.log(_logEnabled, 'Update Profile Success');
         ref.invalidateSelf();
         return true;
       }
-      
-      SupabaseLogger.log(_logEnabled, 'Update Profile Failed', success: false, error: response.body);
       return false;
     } catch (e) {
-      SupabaseLogger.log(_logEnabled, 'Update Profile Error', success: false, error: e.toString());
+      LariLogger.log(_logEnabled, 'Update Profile Error', success: false, error: e.toString());
       return false;
     } finally {
       // Re-fetch profile to restore state if update failed or to confirm success

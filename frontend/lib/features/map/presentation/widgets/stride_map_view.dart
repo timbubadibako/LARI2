@@ -10,6 +10,7 @@ import '../../../../ui/components/v3_shapes.dart';
 import '../../../../core/services/geospatial_service.dart';
 import '../../../../dev/dev_providers.dart';
 import '../../../../dev/fake_location_service.dart';
+import '../../../profile/application/profile_controller.dart';
 import '../../../workout/application/workout_controller.dart';
 import '../../../social/application/presence_provider.dart';
 import '../../application/territory_controller.dart';
@@ -39,6 +40,10 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
   void initState() {
     super.initState();
     _routeLayerController = MapRouteLineLayerController();
+    // 🔥 Ensure we have fresh global territory data on map load
+    Future.microtask(() {
+      ref.invalidate(allTerritoriesProvider);
+    });
   }
 
   void _onMapCreated(MapLibreMapController controller) {
@@ -49,6 +54,14 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
   void _onStyleLoadedCallback() async {
     await _routeLayerController.initialize();
     _generateGrid();
+
+    // Set initial route color based on profile
+    final profile = ref.read(profileControllerProvider).value;
+    if (profile?.territoryColor != null) {
+      await _routeLayerController.updateRouteColor(profile!.territoryColor!);
+    } else {
+      await _routeLayerController.updateRouteColor('#CCFF00'); // Default Neon Green
+    }
 
     final route = ref.read(workoutControllerProvider.notifier).route;
     final routePoints = route
@@ -221,6 +234,15 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
       }
     });
 
+    // Watch profile for color updates
+    ref.listen(profileControllerProvider, (previous, next) {
+      next.whenData((profile) {
+        if (profile?.territoryColor != null) {
+          _routeLayerController.updateRouteColor(profile!.territoryColor!);
+        }
+      });
+    });
+
     // 1. Listeners for reactive updates
     ref.listen(workoutControllerProvider, (previous, next) {
       final route = next.points.map((p) => latlong.LatLng(p.lat, p.lng)).toList();
@@ -238,7 +260,7 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
     });
 
     ref.listen(allTerritoriesProvider, (previous, next) {
-      if (next.hasValue) {
+      if (next.hasValue && next.value != null) {
         final List<UserTerritory> territories = next.value!;
         _routeLayerController.updateMasteredTerritories(
           territories.map((UserTerritory t) => (geoJson: t.geoJson, color: t.color)).toList(),
@@ -247,7 +269,7 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
     });
 
     ref.listen(userHistoryProvider, (previous, next) {
-      if (next.hasValue) {
+      if (next.hasValue && next.value != null) {
         _updateHistoryFromData(next.value!);
       }
     });
@@ -288,14 +310,15 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
   }
 
   Widget _buildMap(BuildContext context, CameraPosition initialPos) {
+    final bool isFake = ref.read(fakeLocationActiveProvider);
     return MapLibreMap(
       onMapCreated: _onMapCreated,
       onStyleLoadedCallback: _onStyleLoadedCallback,
       initialCameraPosition: initialPos,
       styleString: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-      myLocationEnabled: !ref.read(fakeLocationActiveProvider),
+      myLocationEnabled: !isFake,
       compassEnabled: false,
-      myLocationRenderMode: MyLocationRenderMode.compass,
+      myLocationRenderMode: isFake ? MyLocationRenderMode.normal : MyLocationRenderMode.compass,
     );
   }
 

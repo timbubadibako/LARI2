@@ -45,7 +45,7 @@ func (h *LeaderboardHandler) GetLeaderboard(c echo.Context) error {
 			lc.total_area_sqm
 		FROM leaderboard_cache lc
 		JOIN profiles p ON lc.user_id = p.id
-		WHERE lc.district_code = $1
+		WHERE lc.sector_id = $1
 		ORDER BY lc.rank ASC
 		LIMIT 100
 	`
@@ -87,12 +87,12 @@ func (h *LeaderboardHandler) RefreshLeaderboardCache(c echo.Context) error {
 				total_area_sqm,
 				RANK() OVER (ORDER BY total_area_sqm DESC) as rank
 			FROM user_territories
-			WHERE district_code = $1
+			WHERE sector_id = $1
 		)
-		INSERT INTO leaderboard_cache (district_code, user_id, rank, total_area_sqm, updated_at)
+		INSERT INTO leaderboard_cache (sector_id, user_id, rank, total_area_sqm, updated_at)
 		SELECT $1, user_id, rank, total_area_sqm, NOW()
 		FROM ranked_territories
-		ON CONFLICT (district_code, user_id) DO UPDATE SET
+		ON CONFLICT (sector_id, user_id) DO UPDATE SET
 			rank = EXCLUDED.rank,
 			total_area_sqm = EXCLUDED.total_area_sqm,
 			updated_at = NOW();

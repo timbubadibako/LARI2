@@ -5,6 +5,7 @@ import '../../../../ui/theme/stride_typography.dart';
 import '../../../../ui/components/v3_shapes.dart';
 import '../../../../ui/components/app_strings.dart';
 import '../widgets/stride_map_view.dart';
+import '../../../../core/services/lari_logger.dart';
 import '../../application/map_actions_provider.dart';
 import '../../application/current_address_provider.dart';
 import '../../../workout/presentation/screens/active_workout_screen.dart';
@@ -21,6 +22,7 @@ class MapDashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _MapDashboardScreenState extends ConsumerState<MapDashboardScreen> {
+
   Future<void> _startWorkout() async {
     final workoutState = ref.read(workoutControllerProvider).state;
     
@@ -124,11 +126,11 @@ class _MapDashboardScreenState extends ConsumerState<MapDashboardScreen> {
                           V3SlantBox(
                             slantWidth: 15,
                             isLeftSlant: true,
-                            color: StrideColors.surface.withOpacity(0.8),
+                            color: StrideColors.surface.withValues(alpha: 0.8),
                             child: Container(
                               decoration: BoxDecoration(
                                 border: Border.all(
-                                  color: StrideColors.outline.withOpacity(0.5),
+                                  color: StrideColors.outline.withValues(alpha: 0.5),
                                   width: 1.0,
                                 ),
                               ),
@@ -170,7 +172,7 @@ class _MapDashboardScreenState extends ConsumerState<MapDashboardScreen> {
                         V3SlantBox(
                           slantWidth: 15,
                           isLeftSlant: true,
-                          color: StrideColors.surface.withOpacity(0.4),
+                          color: StrideColors.surface.withValues(alpha: 0.4),
                           child: Container(
                             width: 120,
                             padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
@@ -230,8 +232,8 @@ class _MapDashboardScreenState extends ConsumerState<MapDashboardScreen> {
                                 width: 44,
                                 height: 44,
                                 decoration: BoxDecoration(
-                                  color: StrideColors.background.withOpacity(0.8),
-                                  border: Border.all(color: StrideColors.white.withOpacity(0.2), width: 1.5),
+                                  color: StrideColors.background.withValues(alpha: 0.8),
+                                  border: Border.all(color: StrideColors.white.withValues(alpha: 0.2), width: 1.5),
                                 ),
                                 child: const Center(
                                   child: Icon(Icons.my_location, color: StrideColors.white, size: 18),
@@ -257,7 +259,7 @@ class _MapDashboardScreenState extends ConsumerState<MapDashboardScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
                                 color: Colors.black,
-                                border: Border.all(color: StrideColors.outline.withOpacity(0.5), width: 1.5),
+                                border: Border.all(color: StrideColors.outline.withValues(alpha: 0.5), width: 1.5),
                               ),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
@@ -318,7 +320,7 @@ class _MapDashboardScreenState extends ConsumerState<MapDashboardScreen> {
                   Center(
                     child: Text(
                       'LARI_GRID_LINK_V3.3',
-                      style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textSecondary.withOpacity(0.2)),
+                      style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textSecondary.withValues(alpha: 0.2)),
                     ),
                   ),
                 ],

@@ -160,13 +160,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     StrideColors.warning,
                     () async {
                       final confirmed = await _showConfirmDialog(
-                        context, 
+                        context,
                         'TERMINATE SESSION?',
                         'You will be disconnected from the tactical network. Local data will remain intact.'
                       );
                       if (confirmed) {
-                        ref.read(authControllerProvider).signOut();
-                        if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+                        await ref.read(authControllerProvider).signOut();
+                        if (context.mounted) Navigator.of(context).popUntil((route) => route.isFirst);
                       }
                     },
                   ),

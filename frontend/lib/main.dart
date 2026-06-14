@@ -23,27 +23,19 @@ Future<void> main() async {
   final syncBox = await Hive.openBox('lari_sync_queue');
   final sharedPreferences = await SharedPreferences.getInstance();
 
-  // 4. Create ProviderContainer for Service Injection
+  // 4. Create ProviderContainer with ALL overrides
   final container = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+      workoutStorageServiceProvider.overrideWithValue(WorkoutStorageService(workoutBox)),
+      syncBoxProvider.overrideWithValue(syncBox),
     ],
   );
-
-  // 5. Initialize Services with Ref
-  final lariSyncService = LariSyncService(syncBox, container);
-  final workoutStorage = WorkoutStorageService(workoutBox);
 
   runApp(
     UncontrolledProviderScope(
       container: container,
-      child: ProviderScope(
-        overrides: [
-          lariSyncServiceProvider.overrideWithValue(lariSyncService),
-          workoutStorageServiceProvider.overrideWithValue(workoutStorage),
-        ],
-        child: const LariLariApp(),
-      ),
+      child: const LariLariApp(),
     ),
   );
 }

@@ -74,7 +74,7 @@ func (h *ProfileHandler) GetProfile(c echo.Context) error {
 	}
 
 	// 4. Fetch Rank from cache
-	err = h.db.QueryRow(ctx, "SELECT COALESCE(rank, 0) FROM leaderboard_cache WHERE user_id = $1 AND district_code = 'KEC-GLOBAL'", userID).Scan(&p.GlobalRank)
+	err = h.db.QueryRow(ctx, "SELECT COALESCE(rank, 0) FROM leaderboard_cache WHERE user_id = $1 AND sector_id = 'KEC-GLOBAL'", userID).Scan(&p.GlobalRank)
 	if err != nil {
 		p.GlobalRank = 0
 	}

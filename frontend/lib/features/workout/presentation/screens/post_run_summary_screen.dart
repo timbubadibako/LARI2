@@ -10,63 +10,74 @@ import '../../../../ui/components/app_strings.dart';
 import '../../../map/presentation/widgets/stride_map_view.dart';
 import '../../../map/application/current_address_provider.dart';
 import '../../application/workout_controller.dart';
+import '../../../../core/domain/models/workout_session.dart';
+import '../../../history/application/history_controller.dart';
+import '../../../../core/domain/models/run_history.dart';
 
 class PostRunSummaryScreen extends ConsumerStatefulWidget {
-  const PostRunSummaryScreen({super.key});
+  final WorkoutSession? workout;
+  final RunHistory? missionOverride;
+  const PostRunSummaryScreen({super.key, this.workout, this.missionOverride});
 
   @override
   ConsumerState<PostRunSummaryScreen> createState() => _PostRunSummaryScreenState();
 }
 
 class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
-  bool _isSyncing = false;
-
-  Future<void> _handleNexusReturn() async {
-    setState(() => _isSyncing = true);
-    
-    // Save to Hive and Enqueue to Go Backend
-    await ref.read(workoutControllerProvider.notifier).saveAndEnqueueSync();
-    
-    if (!mounted) return;
+  void _handleNexusReturn() {
     Navigator.popUntil(context, (route) => route.isFirst);
   }
 
   void _shareMission() {
-    final workout = ref.read(workoutControllerProvider);
-    final dist = (workout.distanceMeters / 1000).toStringAsFixed(2);
-    final time = '${(workout.durationSeconds / 60).floor()}m ${workout.durationSeconds % 60}s';
+    final workout = widget.workout;
+    final mission = widget.missionOverride;
+    
+    final dist = workout != null 
+        ? (workout.distanceMeters / 1000).toStringAsFixed(2)
+        : mission?.distanceKm.toStringAsFixed(2) ?? '0.00';
+    
+    final duration = workout?.durationSeconds ?? mission?.durationSec ?? 0;
+    final time = '${(duration / 60).floor()}m ${duration % 60}s';
     
     Share.share(
-      'MISSION_ACCOMPLISHED: Captured $dist KM in $time. \nJoin the LARI movement and reclaim your city! 🚀🏙️',
-      subject: 'LARI Mission Intel',
+      'MISSION_REPORT: Captured $dist KM in $time. \nJoin the LARI movement and reclaim your city! 🚀🏙️',
+      subject: 'LARI Run Summary',
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final workout = ref.watch(workoutControllerProvider);
-    final addressAsync = ref.watch(currentAddressProvider);
+    final workout = widget.workout;
+    final mission = widget.missionOverride;
+    
+    final isReplay = mission != null;
+    final distKm = workout != null 
+        ? (workout.distanceMeters / 1000).toStringAsFixed(2)
+        : mission?.distanceKm.toStringAsFixed(2) ?? '0.00';
+    
+    final duration = workout?.durationSeconds ?? mission?.durationSec ?? 0;
+    final isLoopClosed = workout?.isLoopClosed ?? (mission?.status == 'captured');
+    final calories = workout?.caloriesEstimate ?? (mission != null ? (70.0 * mission.distanceKm) : 0.0);
 
-    final distKm = (workout.distanceMeters / 1000).toStringAsFixed(2);
-    final paceSec = workout.distanceMeters > 0 ? (workout.durationSeconds / (workout.distanceMeters / 1000.0)) : 0.0;
+    final paceSec = double.tryParse(distKm) != null && double.parse(distKm) > 0 
+        ? (duration / double.parse(distKm)) 
+        : 0.0;
     final paceStr = paceSec > 0 
         ? '${(paceSec / 60).floor().toString().padLeft(2, '0')}:${(paceSec % 60).floor().toString().padLeft(2, '0')}' 
         : '--:--';
 
-    // XP Logic: 100 XP per KM + 500 Bonus for Capture
-    final int xpGained = (double.parse(distKm) * 100).toInt() + (workout.isLoopClosed ? 500 : 0);
+    final addressAsync = ref.watch(currentAddressProvider);
+    final int xpGained = (double.tryParse(distKm) ?? 0.0 * 100).toInt() + (isLoopClosed ? 500 : 0);
 
     return Scaffold(
       backgroundColor: StrideColors.background,
       body: Column(
         children: [
-          // TOP: MAP HERO (55%)
           Expanded(
             flex: 55,
             child: Stack(
               children: [
-                Positioned.fill(child: const StrideMapView()),
-                
+                const Positioned.fill(child: StrideMapView()),
                 Positioned.fill(
                   child: Container(
                     decoration: BoxDecoration(
@@ -83,8 +94,6 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
                     ),
                   ),
                 ),
-
-                // Secured Stamp
                 Positioned(
                   top: 60,
                   right: -10,
@@ -92,16 +101,27 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
                     angle: 0.2,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
-                      color: workout.isLoopClosed ? StrideColors.neonGreen : StrideColors.white,
+                      color: isLoopClosed ? StrideColors.neonGreen : StrideColors.white,
                       child: Text(
-                        workout.isLoopClosed ? 'SECTOR_CAPTURED' : 'RECON_COMPLETE',
+                        isLoopClosed ? 'AREA_SECURED' : 'RUN_COMPLETE',
                         style: StrideTypography.headlineMD.copyWith(color: StrideColors.background, fontSize: 24),
                       ),
                     ),
                   ),
                 ),
-
-                // Floating XP Badge
+                if (isReplay)
+                  Positioned(
+                    top: 60,
+                    left: 24,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      color: StrideColors.warning,
+                      child: Text(
+                        'ARCHIVE_REPLAY',
+                        style: StrideTypography.labelBold.copyWith(color: Colors.black, fontSize: 10),
+                      ),
+                    ),
+                  ),
                 Positioned(
                   bottom: 24,
                   right: 24,
@@ -117,8 +137,6 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
                     ),
                   ),
                 ),
-
-                // Location Info
                 Positioned(
                   bottom: 24,
                   left: 24,
@@ -137,8 +155,6 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
               ],
             ),
           ),
-
-          // BOTTOM: MISSION REPORT (45%)
           Expanded(
             flex: 45,
             child: Container(
@@ -154,7 +170,7 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
                         children: [
                           Container(width: 2, height: 24, color: StrideColors.white.withOpacity(0.2)),
                           const SizedBox(width: 12),
-                          Text('MISSION_REPORT', style: StrideTypography.headlineMD.copyWith(fontSize: 24, fontStyle: FontStyle.italic)),
+                          Text('RUN_SUMMARY', style: StrideTypography.headlineMD.copyWith(fontSize: 24, fontStyle: FontStyle.italic)),
                         ],
                       ),
                       IconButton(
@@ -163,40 +179,35 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
                       ),
                     ],
                   ),
-                  
                   const SizedBox(height: 32),
-
                   Row(
                     children: [
-                      Expanded(child: _buildV3Stat('DIST', distKm, 'KM')),
+                      Expanded(child: _buildV3Stat(AppStrings.distance, distKm, 'KM')),
                       const SizedBox(width: 12),
-                      Expanded(child: _buildV3Stat('PACE', paceStr, '/KM')),
+                      Expanded(child: _buildV3Stat(AppStrings.pace, paceStr, '/KM')),
                     ],
                   ),
-
                   const SizedBox(height: 24),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildMiniInfo('CALORIES', '${workout.caloriesEstimate.toInt()} KCAL'),
-                      _buildMiniInfo('TIME', '${(workout.durationSeconds / 60).floor()}:${(workout.durationSeconds % 60).toString().padLeft(2, '0')}'),
+                      _buildMiniInfo(AppStrings.calories, '${calories.toInt()} KCAL'),
+                      _buildMiniInfo('TIME', '${(duration / 60).floor()}:${(duration % 60).toString().padLeft(2, '0')}'),
                     ],
                   ),
-
                   const Spacer(),
-
-                  // FINAL ACTION
                   V3SkewBox(
                     child: ElevatedButton(
-                      onPressed: _isSyncing ? null : _handleNexusReturn,
+                      onPressed: _handleNexusReturn,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: StrideColors.neonGreen,
+                        backgroundColor: isReplay ? StrideColors.white : StrideColors.neonGreen,
                         minimumSize: const Size(double.infinity, 64),
+                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                       ),
-                      child: _isSyncing 
-                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: StrideColors.background, strokeWidth: 2))
-                        : Text('BACK TO NEXUS', style: StrideTypography.buttonText.copyWith(fontSize: 24)),
+                      child: Text(
+                        isReplay ? 'BACK_TO_ARCHIVES' : 'RETURN TO DASHBOARD', 
+                        style: StrideTypography.buttonText.copyWith(fontSize: 24, color: Colors.black)
+                      ),
                     ),
                   ),
                 ],

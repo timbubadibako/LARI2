@@ -92,22 +92,32 @@ func (h *RunHandler) SyncRun(c echo.Context) error {
 	// 2. Process Conquest & Integrity Protocol (Spatial Engine)
 	capturedArea, err := h.spatial.ProcessConquest(ctx, req.UserID, guildIDStr, req.Points)
 	if err != nil {
+		log.Printf("SYNC_ERROR: Conquest processing failed for user %s: %v", req.UserID, err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "conquest processing failed: " + err.Error()})
 	}
 
 	// 3. Persist the Run record (Historical)
+	var guildIDPtr interface{}
+	if req.GuildID != nil && *req.GuildID != "" {
+		guildIDPtr = *req.GuildID
+	} else {
+		guildIDPtr = nil
+	}
+
 	wktPath := h.pointsToWKT(req.Points)
 	_, err = h.db.Exec(ctx, `
-		INSERT INTO runs (id, user_id, distance_km, duration_sec, calories, status, path_geometry, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromText($7, 4326), $8)
+		INSERT INTO runs (id, user_id, guild_id, distance_km, duration_sec, calories, status, path_geometry, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, ST_GeomFromText($8, 4326), $9)
 		ON CONFLICT (id) DO UPDATE SET
 			distance_km = EXCLUDED.distance_km,
 			duration_sec = EXCLUDED.duration_sec,
 			status = EXCLUDED.status,
-			path_geometry = EXCLUDED.path_geometry
-	`, req.ID, req.UserID, summary.TotalDistanceMeters/1000.0, summary.MovingDurationSec, 0, req.Status, wktPath, req.CreatedAt)
+			path_geometry = EXCLUDED.path_geometry,
+			guild_id = EXCLUDED.guild_id
+	`, req.ID, req.UserID, guildIDPtr, summary.TotalDistanceMeters/1000.0, summary.MovingDurationSec, 0, req.Status, wktPath, req.CreatedAt)
 
 	if err != nil {
+		log.Printf("SYNC_ERROR: Persistence failed for run %s: %v", req.ID, err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to persist run data: " + err.Error()})
 	}
 

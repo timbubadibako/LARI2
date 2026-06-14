@@ -1,39 +1,32 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/shared_preferences_provider.dart';
+import '../../../core/services/http_client_provider.dart';
+import '../../../core/services/lari_sync_service.dart';
 import '../../../core/config/api_config.dart';
-import '../../../core/services/supabase_logger.dart';
+import '../../../core/services/lari_logger.dart';
 import '../../../dev/dev_providers.dart';
+import '../../profile/application/profile_controller.dart';
+
+const String kUserSessionIdKey = 'auth.session_id';
 
 class CurrentUserSessionNotifier extends Notifier<String?> {
-  static const String _sessionKey = 'lari_session_user_id';
-
   @override
   String? build() {
-    // We can't do async load here directly, but we can return null and let AuthController load it.
-    // Or we can use a FutureProvider for the Initial load.
-    // Let's stick to a simpler approach: AuthController handles the SharedPreferences.
-    return null;
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getString(kUserSessionIdKey);
   }
 
-  void setSession(String? userId) {
-    state = userId;
-    _persistSession(userId);
-  }
-
-  Future<void> _persistSession(String? userId) async {
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> setSession(String? userId) async {
+    final prefs = ref.read(sharedPreferencesProvider);
     if (userId == null) {
-      await prefs.remove(_sessionKey);
+      await prefs.remove(kUserSessionIdKey);
     } else {
-      await prefs.setString(_sessionKey, userId);
+      await prefs.setString(kUserSessionIdKey, userId);
     }
-  }
-
-  Future<void> loadSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    state = prefs.getString(_sessionKey);
+    state = userId;
   }
 }
 
@@ -47,30 +40,31 @@ final authControllerProvider = Provider<AuthController>((ref) {
 
 class AuthController {
   final Ref _ref;
-  final String _baseUrl = ApiConfig.baseUrl;
 
   AuthController(this._ref);
 
   String? get currentUserId => _ref.read(currentUserSessionProvider);
   
-  // Backward compatibility getter
   String? get currentUser => currentUserId;
 
-  bool get _logEnabled => _ref.read(supabaseDevLogEnabledProvider);
+  bool get _logEnabled => _ref.read(lariDevLogEnabledProvider);
 
   Future<void> initSession() async {
-    await _ref.read(currentUserSessionProvider.notifier).loadSession();
+    // Session is now handled via SharedPreferences in CurrentUserSessionNotifier build()
   }
 
   Future<void> resetPasswordForEmail(String email) async {
-    // TODO: Implement API call
-    SupabaseLogger.log(_logEnabled, 'API Auth ResetPassword (Not Implemented)');
+    // TODO: Implement backend reset password
+    LariLogger.log(_logEnabled, 'Auth ResetPassword Not Implemented Locally', success: false);
   }
 
   Future<bool> signInWithEmailPassword(String email, String password) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/auth/login'),
+      final client = _ref.read(httpClientProvider);
+      final baseUrl = ApiConfig.getBaseUrl(_ref);
+      
+      final response = await client.post(
+        Uri.parse('$baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -80,48 +74,62 @@ class AuthController {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        _ref.read(currentUserSessionProvider.notifier).setSession(data['id']);
-        SupabaseLogger.log(_logEnabled, 'API Auth SignIn Success');
+        final String userId = data['id'];
+        await _ref.read(currentUserSessionProvider.notifier).setSession(userId);
+        LariLogger.log(_logEnabled, 'LARI2 Auth SignIn Success');
         return true;
+      } else {
+        LariLogger.log(_logEnabled, 'LARI2 Auth SignIn Failed: ${response.body}', success: false);
+        return false;
       }
-      
-      SupabaseLogger.log(_logEnabled, 'API Auth SignIn Failed', success: false, error: response.body);
-      return false;
     } catch (e) {
-      SupabaseLogger.log(_logEnabled, 'API Auth SignIn Error', success: false, error: e.toString());
-      rethrow;
+      LariLogger.log(_logEnabled, 'LARI2 Auth SignIn Error', success: false, error: e.toString());
+      return false;
     }
   }
 
-  Future<bool> signUpWithEmailPassword(String email, String password, String displayName) async {
+  Future<bool> signUpWithEmailPassword(String email, String password, String displayName, String factionColor) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/auth/register'),
+      final client = _ref.read(httpClientProvider);
+      final baseUrl = ApiConfig.getBaseUrl(_ref);
+      
+      final response = await client.post(
+        Uri.parse('$baseUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
           'password': password,
           'display_name': displayName,
+          'faction_color': factionColor,
         }),
       );
 
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        _ref.read(currentUserSessionProvider.notifier).setSession(data['id']);
-        SupabaseLogger.log(_logEnabled, 'API Auth SignUp Success');
+        final String userId = data['id'];
+        await _ref.read(currentUserSessionProvider.notifier).setSession(userId);
+        LariLogger.log(_logEnabled, 'LARI2 Auth SignUp Success');
         return true;
+      } else {
+        LariLogger.log(_logEnabled, 'LARI2 Auth SignUp Failed: ${response.body}', success: false);
+        return false;
       }
-
-      SupabaseLogger.log(_logEnabled, 'API Auth SignUp Failed', success: false, error: response.body);
-      return false;
     } catch (e) {
-      SupabaseLogger.log(_logEnabled, 'API Auth SignUp Error', success: false, error: e.toString());
-      rethrow;
+      LariLogger.log(_logEnabled, 'LARI2 Auth SignUp Error', success: false, error: e.toString());
+      return false;
     }
   }
 
   Future<void> signOut() async {
-    _ref.read(currentUserSessionProvider.notifier).setSession(null);
-    SupabaseLogger.log(_logEnabled, 'API Auth SignOut');
+    // 1. Clear session ID
+    await _ref.read(currentUserSessionProvider.notifier).setSession(null);
+    
+    // 2. Clear disk cache for profile
+    await _ref.read(profileControllerProvider.notifier).clearCache();
+
+    // 3. Clear sync queue (Avoid ghosting old invalid sync data)
+    await _ref.read(lariSyncServiceProvider).clearQueue();
+    
+    LariLogger.log(_logEnabled, 'LARI2 Auth SignOut');
   }
 }

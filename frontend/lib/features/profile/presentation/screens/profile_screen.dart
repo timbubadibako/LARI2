@@ -6,7 +6,6 @@ import '../../../../ui/theme/stride_typography.dart';
 import '../../../../ui/components/v3_shapes.dart';
 import '../../../../ui/components/tactical_header.dart';
 import '../../../../ui/components/signature_painter.dart';
-import '../../../../dev/debug_screen.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../application/profile_controller.dart';
@@ -43,12 +42,6 @@ class ProfileScreen extends ConsumerWidget {
             subTitle: 'IDENTITY_VERIFICATION',
             status: 'RANK: VANGUARD_04',
             actions: [
-              TacticalIconButton(
-                onPressed: () {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DebugScreen()));
-                },
-                icon: Icons.bug_report_outlined,
-              ),
               TacticalIconButton(
                 onPressed: () {
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));

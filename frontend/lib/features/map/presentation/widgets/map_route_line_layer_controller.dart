@@ -62,9 +62,9 @@ class MapRouteLineLayerController {
       territorySourceId,
       territoryFillLayerId,
       FillLayerProperties(
-        fillColor: '#00F5FF',
-        fillOpacity: 0.20,
-        fillOutlineColor: '#00F5FF',
+        fillColor: '#FFFFFF', // Will be updated by updateRouteColor
+        fillOpacity: 0.30,
+        fillOutlineColor: '#FFFFFF',
       ),
     );
 
@@ -72,9 +72,9 @@ class MapRouteLineLayerController {
       territorySourceId,
       territoryOutlineLayerId,
       LineLayerProperties(
-        lineColor: '#00F5FF',
-        lineWidth: 1.0,
-        lineOpacity: 0.18,
+        lineColor: '#FFFFFF', // Will be updated by updateRouteColor
+        lineWidth: 2.0,
+        lineOpacity: 0.4,
         lineJoin: 'round',
         lineCap: 'round',
       ),
@@ -89,9 +89,9 @@ class MapRouteLineLayerController {
       routeSourceId,
       routeGlowLayerId,
       LineLayerProperties(
-        lineColor: '#00F5FF',
+        lineColor: '#FFFFFF',
         lineWidth: 9.0,
-        lineOpacity: 0.25,
+        lineOpacity: 0.15,
         lineJoin: 'round',
         lineCap: 'round',
       ),
@@ -101,9 +101,9 @@ class MapRouteLineLayerController {
       routeSourceId,
       routeCoreLayerId,
       LineLayerProperties(
-        lineColor: '#00F5FF',
-        lineWidth: 5.0,
-        lineOpacity: 0.95,
+        lineColor: '#FFFFFF',
+        lineWidth: 4.5,
+        lineOpacity: 0.90,
         lineJoin: 'round',
         lineCap: 'round',
       ),
@@ -181,6 +181,44 @@ class MapRouteLineLayerController {
 
     final geoJson = _buildRouteGeoJson(route);
     await _mapController!.setGeoJsonSource(routeSourceId, geoJson);
+  }
+
+  Future<void> updateRouteColor(String color) async {
+    if (_mapController == null) return;
+    
+    await _mapController!.setLayerProperties(
+      routeGlowLayerId,
+      LineLayerProperties(lineColor: color),
+    );
+    await _mapController!.setLayerProperties(
+      routeCoreLayerId,
+      LineLayerProperties(lineColor: color),
+    );
+    // Also update territory colors with specific opacity
+    await _mapController!.setLayerProperties(
+      territoryFillLayerId,
+      FillLayerProperties(
+        fillColor: color,
+        fillOpacity: 0.35, // Enforce transparency to see map underneath
+        fillOutlineColor: color,
+      ),
+    );
+    await _mapController!.setLayerProperties(
+      territoryOutlineLayerId,
+      LineLayerProperties(
+        lineColor: color,
+        lineOpacity: 0.8,
+      ),
+    );
+    // Also update current position color to match
+    await _mapController!.setLayerProperties(
+      currentPosGlowLayerId,
+      CircleLayerProperties(circleColor: color),
+    );
+    await _mapController!.setLayerProperties(
+      currentPosLayerId,
+      CircleLayerProperties(circleColor: color),
+    );
   }
 
   Future<void> updateTerritoryPolygon(
@@ -311,6 +349,10 @@ class MapRouteLineLayerController {
   }
 
   Map<String, dynamic> _buildTerritoryGeoJson(List<latlong.LatLng> route) {
+    // ARCHITECTURAL FIX: 
+    // To avoid "holes" caused by self-intersections (even-odd rule),
+    // we should ideally compute a Convex Hull or Alpha Shape.
+    // For now, we ensure the ring is closed and use a simple polygon.
     final ring = route
         .map((point) => [point.longitude, point.latitude])
         .toList();
@@ -328,7 +370,10 @@ class MapRouteLineLayerController {
       'features': [
         {
           'type': 'Feature',
-          'properties': {'kind': 'territory'},
+          'properties': {
+            'kind': 'territory',
+            'fill-rule': 'nonzero', // Attempt to override even-odd if supported
+          },
           'geometry': {
             'type': 'Polygon',
             'coordinates': [ring],

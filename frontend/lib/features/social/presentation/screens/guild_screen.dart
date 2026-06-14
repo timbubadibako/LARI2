@@ -104,7 +104,7 @@ class GuildScreen extends ConsumerWidget {
     AsyncValue<List<Guild>> guildsAsync,
     AsyncValue<List<FactionDominion>> dominionAsync,
   ) {
-    final currentFactionId = profile?.factionId;
+    final currentFactionId = profile?.guildId;
     
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -159,7 +159,7 @@ class GuildScreen extends ConsumerWidget {
   }
 
   Widget _buildCurrentGuildCard(BuildContext context, WidgetRef ref, UserProfile? profile, AsyncValue<List<Guild>> guildsAsync) {
-    final hasGuild = profile?.factionId != null;
+    final hasGuild = profile?.guildId != null;
     final color = profile?.territoryColor != null 
         ? Color(int.parse(profile!.territoryColor!.replaceFirst('#', '0xFF')))
         : StrideColors.textMuted;
@@ -167,7 +167,7 @@ class GuildScreen extends ConsumerWidget {
     String factionName = 'NO_AFFILIATION';
     if (hasGuild) {
       guildsAsync.whenData((guilds) {
-        final g = guilds.firstWhere((element) => element.id == profile?.factionId, orElse: () => Guild(id: '', name: 'UNKNOWN', emblemColor: ''));
+        final g = guilds.firstWhere((element) => element.id == profile?.guildId, orElse: () => Guild(id: '', name: 'UNKNOWN', emblemColor: ''));
         factionName = g.name;
       });
     }

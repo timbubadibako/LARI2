@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../dev/dev_providers.dart';
+import '../../../../core/services/shared_preferences_provider.dart';
 
 const String kIntegrationConnectionPrefix = 'profile.integration.';
 

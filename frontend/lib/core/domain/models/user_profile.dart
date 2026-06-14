@@ -2,7 +2,7 @@ class UserProfile {
   final String userId;
   final String? displayName;
   final String? avatarUrl;
-  final String? factionId;
+  final String? guildId;
   final String? territoryColor;
   final int level;
   final int xp;
@@ -19,7 +19,7 @@ class UserProfile {
     required this.userId,
     this.displayName,
     this.avatarUrl,
-    this.factionId,
+    this.guildId,
     this.territoryColor,
     this.level = 1,
     this.xp = 0,
@@ -38,7 +38,7 @@ class UserProfile {
       userId: json['id']?.toString() ?? json['user_id']?.toString() ?? '',
       displayName: json['display_name']?.toString(),
       avatarUrl: json['avatar_url']?.toString(),
-      factionId: json['guild_id']?.toString() ?? json['faction_id']?.toString(),
+      guildId: json['guild_id']?.toString(),
       territoryColor: json['territory_color']?.toString(),
       level: _asInt(json['level'], 1),
       xp: _asInt(json['xp'], 0),
@@ -73,21 +73,11 @@ class UserProfile {
     return fallback;
   }
 
-  static String? _firstNonEmpty(List<String?> values) {
-    for (final value in values) {
-      final text = value?.trim();
-      if (text != null && text.isNotEmpty) {
-        return text;
-      }
-    }
-    return null;
-  }
-
   UserProfile copyWith({
     String? userId,
     String? displayName,
     String? avatarUrl,
-    String? factionId,
+    String? guildId,
     String? territoryColor,
     int? level,
     int? xp,
@@ -104,7 +94,7 @@ class UserProfile {
       userId: userId ?? this.userId,
       displayName: displayName ?? this.displayName,
       avatarUrl: avatarUrl ?? this.avatarUrl,
-      factionId: factionId ?? this.factionId,
+      guildId: guildId ?? this.guildId,
       territoryColor: territoryColor ?? this.territoryColor,
       level: level ?? this.level,
       xp: xp ?? this.xp,
@@ -140,7 +130,7 @@ class UserProfile {
       'user_id': userId,
       'display_name': displayName,
       'avatar_url': avatarUrl,
-      'guild_id': factionId,
+      'guild_id': guildId,
       'territory_color': territoryColor,
       'level': level,
       'xp': xp,

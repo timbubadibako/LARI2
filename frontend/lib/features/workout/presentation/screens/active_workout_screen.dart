@@ -24,6 +24,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
   bool _isPocketMode = false;
   double _finishProgress = 0.0;
   Timer? _finishTimer;
+  bool _showConquestOverlay = false;
 
   // Slider state
   double _dragValue = 0.0;
@@ -34,13 +35,28 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
     super.dispose();
   }
 
+  void _triggerConquestOverlay() {
+    if (_showConquestOverlay) return;
+    
+    HapticFeedback.heavyImpact();
+    setState(() => _showConquestOverlay = true);
+    
+    Future.delayed(const Duration(seconds: 4), () {
+      if (mounted) {
+        setState(() => _showConquestOverlay = false);
+      }
+    });
+  }
+
   void _startFinishHold() {
-    // 🔥 VALIDASI DISTANCE: Jangan izinkan hold jika 0.00 KM
+    /* 
+    // 🔥 PRODUCTION VALIDASI DISTANCE: Jangan izinkan hold jika 0.00 KM
     final workout = ref.read(workoutControllerProvider);
     if (workout.distanceMeters < 1.0) {
       _showMissionAbortedDialog();
       return;
     }
+    */
 
     _finishProgress = 0.0;
     _finishTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
@@ -50,7 +66,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
         if (_finishProgress >= 1.0) _handleFinish();
         return;
       }
-      setState(() => _finishProgress += 1.0 / 60.0); // 6 seconds
+      setState(() => _finishProgress += 1.0 / 30.0); // 3 seconds
     });
   }
 
@@ -71,11 +87,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
           backgroundColor: StrideColors.background,
           shape: const RoundedRectangleBorder(
             side: BorderSide(color: StrideColors.error, width: 2),
-            borderRadius: BorderRadius.zero, // 🔥 Sharp Edges
+            borderRadius: BorderRadius.zero,
           ),
-          title: Text('MISSION_ABORTED', style: StrideTypography.headlineMD.copyWith(color: StrideColors.error)),
+          title: Text('SESSION_ENDED', style: StrideTypography.headlineMD.copyWith(color: StrideColors.error)),
           content: Text(
-            'INSUFFICIENT DATA GATHERED (0.00 KM). THIS SESSION CANNOT BE SAVED.',
+            'INSUFFICIENT DISTANCE DETECTED (0.00 KM). DATA WILL NOT BE SAVED.',
             style: StrideTypography.bodyMD,
           ),
           actions: [
@@ -84,7 +100,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
               style: TextButton.styleFrom(
                 shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
               ),
-              child: Text('RESUME MISSION', style: StrideTypography.labelBold.copyWith(color: StrideColors.neonGreen)),
+              child: Text(AppStrings.resume, style: StrideTypography.labelBold.copyWith(color: StrideColors.neonGreen)),
             ),
             TextButton(
               onPressed: () {
@@ -94,7 +110,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
               style: TextButton.styleFrom(
                 shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
               ),
-              child: Text('DISCARD MISSION', style: StrideTypography.labelBold.copyWith(color: StrideColors.textMuted)),
+              child: Text(AppStrings.discard, style: StrideTypography.labelBold.copyWith(color: StrideColors.textMuted)),
             ),
           ],
         ),
@@ -103,14 +119,41 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
   }
 
   Future<void> _handleFinish() async {
-    HapticFeedback.heavyImpact();
-    // Don't save to DB yet, wait for Nexus return in Summary screen
-    ref.read(workoutControllerProvider.notifier).pause(); // 🔥 Removed invalid await
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const PostRunSummaryScreen()),
-    );
+    try {
+      debugPrint('ACTIVE_RUN: Hold completed. Initializing finish protocol...');
+      HapticFeedback.heavyImpact();
+      
+      final controller = ref.read(workoutControllerProvider.notifier);
+      final workout = ref.read(workoutControllerProvider);
+      
+      debugPrint('ACTIVE_RUN: Captured workout stats - ID: ${workout.id}, Points: ${workout.points.length}');
+
+      // Hand off to sync service and reset state
+      // We wrap this in a timeout just in case Hive or something hangs
+      await controller.end().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => debugPrint('ACTIVE_RUN_WARNING: Controller end timed out, proceeding to summary.'),
+      );
+
+      debugPrint('ACTIVE_RUN: Finish protocol complete. Navigating to summary.');
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PostRunSummaryScreen(workout: workout),
+        ),
+      );
+    } catch (e, stack) {
+      debugPrint('ACTIVE_RUN_ERROR: Critical failure during finish: $e\n$stack');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('TERMINAL_FAILURE: $e'), backgroundColor: StrideColors.error),
+        );
+        // Even on error, try to at least go back to dashboard so user isn't stuck
+        Navigator.popUntil(context, (route) => route.isFirst);
+      }
+    }
   }
 
 
@@ -118,6 +161,13 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
   Widget build(BuildContext context) {
     final workout = ref.watch(workoutControllerProvider);
     final workoutController = ref.read(workoutControllerProvider.notifier);
+
+    // Listen for loop closure to show overlay
+    ref.listen(workoutControllerProvider.select((s) => s.isLoopClosed), (previous, next) {
+      if (next == true && (previous == false || previous == null)) {
+        _triggerConquestOverlay();
+      }
+    });
 
     final minutes = (workout.durationSeconds / 60).floor();
     final seconds = workout.durationSeconds % 60;
@@ -232,9 +282,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
 
                       Row(
                         children: [
-                          _buildSmallTelemetry('AVG_PACE', paceStr),
+                          _buildSmallTelemetry(AppStrings.pace, paceStr),
                           const SizedBox(width: 12),
-                          _buildSmallTelemetry('DURATION', timeStr, isNeon: true),
+                          _buildSmallTelemetry(AppStrings.duration, timeStr, isNeon: true),
                         ],
                       ),
 
@@ -253,7 +303,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('SECTOR_INTELLIGENCE', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textSecondary.withOpacity(0.5))),
+                                Text('CURRENT_LOCATION', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textSecondary.withOpacity(0.5))),
                                 ref.watch(currentAddressProvider).when(
                                   data: (address) => Text(address, style: StrideTypography.labelBold.copyWith(fontSize: 11)),
                                   loading: () => Text('SYNCING_GRID...', style: StrideTypography.labelBold.copyWith(fontSize: 11, color: StrideColors.textSecondary.withOpacity(0.5))),
@@ -288,7 +338,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                                   ),
                                   child: Center(
                                     child: Text(
-                                      workout.state == WorkoutState.paused ? 'RESUME (TAP 2X)' : 'PAUSE (TAP 2X)',
+                                      workout.state == WorkoutState.paused ? '${AppStrings.resume} (TAP 2X)' : '${AppStrings.pause} (TAP 2X)',
                                       style: StrideTypography.labelBold.copyWith(color: StrideColors.white, fontSize: 10, letterSpacing: 1.2),
                                     ),
                                   ),
@@ -317,7 +367,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                                       ),
                                       Center(
                                         child: Text(
-                                          _finishProgress > 0 ? 'FINISHING...' : 'HOLD 6S FINISH',
+                                          _finishProgress > 0 ? 'FINISHING...' : 'HOLD 3S FINISH',
                                           style: StrideTypography.labelBold.copyWith(color: StrideColors.background, fontSize: 10, letterSpacing: 1.2),
                                         ),
                                       ),
@@ -336,7 +386,54 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
 
             if (_isPocketMode)
               _buildPocketModeOverlay(distKmMain, distKmDecimal, paceStr, timeStr),
+
+            if (_showConquestOverlay)
+              _buildConquestOverlay(),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConquestOverlay() {
+    return Positioned.fill(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Container(
+          color: StrideColors.neonGreen.withOpacity(0.1),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle_outline, color: StrideColors.neonGreen, size: 80),
+                const SizedBox(height: 16),
+                Text(
+                  AppStrings.territorySecured,
+                  style: StrideTypography.displayXL.copyWith(
+                    color: StrideColors.neonGreen,
+                    fontSize: 32,
+                    letterSpacing: 4,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  AppStrings.areaIntegrated,
+                  style: StrideTypography.labelTactical.copyWith(color: StrideColors.white),
+                ),
+                const SizedBox(height: 40),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: StrideColors.neonGreen, width: 2),
+                  ),
+                  child: const Text(
+                    AppStrings.syncInProgress,
+                    style: TextStyle(color: StrideColors.neonGreen, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -384,14 +481,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
               children: [
                 Column(
                   children: [
-                    Text('PACE', style: StrideTypography.labelTactical.copyWith(color: StrideColors.white.withOpacity(0.3))),
+                    Text(AppStrings.pace, style: StrideTypography.labelTactical.copyWith(color: StrideColors.white.withOpacity(0.3))),
                     Text(pace, style: StrideTypography.headlineMD.copyWith(fontSize: 40)),
                   ],
                 ),
                 const SizedBox(width: 40, child: Center(child: Text('|', style: TextStyle(color: Colors.white10)))),
                 Column(
                   children: [
-                    Text('TIME', style: StrideTypography.labelTactical.copyWith(color: StrideColors.white.withOpacity(0.3))),
+                    Text(AppStrings.duration, style: StrideTypography.labelTactical.copyWith(color: StrideColors.white.withOpacity(0.3))),
                     Text(time, style: StrideTypography.headlineMD.copyWith(fontSize: 40)),
                   ],
                 ),

@@ -95,7 +95,7 @@ func main() {
 
 	// Guild Routes
 	e.GET("/guilds", guildHandler.GetGuilds)
-	e.GET("/guilds/dominion", guildHandler.GetFactionDominion)
+	e.GET("/guilds/dominion", guildHandler.GetGuildDominion)
 	e.POST("/guilds/join", guildHandler.JoinGuild)
 	e.POST("/guilds/leave", guildHandler.LeaveGuild)
 

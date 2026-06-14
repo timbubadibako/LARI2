@@ -59,15 +59,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       _isLoading = true;
     });
     try {
+      final selectedColor = _factionColors[_selectedColorIndex];
+      final colorHex = '#${selectedColor.value.toRadixString(16).substring(2).toUpperCase()}';
+      
       final success = await ref
           .read(authControllerProvider)
-          .signUpWithEmailPassword(email, password, displayName);
+          .signUpWithEmailPassword(email, password, displayName, colorHex);
       if (!mounted) return;
 
       if (success) {
         Navigator.of(
           context,
         ).pushReplacement(MaterialPageRoute(builder: (_) => const MainScreen()));
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('REGISTRATION REJECTED. IDENTITY ALREADY CLAIMED OR SERVER OFFLINE.'),
+            backgroundColor: StrideColors.error,
+          ),
+        );
       }
     } catch (e) {
       if (!mounted) return;

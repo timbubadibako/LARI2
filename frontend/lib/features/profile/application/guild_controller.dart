@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/config/api_config.dart';
 import '../../../core/services/http_client_provider.dart';
-import '../../../core/services/supabase_logger.dart';
+import '../../../core/services/lari_logger.dart';
 import '../../../dev/dev_providers.dart';
 import '../../auth/application/auth_controller.dart';
 import 'profile_controller.dart';
@@ -56,37 +56,38 @@ class FactionDominion {
 
 class GuildController {
   final Ref _ref;
-  final String _baseUrl = ApiConfig.baseUrl;
 
   GuildController(this._ref);
 
   http.Client get _client => _ref.read(httpClientProvider);
-  bool get _logEnabled => _ref.read(supabaseDevLogEnabledProvider);
+  bool get _logEnabled => _ref.read(lariDevLogEnabledProvider);
 
   Future<List<Guild>> fetchGuilds() async {
+    final baseUrl = _ref.read(baseUrlProvider);
     try {
-      final response = await _client.get(Uri.parse('$_baseUrl/guilds'));
+      final response = await _client.get(Uri.parse('$baseUrl/guilds'));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         return data.map((json) => Guild.fromJson(json)).toList();
       }
       return [];
     } catch (e) {
-      SupabaseLogger.log(_logEnabled, 'API Fetch Guilds Error', success: false, error: e.toString());
+      LariLogger.log(_logEnabled, 'API Fetch Guilds Error', success: false, error: e.toString());
       return [];
     }
   }
 
   Future<List<FactionDominion>> fetchDominion() async {
+    final baseUrl = _ref.read(baseUrlProvider);
     try {
-      final response = await _client.get(Uri.parse('$_baseUrl/guilds/dominion'));
+      final response = await _client.get(Uri.parse('$baseUrl/guilds/dominion'));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         return data.map((json) => FactionDominion.fromJson(json)).toList();
       }
       return [];
     } catch (e) {
-      SupabaseLogger.log(_logEnabled, 'API Fetch Dominion Error', success: false, error: e.toString());
+      LariLogger.log(_logEnabled, 'API Fetch Dominion Error', success: false, error: e.toString());
       return [];
     }
   }
@@ -94,10 +95,11 @@ class GuildController {
   Future<bool> joinGuild(String guildId) async {
     final userId = _ref.read(currentUserSessionProvider);
     if (userId == null) return false;
+    final baseUrl = _ref.read(baseUrlProvider);
 
     try {
       final response = await _client.post(
-        Uri.parse('$_baseUrl/guilds/join'),
+        Uri.parse('$baseUrl/guilds/join'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'user_id': userId,
@@ -106,16 +108,16 @@ class GuildController {
       );
 
       if (response.statusCode == 200) {
-        SupabaseLogger.log(_logEnabled, 'API Join Guild Success');
+        LariLogger.log(_logEnabled, 'API Join Guild Success');
         _ref.invalidate(profileControllerProvider);
         _ref.invalidate(dominionProvider); // Invalidate dominion when joining
         return true;
       }
 
-      SupabaseLogger.log(_logEnabled, 'API Join Guild Failed', success: false, error: response.body);
+      LariLogger.log(_logEnabled, 'API Join Guild Failed', success: false, error: response.body);
       return false;
     } catch (e) {
-      SupabaseLogger.log(_logEnabled, 'API Join Guild Error', success: false, error: e.toString());
+      LariLogger.log(_logEnabled, 'API Join Guild Error', success: false, error: e.toString());
       return false;
     }
   }
@@ -123,25 +125,26 @@ class GuildController {
   Future<bool> leaveGuild() async {
     final userId = _ref.read(currentUserSessionProvider);
     if (userId == null) return false;
+    final baseUrl = _ref.read(baseUrlProvider);
 
     try {
       // We'll use a specific endpoint or just update profile with null guild_id
       // For now, let's assume there's a leave endpoint or use the profile update
       final response = await _client.post(
-        Uri.parse('$_baseUrl/guilds/leave'),
+        Uri.parse('$baseUrl/guilds/leave'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'user_id': userId}),
       );
 
       if (response.statusCode == 200) {
-        SupabaseLogger.log(_logEnabled, 'API Leave Guild Success');
+        LariLogger.log(_logEnabled, 'API Leave Guild Success');
         _ref.invalidate(profileControllerProvider);
         _ref.invalidate(dominionProvider);
         return true;
       }
       return false;
     } catch (e) {
-      SupabaseLogger.log(_logEnabled, 'API Leave Guild Error', success: false, error: e.toString());
+      LariLogger.log(_logEnabled, 'API Leave Guild Error', success: false, error: e.toString());
       return false;
     }
   }

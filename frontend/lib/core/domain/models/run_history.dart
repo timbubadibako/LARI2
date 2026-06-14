@@ -47,4 +47,18 @@ class RunHistory {
       syncStatus: map['status'] as String,
     );
   }
+
+  // Factory for Direct Supabase Row
+  factory RunHistory.fromSupabase(Map<String, dynamic> map) {
+    return RunHistory(
+      id: map['id'] as String,
+      userId: map['user_id'] as String,
+      distanceKm: (map['distance_km'] as num).toDouble(),
+      durationSec: (map['duration_sec'] as num).toInt(),
+      status: map['status'] as String,
+      pathWkt: map['path_geometry'] as String?,
+      createdAt: DateTime.parse(map['created_at'] as String),
+      syncStatus: 'synced',
+    );
+  }
 }

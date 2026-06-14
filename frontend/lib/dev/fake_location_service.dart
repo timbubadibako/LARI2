@@ -60,8 +60,8 @@ class FakeLocationConfig {
   });
 
   const FakeLocationConfig.defaults()
-    : centerLat = -6.225014,
-      centerLng = 106.827143,
+    : centerLat = 0,
+      centerLng = 0,
       loopDistanceMeters = 1000, 
       durationSeconds = 600,     
       sampleInterval = const Duration(seconds: 1),
@@ -181,7 +181,15 @@ class FakeLocationConfig {
 }
 
 class FakeLocationService implements TrackingSource {
-  FakeLocationService({required FakeLocationConfig config, Random? random})
+  static FakeLocationService? _instance;
+  
+  factory FakeLocationService({required FakeLocationConfig config, Random? random}) {
+    _instance ??= FakeLocationService._internal(config: config, random: random);
+    _instance!._config = config;
+    return _instance!;
+  }
+
+  FakeLocationService._internal({required FakeLocationConfig config, Random? random})
     : _config = config,
       _random = random ?? Random();
 
@@ -194,7 +202,7 @@ class FakeLocationService implements TrackingSource {
   bool _isPaused = false;
   int _emittedSamples = 0;
   double _angleRad = 0;
-  
+
   late double _targetLat;
   late double _targetLng;
   bool _reachedTarget = false;

@@ -6,6 +6,7 @@ import '../../../../ui/theme/stride_typography.dart';
 import '../../../../ui/components/v3_shapes.dart';
 import '../../../../ui/components/tactical_header.dart';
 import '../../../../ui/components/signature_painter.dart';
+import '../../../../ui/components/app_strings.dart';
 import '../../application/social_controller.dart';
 import '../../domain/models/social_models.dart';
 import '../../../auth/application/auth_controller.dart';
@@ -40,7 +41,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
     HapticFeedback.mediumImpact();
     try {
       await Future.wait([
-        ref.refresh(factionDominionProvider.future),
+        ref.refresh(guildDominionProvider.future),
         ref.refresh(leaderboardProvider('KEC-GLOBAL').future),
         ref.refresh(globalActivityProvider.future),
         ref.refresh(recentGraffitiProvider.future),
@@ -53,18 +54,18 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     // Listen to real-time events to trigger refresh
-    ref.listen<AsyncValue<void>>(
+    ref.listen(
       globalActivityStreamProvider,
       (_, next) {
         if (next.hasValue) {
-          // New event received via WS, invalidate feed
+          // New event received via Supabase Stream, invalidate feed
           ref.invalidate(globalActivityProvider);
           HapticFeedback.lightImpact();
         }
       },
     );
 
-    final dominionAsync = ref.watch(factionDominionProvider);
+    final dominionAsync = ref.watch(guildDominionProvider);
     final leaderboardAsync = ref.watch(leaderboardProvider('KEC-GLOBAL'));
     final activityAsync = ref.watch(globalActivityProvider);
     final graffitiAsync = ref.watch(recentGraffitiProvider);
@@ -76,9 +77,9 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TacticalHeader(
-            title: 'WAR_ROOM',
-            subTitle: 'STRATEGIC_INTEL',
-            status: 'INTEL_FEED_ACTIVE',
+            title: AppStrings.socialRoom,
+            subTitle: AppStrings.communityFeed,
+            status: AppStrings.networkOnline,
             statusColor: StrideColors.secondary,
             actions: [
               TacticalIconButton(
@@ -120,23 +121,23 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                             ],
                           ),
                       loading: () => _buildLoadingSection(80),
-                      error: (e, s) => _buildErrorSection('DOMINION_OFFLINE: ${e.toString()}'),
+                      error: (e, s) => _buildErrorSection('FEED_OFFLINE: ${e.toString()}'),
                     ),
 
-                    // TOP OPERATIVES
+                    // TOP RUNNERS
                     leaderboardAsync.when(
                       data: (entries) => entries.isEmpty 
                         ? const SizedBox.shrink() 
                         : Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _sectionHeader('TOP_OPERATIVES', trailing: 'AREA: GLOBAL'),
+                              _sectionHeader(AppStrings.leaderboard, trailing: 'AREA: GLOBAL'),
                               const SizedBox(height: 16),
-                              ...entries.take(5).map((e) => _buildAgentCard(
+                              ...entries.take(5).map((e) => _buildRunnerCard(
                                 e.rank.toString().padLeft(2, '0'),
                                 e.displayName,
                                 '${(e.totalAreaSqm / 1000).toStringAsFixed(1)}K SQM SECURED',
-                                '${(e.totalAreaSqm / 10000).toStringAsFixed(1)}%', // Dummy percentage for now
+                                '${(e.totalAreaSqm / 10000).toStringAsFixed(1)}%', 
                                 factionColor: e.color,
                                 isYou: e.userId == currentUserId,
                               )),
@@ -144,7 +145,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                             ],
                           ),
                       loading: () => _buildLoadingSection(120),
-                      error: (e, s) => _buildErrorSection('LEADERBOARD_OFFLINE: ${e.toString()}'),
+                      error: (e, s) => _buildErrorSection('${AppStrings.leaderboard} OFFLINE: ${e.toString()}'),
                     ),
 
                     // GRAFFITI WALL
@@ -154,7 +155,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                         : Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _sectionHeader('GLOBAL_GRAFFITI_WALL'),
+                              _sectionHeader(AppStrings.globalGraffitiWall),
                               const SizedBox(height: 16),
                               SizedBox(
                                 height: 120,
@@ -179,23 +180,26 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                       data: (activities) => Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _sectionHeader('RECENT_GLOBAL_ACTIVITY'),
+                          _sectionHeader(AppStrings.recentActivity),
                           const SizedBox(height: 16),
                           if (activities.isEmpty)
-                            _buildEmptyState('NO_MISSION_INTEL', 'Waiting for agents to report...')
+                            _buildEmptyState(AppStrings.noActivity, AppStrings.awaitingUplink)
                           else
                             ...activities.map((a) {
                               final paceSec = a.distanceKm > 0 ? (a.durationSec / a.distanceKm) : 0.0;
                               final paceStr = paceSec > 0 
                                   ? '${(paceSec / 60).floor().toString().padLeft(2, '0')}:${(paceSec % 60).floor().toString().padLeft(2, '0')}' 
                                   : '--:--';
+                              
+                              final missionColor = a.color;
+
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 16),
-                                child: _buildGlobalMissionDossier(
+                                child: _buildGlobalActivityCard(
                                   a.displayName,
-                                  a.status == 'captured' ? 'GRID_SECURED_OP_${a.id.substring(0, 3).toUpperCase()}' : 'RECON_MISSION_ABORTED',
+                                  a.status == 'captured' ? AppStrings.areaConquered : AppStrings.runCompleted,
                                   a.status.toUpperCase(),
-                                  a.color,
+                                  missionColor,
                                   '${a.distanceKm.toStringAsFixed(1)}KM',
                                   paceStr,
                                 ),
@@ -219,11 +223,11 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                             children: [
                               Icon(Icons.radar, color: StrideColors.textMuted, size: 48),
                               const SizedBox(height: 16),
-                              Text('NO_FIELD_ACTIVITY_DETECTED', 
+                              Text(AppStrings.noActivity, 
                                 style: StrideTypography.labelTactical.copyWith(color: StrideColors.textMuted)
                               ),
                               const SizedBox(height: 8),
-                              Text('AWAITING_AGENT_UPLINK...', 
+                              Text(AppStrings.awaitingUplink, 
                                 style: StrideTypography.labelBold.copyWith(fontSize: 8, color: StrideColors.textMuted.withOpacity(0.5))
                               ),
                             ],
@@ -310,7 +314,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildAgentCard(String rank, String name, String subtitle, String dominion, {Color factionColor = StrideColors.neonGreen, bool isYou = false}) {
+  Widget _buildRunnerCard(String rank, String name, String subtitle, String dominion, {Color factionColor = StrideColors.neonGreen, bool isYou = false}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 2),
       padding: const EdgeInsets.all(12),
@@ -421,7 +425,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildGlobalMissionDossier(String agent, String title, String status, Color color, String dist, String pace) {
+  Widget _buildGlobalActivityCard(String runner, String title, String status, Color color, String dist, String pace) {
     final isCaptured = status == 'CAPTURED';
     return Container(
       height: 120, 
@@ -477,7 +481,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(agent, style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: color.withOpacity(0.6))),
+                          Text(runner, style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: color.withOpacity(0.6))),
                           V3SkewBox(
                             skewAmount: -0.1,
                             child: Container(
@@ -501,9 +505,9 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          _miniStat('DIST', dist),
+                          _miniStat(AppStrings.distance, dist),
                           const SizedBox(width: 20),
-                          _miniStat('PACE', pace),
+                          _miniStat(AppStrings.pace, pace),
                         ],
                       ),
                     ],

@@ -32,7 +32,13 @@ LARI menggunakan Go WebSocket Hub untuk menyiarkan aktivitas lari secara instan 
 *   **Broadcast Trigger:** Setiap kali user berhasil melakukan `/sync/run`, server mengirimkan notifikasi ke Hub.
 *   **Live Feed:** Client mendengarkan stream WebSocket dan melakukan invalidasi state (Riverpod) secara otomatis untuk memicu refresh data tanpa polling manual.
 
-## 6. Graffiti Engine (Tactical Tagging)
-Implementasi kanvas gambar untuk personalisasi klaim wilayah.
-*   **Vector Strokes:** Tanda tangan disimpan sebagai array koordinat normalisasi (X, Y) dalam format JSONB di Postgres.
-*   **Scaling Architecture:** Client bertanggung jawab untuk melakukan scaling stroke data sesuai dengan ukuran kontainer UI (Post-Run Summary vs War Room Card).
+## 7. Advanced Geospatial Intelligence (The Accuracy Core)
+LARI V3 menggunakan sistem "Dead Reckoning" dan "Adaptive Sampling" untuk mengalahkan standar akurasi aplikasi lari konvensional.
+*   **Sensor Fusion (IMU):** Menggabungkan GPS dengan Accelerometer HP. Jika GPS hilang (tunnels), sistem memproyeksikan jalur berdasarkan langkah dan arah hadap fisik.
+*   **Tactical Boost:** Secara dinamis meningkatkan frekuensi GPS ke 1Hz (per detik) saat mendeteksi pergerakan *off-road* atau manuver penutupan wilayah (Looping).
+*   **Map-Match Proxy:** Algoritma backend yang melakukan *Snap-to-Road* secara cerdas (deviasi < 20m) namun memberikan proteksi jalur asli saat agen lari di area terbuka (lapangan/taman).
+
+## 8. Persistence & Resiliency Strategy
+*   **Cache-First UI:** Menggunakan SharedPreferences untuk menyimpan *snapshot* profil terakhir agar UI (Dashboard) tampil instan tanpa menunggu network.
+*   **Network Timeouts:** Seluruh request memiliki limit 10 detik dengan *Auto-Fallback* ke data lokal/statis untuk mencegah *infinite loading loops*.
+*   **Hybrid Cloud (Supabase Migration):** Migrasi dari Postgres Lokal ke Supabase untuk sinkronisasi data global, sementara Go Backend tetap berfungsi sebagai *High-Performance Spatial Compute Engine*.

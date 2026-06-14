@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-import '../../../core/config/api_config.dart';
 import '../../../core/services/http_client_provider.dart';
+import '../../../core/config/api_config.dart';
 import '../domain/models/social_models.dart';
 
 final socialControllerProvider = Provider<SocialController>((ref) {
@@ -13,125 +11,119 @@ final socialControllerProvider = Provider<SocialController>((ref) {
 
 class SocialController {
   final Ref _ref;
-  final String _baseUrl = ApiConfig.baseUrl;
 
   SocialController(this._ref);
 
-  http.Client get _client => _ref.read(httpClientProvider);
-
-  // Derive WS URL from base URL (assuming ws:// if http://)
-  String get _wsUrl {
-    if (_baseUrl.startsWith('https')) {
-      return _baseUrl.replaceFirst('https', 'wss');
-    }
-    return _baseUrl.replaceFirst('http', 'ws');
-  }
-
-  Stream<void> watchGlobalActivityStream() {
-    final controller = StreamController<void>();
-    try {
-      final channel = WebSocketChannel.connect(Uri.parse('$_wsUrl/ws'));
-      channel.stream.listen(
-        (message) {
-          // A message means a new run was broadcast
-          controller.add(null);
-        },
-        onError: (e) {
-          controller.addError(e);
-        },
-        onDone: () {
-          controller.close();
-        },
-      );
-      
-      controller.onCancel = () {
-        channel.sink.close();
-      };
-    } catch (e) {
-      controller.addError(e);
-    }
-    return controller.stream;
+  /// Note: WebSocket would be better for real-time, 
+  /// for now we stub or use polling if needed.
+  Stream<List<Map<String, dynamic>>> watchGlobalActivityStream() {
+    return const Stream.empty(); 
   }
 
   Future<List<LeaderboardEntry>> fetchLeaderboard(String district) async {
     try {
-      final response = await _client.get(Uri.parse('$_baseUrl/leaderboard/$district')).timeout(const Duration(seconds: 10));
+      final client = _ref.read(httpClientProvider);
+      final baseUrl = ApiConfig.getBaseUrl(_ref);
+
+      final response = await client.get(
+        Uri.parse('$baseUrl/leaderboard/$district'),
+      );
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((e) => LeaderboardEntry.fromJson(e)).toList();
-      } else {
-        throw Exception('Server error: ${response.statusCode}');
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => LeaderboardEntry.fromJson(json)).toList();
       }
+      return [];
     } catch (e) {
-      throw Exception('Leaderboard uplink failed: $e');
+      return [];
     }
   }
 
-  Future<List<DominionEntry>> fetchFactionDominion() async {
+  Future<List<DominionEntry>> fetchGuildDominion() async {
     try {
-      final response = await _client.get(Uri.parse('$_baseUrl/guilds/dominion')).timeout(const Duration(seconds: 10));
+      final client = _ref.read(httpClientProvider);
+      final baseUrl = ApiConfig.getBaseUrl(_ref);
+      
+      final response = await client.get(
+        Uri.parse('$baseUrl/guilds/dominion'),
+      );
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final List<dynamic> data = jsonDecode(response.body);
         return data.map((e) => DominionEntry.fromJson(e)).toList();
-      } else {
-        throw Exception('Server error: ${response.statusCode}');
       }
+      return [];
     } catch (e) {
-      throw Exception('Dominion sync failed: $e');
+      return [];
     }
   }
 
   Future<List<GlobalActivity>> fetchGlobalActivity() async {
     try {
-      final response = await _client.get(Uri.parse('$_baseUrl/runs/global')).timeout(const Duration(seconds: 10));
+      final client = _ref.read(httpClientProvider);
+      final baseUrl = ApiConfig.getBaseUrl(_ref);
+      
+      final response = await client.get(
+        Uri.parse('$baseUrl/runs/global'),
+      );
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final List<dynamic> data = jsonDecode(response.body);
         return data.map((e) => GlobalActivity.fromJson(e)).toList();
-      } else {
-        throw Exception('Server error: ${response.statusCode}');
       }
+      return [];
     } catch (e) {
-      throw Exception('Mission feed offline: $e');
+      return [];
     }
   }
 
   Future<List<Graffiti>> fetchRecentGraffiti() async {
     try {
-      final response = await _client.get(Uri.parse('$_baseUrl/graffiti')).timeout(const Duration(seconds: 10));
+      final client = _ref.read(httpClientProvider);
+      final baseUrl = ApiConfig.getBaseUrl(_ref);
+      
+      final response = await client.get(
+        Uri.parse('$baseUrl/graffiti'),
+      );
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final List<dynamic> data = jsonDecode(response.body);
         return data.map((e) => Graffiti.fromJson(e)).toList();
-      } else {
-        throw Exception('Server error: ${response.statusCode}');
       }
+      return [];
     } catch (e) {
-      throw Exception('Graffiti link disrupted: $e');
+      return [];
     }
   }
 
   Future<bool> postGraffiti(String userId, List<List<Map<String, double>>> data) async {
     try {
-      final response = await _client.post(
-        Uri.parse('$_baseUrl/graffiti'),
+      final client = _ref.read(httpClientProvider);
+      final baseUrl = ApiConfig.getBaseUrl(_ref);
+      
+      final response = await client.post(
+        Uri.parse('$baseUrl/graffiti'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'user_id': userId,
           'data': data,
         }),
       );
-      return response.statusCode == 201;
+      
+      return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       return false;
     }
   }
 }
 
+
 final leaderboardProvider = FutureProvider.family<List<LeaderboardEntry>, String>((ref, district) async {
   return ref.read(socialControllerProvider).fetchLeaderboard(district);
 });
 
-final factionDominionProvider = FutureProvider<List<DominionEntry>>((ref) async {
-  return ref.read(socialControllerProvider).fetchFactionDominion();
+final guildDominionProvider = FutureProvider<List<DominionEntry>>((ref) async {
+  return ref.read(socialControllerProvider).fetchGuildDominion();
 });
 
 final globalActivityProvider = FutureProvider<List<GlobalActivity>>((ref) async {
@@ -142,6 +134,6 @@ final recentGraffitiProvider = FutureProvider<List<Graffiti>>((ref) async {
   return ref.read(socialControllerProvider).fetchRecentGraffiti();
 });
 
-final globalActivityStreamProvider = StreamProvider<void>((ref) {
+final globalActivityStreamProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
   return ref.read(socialControllerProvider).watchGlobalActivityStream();
 });

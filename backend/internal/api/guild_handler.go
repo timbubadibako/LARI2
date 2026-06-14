@@ -27,7 +27,7 @@ type JoinGuildRequest struct {
 	GuildID string `json:"guild_id"`
 }
 
-func (h *GuildHandler) GetFactionDominion(c echo.Context) error {
+func (h *GuildHandler) GetGuildDominion(c echo.Context) error {
 	query := `
 		SELECT 
 			g.id, 
@@ -42,7 +42,7 @@ func (h *GuildHandler) GetFactionDominion(c echo.Context) error {
 	`
 	rows, err := h.db.Query(context.Background(), query)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch faction dominion"})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch guild dominion"})
 	}
 	defer rows.Close()
 

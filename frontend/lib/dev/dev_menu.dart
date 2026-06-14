@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../core/theme/app_theme.dart';
 import '../features/workout/application/workout_controller.dart';
@@ -160,20 +161,6 @@ class _DevMenuState extends ConsumerState<DevMenu> {
                     },
                   ),
                 ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Lasso Run (A -> B -> Loop -> B)'),
-                  subtitle: const Text('Perfect for testing Integrity Protocol', style: TextStyle(fontSize: 10, color: Colors.white54)),
-                  leading: Radio<FakeScenario>(
-                    value: FakeScenario.lasso,
-                    groupValue: config.scenario,
-                    onChanged: (v) {
-                      if (v != null) {
-                        ref.read(devFakeLocationConfigProvider.notifier).setField(scenario: v);
-                      }
-                    },
-                  ),
-                ),
               ],
             ),
           ),
@@ -319,9 +306,23 @@ class _DevMenuState extends ConsumerState<DevMenu> {
                 const SizedBox(height: 8),
                 _debugToggle(
                   'Supabase Connection Logs',
-                  ref.watch(supabaseDevLogEnabledProvider),
+                  ref.watch(lariDevLogEnabledProvider),
                   (value) async {
-                    ref.read(supabaseDevLogEnabledProvider.notifier).toggle(value);
+                    ref.read(lariDevLogEnabledProvider.notifier).toggle(value);
+                  },
+                ),
+                _debugToggle(
+                  'Use Mock Backend',
+                  ref.watch(useMockBackendPrefProvider),
+                  (value) async {
+                    await ref.read(useMockBackendPrefProvider.notifier).setEnabled(value);
+                  },
+                ),
+                _debugToggle(
+                  'Connect to Local Go (localhost)',
+                  ref.watch(useLocalBackendPrefProvider),
+                  (value) async {
+                    await ref.read(useLocalBackendPrefProvider.notifier).setEnabled(value);
                   },
                 ),
               ],

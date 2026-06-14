@@ -20,9 +20,10 @@ func NewAuthHandler(db *pgxpool.Pool) *AuthHandler {
 }
 
 type RegisterRequest struct {
-	Email       string `json:"email"`
-	Password    string `json:"password"`
-	DisplayName string `json:"display_name"`
+	Email        string `json:"email"`
+	Password     string `json:"password"`
+	DisplayName  string `json:"display_name"`
+	FactionColor string `json:"faction_color"`
 }
 
 type LoginRequest struct {
@@ -76,9 +77,25 @@ func (h *AuthHandler) Register(c echo.Context) error {
 
 	// Insert into profiles
 	username := req.Email // Simple fallback
+
+	// 🔥 AUTO-GUILD ASSIGNMENT based on color
+	guildID := ""
+	switch strings.ToUpper(req.FactionColor) {
+	case "#CCFF00": // Neon Green
+		guildID = "00000000-0000-0000-0000-000000000001" // THE_VANGUARD
+	case "#00F0FF": // Electric Blue
+		guildID = "00000000-0000-0000-0000-000000000002" // SAPPHIRE_SYNDICATE
+	case "#FFFF5F00", "#FF5F00": // Inferno Orange
+		guildID = "00000000-0000-0000-0000-000000000003" // CYBER_CORE
+	case "#FF0000": // Infra Red
+		guildID = "00000000-0000-0000-0000-000000000004" // RED_REBEL_CELL
+	default:
+		guildID = "00000000-0000-0000-0000-000000000001" // Default to Vanguard
+	}
+
 	_, err = tx.Exec(context.Background(),
-		"INSERT INTO profiles (id, display_name, username) VALUES ($1, $2, $3)",
-		userID, req.DisplayName, username)
+		"INSERT INTO profiles (id, display_name, username, guild_id, territory_color) VALUES ($1, $2, $3, $4, $5)",
+		userID, req.DisplayName, username, guildID, req.FactionColor)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Profile creation failed: " + err.Error()})
 	}

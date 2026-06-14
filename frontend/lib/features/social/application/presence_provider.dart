@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../dev/dev_providers.dart';
+import '../../../../core/services/shared_preferences_provider.dart';
 import 'package:latlong2/latlong.dart';
 
 const String kPresenceOptInKey = 'social.presenceOptIn';

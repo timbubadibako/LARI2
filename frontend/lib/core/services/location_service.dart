@@ -31,7 +31,7 @@ class LocationService implements TrackingSource {
     await for (final position in Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 5, // minimum 5 meters movement
+        distanceFilter: 3, // Support for 3m interval requirement
       ),
     )) {
       // Ignore if accuracy is worse than 40m

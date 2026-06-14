@@ -4,7 +4,7 @@ import '../../../../ui/theme/stride_colors.dart';
 import '../../../../ui/theme/stride_typography.dart';
 import '../../../../ui/components/v3_shapes.dart';
 import '../../../../ui/components/v3_input_field.dart';
-import '../../../../core/services/sync_queue_service.dart';
+import '../../../../core/services/lari_sync_service.dart';
 import '../../../main/presentation/screens/main_screen.dart';
 import '../../application/auth_controller.dart';
 import 'register_screen.dart';
@@ -53,7 +53,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           .signInWithEmailPassword(email, password);
       
       if (success) {
-        await ref.read(syncQueueServiceProvider).processQueue();
+        await ref.read(lariSyncServiceProvider).processQueue();
         if (!mounted) return;
         Navigator.of(
           context,
