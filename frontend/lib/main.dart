@@ -1,12 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'core/services/sync_queue_service.dart';
+import 'core/services/lari_sync_service.dart';
 import 'core/services/workout_storage_service.dart';
-import 'dev/dev_providers.dart';
-import 'dev/dev_menu.dart';
+import 'core/services/shared_preferences_provider.dart';
 import 'features/auth/presentation/screens/splash_screen.dart';
 import 'features/auth/application/auth_controller.dart';
 import 'package:flutter_skill/flutter_skill.dart';
@@ -21,26 +19,31 @@ Future<void> main() async {
   
   // 2. Initialize Storage (Hive)
   await Hive.initFlutter();
-  
-  // Open boxes and wait for them to be ready
   final workoutBox = await Hive.openBox('workouts');
-  final syncBox = await Hive.openBox('sync_queue');
-  
-  // 3. Initialize Services
-  final syncService = SyncQueueService(syncBox);
-  final workoutStorage = WorkoutStorageService(workoutBox);
-  
-  // 4. Initialize Core dependencies
+  final syncBox = await Hive.openBox('lari_sync_queue');
   final sharedPreferences = await SharedPreferences.getInstance();
 
+  // 4. Create ProviderContainer for Service Injection
+  final container = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+    ],
+  );
+
+  // 5. Initialize Services with Ref
+  final lariSyncService = LariSyncService(syncBox, container);
+  final workoutStorage = WorkoutStorageService(workoutBox);
+
   runApp(
-    ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(sharedPreferences),
-        syncQueueServiceProvider.overrideWithValue(syncService),
-        workoutStorageServiceProvider.overrideWithValue(workoutStorage),
-      ],
-      child: const LariLariApp(),
+    UncontrolledProviderScope(
+      container: container,
+      child: ProviderScope(
+        overrides: [
+          lariSyncServiceProvider.overrideWithValue(lariSyncService),
+          workoutStorageServiceProvider.overrideWithValue(workoutStorage),
+        ],
+        child: const LariLariApp(),
+      ),
     ),
   );
 }
@@ -57,9 +60,6 @@ class LariLariApp extends ConsumerWidget {
         scaffoldBackgroundColor: const Color(0xFF000000),
       ),
       home: const SplashScreen(),
-      routes: (!kReleaseMode || kAllowDevMenuInRelease)
-          ? {'/dev': (_) => const DevMenu()}
-          : const {},
       debugShowCheckedModeBanner: false,
     );
   }

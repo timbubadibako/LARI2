@@ -5,6 +5,7 @@ enum WorkoutState { idle, running, paused, ended }
 class WorkoutSession {
   final String id;
   final String userId;
+  final String? guildId;
   final DateTime startedAt;
   final DateTime? endedAt;
   final WorkoutState state;
@@ -22,6 +23,7 @@ class WorkoutSession {
   WorkoutSession({
     required this.id,
     required this.userId,
+    this.guildId,
     required this.startedAt,
     this.endedAt,
     this.state = WorkoutState.idle,
@@ -54,10 +56,12 @@ class WorkoutSession {
     String? notes,
     List<PositionSample>? points,
     bool? isLoopClosed,
+    String? guildId,
   }) {
     return WorkoutSession(
       id: id,
       userId: userId,
+      guildId: guildId ?? this.guildId,
       startedAt: startedAt ?? this.startedAt,
       endedAt: endedAt ?? this.endedAt,
       state: state ?? this.state,

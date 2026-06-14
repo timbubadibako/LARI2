@@ -17,9 +17,9 @@ func NewTerritoryHandler(db *pgxpool.Pool) *TerritoryHandler {
 }
 
 type UserTerritory struct {
-	UserID       string  `json:"user_id"`
-	DistrictCode string  `json:"district_code"`
-	GeoJSON      string  `json:"boundary_geojson"`
+	UserID   string  `json:"user_id"`
+	SectorID string  `json:"sector_id"`
+	GeoJSON  string  `json:"boundary_geojson"`
 	TotalAreaSqm float64 `json:"total_area_sqm"`
 }
 
@@ -32,7 +32,7 @@ func (h *TerritoryHandler) GetUserTerritories(c echo.Context) error {
 	query := `
 		SELECT 
 			user_id, 
-			district_code, 
+			sector_id, 
 			ST_AsGeoJSON(merged_boundary) as boundary, 
 			total_area_sqm 
 		FROM user_territories 
@@ -48,7 +48,7 @@ func (h *TerritoryHandler) GetUserTerritories(c echo.Context) error {
 	var territories []UserTerritory
 	for rows.Next() {
 		var ut UserTerritory
-		if err := rows.Scan(&ut.UserID, &ut.DistrictCode, &ut.GeoJSON, &ut.TotalAreaSqm); err != nil {
+		if err := rows.Scan(&ut.UserID, &ut.SectorID, &ut.GeoJSON, &ut.TotalAreaSqm); err != nil {
 			continue
 		}
 		territories = append(territories, ut)
@@ -65,7 +65,7 @@ func (h *TerritoryHandler) GetAllTerritories(c echo.Context) error {
 	query := `
 		SELECT 
 			ut.user_id, 
-			ut.district_code, 
+			ut.sector_id, 
 			ST_AsGeoJSON(ut.merged_boundary) as boundary, 
 			ut.total_area_sqm,
 			COALESCE(p.territory_color, '#0ea5e9') as color
@@ -87,7 +87,7 @@ func (h *TerritoryHandler) GetAllTerritories(c echo.Context) error {
 	var territories []ExtendedTerritory
 	for rows.Next() {
 		var et ExtendedTerritory
-		if err := rows.Scan(&et.UserID, &et.DistrictCode, &et.GeoJSON, &et.TotalAreaSqm, &et.Color); err != nil {
+		if err := rows.Scan(&et.UserID, &et.SectorID, &et.GeoJSON, &et.TotalAreaSqm, &et.Color); err != nil {
 			continue
 		}
 		territories = append(territories, et)

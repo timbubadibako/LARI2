@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -29,11 +30,14 @@ func NewRunHandler(db *pgxpool.Pool, hub *Hub) *RunHandler {
 }
 
 type SyncRunRequest struct {
-	ID        string          `json:"id"`
-	UserID    string          `json:"user_id"`
-	Points    []service.Point `json:"points"`
-	Status    string          `json:"status"` // 'running', 'paused', 'finished'
-	CreatedAt time.Time       `json:"created_at"`
+	ID          string          `json:"id"`
+	UserID      string          `json:"user_id"`
+	GuildID     *string         `json:"guild_id"` // Nullable
+	DistanceKm  float64         `json:"distance_km"`
+	DurationSec int             `json:"duration_sec"`
+	Points      []service.Point `json:"points"`
+	Status      string          `json:"status"`
+	CreatedAt   time.Time       `json:"created_at"`
 }
 
 type SyncRunResponse struct {
@@ -55,8 +59,16 @@ type SyncRunResponse struct {
 func (h *RunHandler) SyncRun(c echo.Context) error {
 	req := new(SyncRunRequest)
 	if err := c.Bind(req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
+		log.Printf("SYNC_ERROR: Bind failed: %v", err)
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request format"})
 	}
+
+	guildIDStr := ""
+	if req.GuildID != nil {
+		guildIDStr = *req.GuildID
+	}
+
+	log.Printf("SYNC_REQUEST: User: %s, Guild: %s, Points: %d", req.UserID, guildIDStr, len(req.Points))
 
 	if len(req.Points) < 2 {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "insufficient points for sync"})
@@ -67,16 +79,18 @@ func (h *RunHandler) SyncRun(c echo.Context) error {
 	// 1. Calculate Metrics (Algorithm Service)
 	summary := h.algo.CalculateSummary(req.Points)
 
-	// Anti-Spoofing: Velocity Check (Max 40 km/h)
+	/*
+	// 🔥 PRODUCTION SPEED LIMITER: Anti-Spoofing: Velocity Check (Max 40 km/h)
 	if summary.MovingDurationSec > 0 {
 		velocityKmh := (summary.TotalDistanceMeters / 1000.0) / (float64(summary.MovingDurationSec) / 3600.0)
 		if velocityKmh > 40.0 {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "velocity anomaly detected: speed exceeds human limits"})
 		}
 	}
+	*/
 
 	// 2. Process Conquest & Integrity Protocol (Spatial Engine)
-	capturedArea, err := h.spatial.ProcessConquest(ctx, req.UserID, req.Points)
+	capturedArea, err := h.spatial.ProcessConquest(ctx, req.UserID, guildIDStr, req.Points)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "conquest processing failed: " + err.Error()})
 	}

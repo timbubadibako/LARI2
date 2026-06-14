@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../core/domain/models/position_sample.dart';
 import '../core/domain/repositories/tracking_source.dart';
 import '../core/services/location_service.dart';
 import 'fake_location_service.dart';
+import '../core/services/shared_preferences_provider.dart';
 
 enum AppMode { dev, prod }
 
@@ -22,10 +24,6 @@ const bool kAllowFakeGpsInRelease = bool.fromEnvironment(
   'LARI-LARI_ALLOW_FAKE_GPS',
   defaultValue: false,
 );
-
-final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
-  throw UnimplementedError('SharedPreferences must be overridden in main()');
-});
 
 final appModeProvider = Provider<AppMode>((ref) {
   if (kReleaseMode && !kAllowDevMenuInRelease && !kAllowFakeGpsInRelease) {
@@ -43,14 +41,14 @@ final devMenuVisibleProvider = Provider<bool>((ref) {
   return ref.watch(appModeProvider) == AppMode.dev;
 });
 
-class SupabaseDevLogEnabledNotifier extends Notifier<bool> {
+class LariDevLogEnabledNotifier extends Notifier<bool> {
   @override
   bool build() => false;
   void toggle(bool value) => state = value;
 }
 
-final supabaseDevLogEnabledProvider = NotifierProvider<SupabaseDevLogEnabledNotifier, bool>(() {
-  return SupabaseDevLogEnabledNotifier();
+final lariDevLogEnabledProvider = NotifierProvider<LariDevLogEnabledNotifier, bool>(() {
+  return LariDevLogEnabledNotifier();
 });
 
 class UseFakeLocationPrefNotifier extends Notifier<bool> {
@@ -90,6 +88,30 @@ class DevFakeLocationConfigNotifier extends Notifier<FakeLocationConfig> {
 
   Future<void> applyPreset(FakeLocationConfig config) async {
     await update(config);
+  }
+
+  Future<bool> syncWithRealPosition() async {
+    try {
+      final enabled = await Geolocator.isLocationServiceEnabled();
+      if (!enabled) return false;
+
+      final permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        return false;
+      }
+
+      final position = await Geolocator.getCurrentPosition();
+      await update(
+        state.copyWith(
+          centerLat: position.latitude,
+          centerLng: position.longitude,
+        ),
+      );
+      return true;
+    } catch (e) {
+      debugPrint('SYNC_REAL_POS_ERROR: $e');
+      return false;
+    }
   }
 
   Future<void> setField({
@@ -142,6 +164,63 @@ final devFakeLocationConfigProvider =
 final fakeLocationActiveProvider = Provider<bool>((ref) {
   return ref.watch(appModeProvider) == AppMode.dev &&
       ref.watch(useFakeLocationPrefProvider);
+});
+
+const String kUseMockBackendPrefKey = 'dev.useMockBackend';
+const String kUseLocalBackendPrefKey = 'dev.useLocalBackend';
+
+class UseMockBackendPrefNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    return ref
+            .read(sharedPreferencesProvider)
+            .getBool(kUseMockBackendPrefKey) ??
+        false;
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool(kUseMockBackendPrefKey, enabled);
+    state = enabled;
+  }
+}
+
+class UseLocalBackendPrefNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    return ref
+            .read(sharedPreferencesProvider)
+            .getBool(kUseLocalBackendPrefKey) ??
+        false; // Default to HF
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool(kUseLocalBackendPrefKey, enabled);
+    state = enabled;
+  }
+}
+
+final useMockBackendPrefProvider =
+    NotifierProvider<UseMockBackendPrefNotifier, bool>(
+      UseMockBackendPrefNotifier.new,
+    );
+
+final useLocalBackendPrefProvider =
+    NotifierProvider<UseLocalBackendPrefNotifier, bool>(
+      UseLocalBackendPrefNotifier.new,
+    );
+
+final mockBackendActiveProvider = Provider<bool>((ref) {
+  return ref.watch(appModeProvider) == AppMode.dev &&
+      ref.watch(useMockBackendPrefProvider);
+});
+
+final localBackendActiveProvider = Provider<bool>((ref) {
+  return ref.watch(appModeProvider) == AppMode.dev &&
+      ref.watch(useLocalBackendPrefProvider);
 });
 
 final trackingSourceProvider = Provider<TrackingSource>((ref) {
