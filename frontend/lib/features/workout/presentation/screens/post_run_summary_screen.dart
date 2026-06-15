@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:latlong2/latlong.dart' as latlong;
 import '../../../../ui/theme/stride_colors.dart';
 import '../../../../ui/theme/stride_typography.dart';
 import '../../../../ui/components/v3_shapes.dart';
@@ -51,6 +52,13 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
     final mission = widget.missionOverride;
     
     final isReplay = mission != null;
+    
+    // Parse pathWkt for replay
+    List<latlong.LatLng> replayPath = [];
+    if (isReplay && mission?.pathWkt != null && mission!.pathWkt!.startsWith('LINESTRING')) {
+      replayPath = _parseWKT(mission.pathWkt!);
+    }
+    
     final distKm = workout != null 
         ? (workout.distanceMeters / 1000).toStringAsFixed(2)
         : mission?.distanceKm.toStringAsFixed(2) ?? '0.00';
@@ -77,7 +85,10 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
             flex: 55,
             child: Stack(
               children: [
-                const Positioned.fill(child: StrideMapView()),
+                Positioned.fill(child: StrideMapView(
+                  staticPath: replayPath.isNotEmpty ? replayPath : null,
+                  isCaptured: isLoopClosed,
+                )),
                 Positioned.fill(
                   child: Container(
                     decoration: BoxDecoration(
@@ -265,5 +276,19 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
         Text(value, style: StrideTypography.headlineMD.copyWith(fontSize: 18)),
       ],
     );
+  }
+
+  // Local helper for WKT parsing
+  List<latlong.LatLng> _parseWKT(String wkt) {
+    try {
+      final content = wkt.replaceAll('LINESTRING(', '').replaceAll(')', '');
+      final pairs = content.split(',');
+      return pairs.map((pair) {
+        final parts = pair.trim().split(' ');
+        return latlong.LatLng(double.parse(parts[1]), double.parse(parts[0]));
+      }).toList();
+    } catch (e) {
+      return [];
+    }
   }
 }

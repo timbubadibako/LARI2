@@ -53,7 +53,7 @@ class MapRouteLineLayerController {
       masteredTerritoryLayerId,
       FillLayerProperties(
         fillColor: ['get', 'color'],
-        fillOpacity: 0.25,
+        fillOpacity: 0.60, // Increased for vibrancy
         fillOutlineColor: ['get', 'color'],
       ),
     );
@@ -62,9 +62,9 @@ class MapRouteLineLayerController {
       territorySourceId,
       territoryFillLayerId,
       FillLayerProperties(
-        fillColor: '#FFFFFF', // Will be updated by updateRouteColor
-        fillOpacity: 0.30,
-        fillOutlineColor: '#FFFFFF',
+        fillColor: '#CCFF00', // Default color
+        fillOpacity: 0.60, // Increased for vibrancy
+        fillOutlineColor: '#CCFF00',
       ),
     );
 
@@ -72,9 +72,9 @@ class MapRouteLineLayerController {
       territorySourceId,
       territoryOutlineLayerId,
       LineLayerProperties(
-        lineColor: '#FFFFFF', // Will be updated by updateRouteColor
-        lineWidth: 2.0,
-        lineOpacity: 0.4,
+        lineColor: '#CCFF00', 
+        lineWidth: 3.0, // Thicker
+        lineOpacity: 0.8, // More solid
         lineJoin: 'round',
         lineCap: 'round',
       ),
@@ -89,9 +89,9 @@ class MapRouteLineLayerController {
       routeSourceId,
       routeGlowLayerId,
       LineLayerProperties(
-        lineColor: '#FFFFFF',
-        lineWidth: 9.0,
-        lineOpacity: 0.15,
+        lineColor: '#CCFF00',
+        lineWidth: 10.0,
+        lineOpacity: 0.3,
         lineJoin: 'round',
         lineCap: 'round',
       ),
@@ -101,9 +101,9 @@ class MapRouteLineLayerController {
       routeSourceId,
       routeCoreLayerId,
       LineLayerProperties(
-        lineColor: '#FFFFFF',
-        lineWidth: 4.5,
-        lineOpacity: 0.90,
+        lineColor: '#CCFF00',
+        lineWidth: 5.0,
+        lineOpacity: 1.0, // Solid
         lineJoin: 'round',
         lineCap: 'round',
       ),

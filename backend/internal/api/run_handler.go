@@ -96,6 +96,12 @@ func (h *RunHandler) SyncRun(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "conquest processing failed: " + err.Error()})
 	}
 
+	// Override status if conquest occurred
+	runStatus := req.Status
+	if capturedArea > 0 {
+		runStatus = "captured"
+	}
+
 	// 3. Persist the Run record (Historical)
 	var guildIDPtr interface{}
 	if req.GuildID != nil && *req.GuildID != "" {
@@ -114,7 +120,7 @@ func (h *RunHandler) SyncRun(c echo.Context) error {
 			status = EXCLUDED.status,
 			path_geometry = EXCLUDED.path_geometry,
 			guild_id = EXCLUDED.guild_id
-	`, req.ID, req.UserID, guildIDPtr, summary.TotalDistanceMeters/1000.0, summary.MovingDurationSec, 0, req.Status, wktPath, req.CreatedAt)
+	`, req.ID, req.UserID, guildIDPtr, summary.TotalDistanceMeters/1000.0, summary.MovingDurationSec, 0, runStatus, wktPath, req.CreatedAt)
 
 	if err != nil {
 		log.Printf("SYNC_ERROR: Persistence failed for run %s: %v", req.ID, err)
@@ -213,7 +219,7 @@ func (h *RunHandler) DeleteRuns(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"message": "mission archives erased"})
 }
 
-// GetGlobalRuns fetches the latest runs from all users for the social feed
+// GetGlobalRuns fetches the latest 3 captured runs for the social feed
 func (h *RunHandler) GetGlobalRuns(c echo.Context) error {
 	rows, err := h.db.Query(context.Background(), `
 		SELECT 
@@ -224,11 +230,13 @@ func (h *RunHandler) GetGlobalRuns(c echo.Context) error {
 			r.distance_km, 
 			r.duration_sec, 
 			r.status, 
+			ST_AsText(r.path_geometry) as path_geometry,
 			r.created_at 
 		FROM runs r
 		JOIN profiles p ON r.user_id = p.id
+		WHERE r.status = 'captured'
 		ORDER BY r.created_at DESC
-		LIMIT 20
+		LIMIT 3
 	`)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -237,11 +245,11 @@ func (h *RunHandler) GetGlobalRuns(c echo.Context) error {
 
 	var runs []map[string]interface{}
 	for rows.Next() {
-		var id, uid, displayName, color, status string
+		var id, uid, displayName, color, status, pathWKT string
 		var distance float64
 		var duration int
 		var createdAt time.Time
-		err := rows.Scan(&id, &uid, &displayName, &color, &distance, &duration, &status, &createdAt)
+		err := rows.Scan(&id, &uid, &displayName, &color, &distance, &duration, &status, &pathWKT, &createdAt)
 		if err != nil {
 			continue
 		}
@@ -253,6 +261,7 @@ func (h *RunHandler) GetGlobalRuns(c echo.Context) error {
 			"distance_km":     distance,
 			"duration_sec":    duration,
 			"status":          status,
+			"path_geometry":   pathWKT,
 			"created_at":      createdAt,
 		})
 	}

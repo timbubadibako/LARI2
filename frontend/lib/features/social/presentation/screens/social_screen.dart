@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart' as latlong;
 import '../../../../ui/theme/stride_colors.dart';
 import '../../../../ui/theme/stride_typography.dart';
 import '../../../../ui/components/v3_shapes.dart';
 import '../../../../ui/components/tactical_header.dart';
 import '../../../../ui/components/signature_painter.dart';
 import '../../../../ui/components/app_strings.dart';
+import '../../../../ui/components/route_preview_painter.dart';
 import '../../application/social_controller.dart';
 import '../../domain/models/social_models.dart';
 import '../../../auth/application/auth_controller.dart';
 import 'guild_screen.dart';
+import '../../../../ui/components/mission_dossier_card.dart';
 
 class SocialScreen extends ConsumerStatefulWidget {
   const SocialScreen({super.key});
@@ -53,12 +56,10 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    // Listen to real-time events to trigger refresh
     ref.listen(
       globalActivityStreamProvider,
       (_, next) {
         if (next.hasValue) {
-          // New event received via Supabase Stream, invalidate feed
           ref.invalidate(globalActivityProvider);
           HapticFeedback.lightImpact();
         }
@@ -107,7 +108,6 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // FACTION DOMINION
                     dominionAsync.when(
                       data: (entries) => entries.isEmpty 
                         ? const SizedBox.shrink() 
@@ -120,11 +120,10 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                               const SizedBox(height: 48),
                             ],
                           ),
-                      loading: () => _buildLoadingSection(80),
+                      loading: () => const SizedBox.shrink(), // Don't show loading if empty
                       error: (e, s) => _buildErrorSection('FEED_OFFLINE: ${e.toString()}'),
                     ),
 
-                    // TOP RUNNERS
                     leaderboardAsync.when(
                       data: (entries) => entries.isEmpty 
                         ? const SizedBox.shrink() 
@@ -148,7 +147,6 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                       error: (e, s) => _buildErrorSection('${AppStrings.leaderboard} OFFLINE: ${e.toString()}'),
                     ),
 
-                    // GRAFFITI WALL
                     graffitiAsync.when(
                       data: (tags) => tags.isEmpty 
                         ? const SizedBox.shrink() 
@@ -175,7 +173,8 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                       error: (e, s) => _buildErrorSection('GRAFFITI_OFFLINE: ${e.toString()}'),
                     ),
 
-                    // RECENT GLOBAL ACTIVITY
+                    _buildRunTogetherSection(),
+
                     activityAsync.when(
                       data: (activities) => Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,55 +184,17 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                           if (activities.isEmpty)
                             _buildEmptyState(AppStrings.noActivity, AppStrings.awaitingUplink)
                           else
-                            ...activities.map((a) {
-                              final paceSec = a.distanceKm > 0 ? (a.durationSec / a.distanceKm) : 0.0;
-                              final paceStr = paceSec > 0 
-                                  ? '${(paceSec / 60).floor().toString().padLeft(2, '0')}:${(paceSec % 60).floor().toString().padLeft(2, '0')}' 
-                                  : '--:--';
-                              
-                              final missionColor = a.color;
-
-                              return Padding(
+                            ...activities.map((a) => Padding(
                                 padding: const EdgeInsets.only(bottom: 16),
-                                child: _buildGlobalActivityCard(
-                                  a.displayName,
-                                  a.status == 'captured' ? AppStrings.areaConquered : AppStrings.runCompleted,
-                                  a.status.toUpperCase(),
-                                  missionColor,
-                                  '${a.distanceKm.toStringAsFixed(1)}KM',
-                                  paceStr,
-                                ),
-                              );
-                            }),
+                                child: _buildGlobalActivityCard(a),
+                              ),
+                            ),
                           const SizedBox(height: 48),
                         ],
                       ),
                       loading: () => _buildLoadingSection(200),
                       error: (e, s) => _buildErrorSection('FEED_OFFLINE: ${e.toString()}'),
                     ),
-
-                    // NO DATA STATE (If all are empty)
-                    if (dominionAsync.hasValue && dominionAsync.value!.isEmpty &&
-                        leaderboardAsync.hasValue && leaderboardAsync.value!.isEmpty &&
-                        activityAsync.hasValue && activityAsync.value!.isEmpty)
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 100),
-                          child: Column(
-                            children: [
-                              Icon(Icons.radar, color: StrideColors.textMuted, size: 48),
-                              const SizedBox(height: 16),
-                              Text(AppStrings.noActivity, 
-                                style: StrideTypography.labelTactical.copyWith(color: StrideColors.textMuted)
-                              ),
-                              const SizedBox(height: 8),
-                              Text(AppStrings.awaitingUplink, 
-                                style: StrideTypography.labelBold.copyWith(fontSize: 8, color: StrideColors.textMuted.withOpacity(0.5))
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
                     
                     const SizedBox(height: 150),
                   ],
@@ -268,17 +229,20 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
   }
 
   Widget _buildDominionSection(List<DominionEntry> entries) {
+    final activeEntries = entries.where((e) => e.percentage > 0).toList();
+    
     return Column(
       children: [
-        SizedBox(
+        Container(
           height: 32,
+          decoration: BoxDecoration(
+            color: Colors.white12, // Visible background
+            border: Border.all(color: Colors.white24),
+          ),
           child: Row(
-            children: entries.map((e) => Expanded(
+            children: activeEntries.map((e) => Expanded(
               flex: (e.percentage * 10).round().clamp(1, 1000),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 1),
-                child: _powerSegment(e.color),
-              ),
+              child: _powerSegment(e.color),
             )).toList(),
           ),
         ),
@@ -297,10 +261,68 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
 
   Widget _powerSegment(Color color) {
     return Container(
-      color: color,
-      child: CustomPaint(
-        painter: SegmentOverlayPainter(),
+      decoration: BoxDecoration(
+        color: color,
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.6),
+            blurRadius: 8,
+            spreadRadius: 2,
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildRunTogetherSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader('RUN_TOGETHER'),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: StrideColors.surface,
+            border: Border.all(color: Colors.white12),
+          ),
+          child: Row(
+            children: [
+              // LEFT: Join Session
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    border: Border(right: BorderSide(color: Colors.white12)),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.login, color: StrideColors.neonGreen, size: 24),
+                      const SizedBox(height: 8),
+                      Text('JOIN', style: StrideTypography.labelBold.copyWith(fontSize: 10)),
+                      Text('INPUT_PIN', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted)),
+                    ],
+                  ),
+                ),
+              ),
+              // RIGHT: Generate Pin
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.share, color: StrideColors.neonGreen, size: 24),
+                      const SizedBox(height: 8),
+                      Text('HOST', style: StrideTypography.labelBold.copyWith(fontSize: 10)),
+                      Text('SHARE_PIN', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 48),
+      ],
     );
   }
 
@@ -392,7 +414,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                   strokes: tag.strokes,
                   color: tag.color,
                   strokeWidth: 2.0,
-                  scale: 0.4, // Scale down for preview
+                  scale: 0.4,
                   showGlow: true,
                 ),
               ),
@@ -425,111 +447,43 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildGlobalActivityCard(String runner, String title, String status, Color color, String dist, String pace) {
-    final isCaptured = status == 'CAPTURED';
-    return Container(
-      height: 120, 
-      decoration: BoxDecoration(
-        color: const Color(0xFF0A0A0A),
-        border: Border(left: BorderSide(color: color, width: 4)),
-      ),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white.withOpacity(0.05),
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.2),
-                  ],
-                  stops: const [0.0, 0.5, 1.0],
-                ),
-              ),
-            ),
-          ),
-          
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    border: Border.all(color: Colors.white12),
-                  ),
-                  child: Center(
-                    child: CustomPaint(
-                      size: const Size(50, 50),
-                      painter: MissionShapePainter(color: color, isCaptured: isCaptured),
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(width: 16),
+  Widget _buildGlobalActivityCard(GlobalActivity activity) {
+    final isCaptured = activity.status == 'captured';
+    final statusColor = isCaptured ? activity.color : Colors.white.withValues(alpha: 0.4);
 
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(runner, style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: color.withOpacity(0.6))),
-                          V3SkewBox(
-                            skewAmount: -0.1,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              color: isCaptured ? color : Colors.white12,
-                              child: Text(
-                                status,
-                                style: StrideTypography.labelBold.copyWith(fontSize: 7, color: isCaptured ? Colors.black : color),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: StrideTypography.headlineMD.copyWith(fontSize: 18, letterSpacing: 0),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          _miniStat(AppStrings.distance, dist),
-                          const SizedBox(width: 20),
-                          _miniStat(AppStrings.pace, pace),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return MissionDossierCard(
+      id: activity.id,
+      title: isCaptured ? 'AREA ACQUISITION' : 'STANDARD ACTIVITY',
+      status: activity.status,
+      distanceKm: activity.distanceKm,
+      durationSec: activity.durationSec,
+      createdAt: activity.createdAt,
+      pathWkt: activity.pathWkt,
+      statusColor: statusColor,
+      isPendingSync: false,
+      onTap: () {
+        HapticFeedback.lightImpact();
+      },
     );
   }
+}
 
-  Widget _miniStat(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: Colors.white24)),
-        Text(value, style: StrideTypography.displayXL.copyWith(fontSize: 16, color: StrideColors.white)),
-      ],
-    );
+class SegmentOverlayPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.black.withOpacity(0.15)
+      ..strokeWidth = 2;
+
+    const step = 6.0;
+    for (double x = 0; x < size.width; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
 
   Widget _buildLoadingSection(double height) {
     return Container(
@@ -573,55 +527,4 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
       ),
     );
   }
-}
 
-class SegmentOverlayPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.black.withOpacity(0.15)
-      ..strokeWidth = 2;
-
-    const step = 6.0;
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class MissionShapePainter extends CustomPainter {
-  final Color color;
-  final bool isCaptured;
-
-  MissionShapePainter({required this.color, required this.isCaptured});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 2.0
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    if (isCaptured) {
-      final path = Path();
-      path.moveTo(size.width * 0.2, size.height * 0.3);
-      path.quadraticBezierTo(size.width * 0.8, size.height * 0.1, size.width * 0.9, size.height * 0.6);
-      path.quadraticBezierTo(size.width * 0.7, size.height * 0.9, size.width * 0.2, size.height * 0.8);
-      path.close();
-      canvas.drawPath(path, paint);
-    } else {
-      final path = Path();
-      path.moveTo(size.width * 0.1, size.height * 0.8);
-      path.lineTo(size.width * 0.4, size.height * 0.2);
-      path.lineTo(size.width * 0.9, size.height * 0.5);
-      canvas.drawPath(path, paint..color = color.withOpacity(0.2));
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

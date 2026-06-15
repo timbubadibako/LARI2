@@ -78,16 +78,15 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 		fullTrailWKT = wktLine
 	}
 
-	// 3. Detect Loops via ST_Polygonize
+	// 3. Detect Loops via ST_BuildArea
 	var areaSqm float64
 	var remainingLinesWKT string
 	var capturedPolyWKT string
 
-	// FIX: We need the actual captured polygon to "clip" others, not just the ConvexHull
+	// FIX: Use ST_SnapToGrid to close small gaps and ST_BuildArea to fill all enclosed spaces.
 	err = tx.QueryRow(ctx, `
-		WITH raw_geom AS (SELECT ST_GeomFromText($1, 4326) as g),
-		     polygons AS (SELECT (ST_Dump(ST_Polygonize(g))).geom as poly FROM raw_geom GROUP BY g),
-		     merged_poly AS (SELECT ST_Union(poly) as p FROM polygons),
+		WITH raw_geom AS (SELECT ST_SnapToGrid(ST_GeomFromText($1, 4326), 0.00001) as g),
+		     merged_poly AS (SELECT ST_BuildArea(g) as p FROM raw_geom),
 		     captured_wkt AS (SELECT ST_AsText(p) as wkt FROM merged_poly WHERE p IS NOT NULL),
 		     area_calc AS (SELECT ST_Area(p::geography) as area FROM merged_poly WHERE p IS NOT NULL),
 		     leftovers AS (SELECT ST_AsText(ST_Difference(ST_GeomFromText($1, 4326), (SELECT p FROM merged_poly))) as residue)

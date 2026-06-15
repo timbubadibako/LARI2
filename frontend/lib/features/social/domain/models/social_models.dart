@@ -84,6 +84,7 @@ class GlobalActivity {
   final double distanceKm;
   final int durationSec;
   final String status;
+  final String? pathWkt;
   final DateTime createdAt;
 
   GlobalActivity({
@@ -94,6 +95,7 @@ class GlobalActivity {
     required this.distanceKm,
     required this.durationSec,
     required this.status,
+    required this.pathWkt,
     required this.createdAt,
   });
 
@@ -106,6 +108,7 @@ class GlobalActivity {
       distanceKm: (json['distance_km'] as num?)?.toDouble() ?? 0.0,
       durationSec: json['duration_sec'] ?? 0,
       status: json['status'] ?? 'pending',
+      pathWkt: json['path_geometry'] as String?,
       createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
     );
   }

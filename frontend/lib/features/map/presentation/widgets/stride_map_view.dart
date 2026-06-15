@@ -24,8 +24,10 @@ import 'map_route_line_layer_controller.dart';
 
 class StrideMapView extends ConsumerStatefulWidget {
   final CameraPosition? initialCameraPositionOverride;
+  final List<latlong.LatLng>? staticPath;
+  final bool isCaptured;
 
-  const StrideMapView({super.key, this.initialCameraPositionOverride});
+  const StrideMapView({super.key, this.initialCameraPositionOverride, this.staticPath, this.isCaptured = false});
 
   @override
   ConsumerState<StrideMapView> createState() => _StrideMapViewState();
@@ -63,19 +65,28 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
       await _routeLayerController.updateRouteColor('#CCFF00'); // Default Neon Green
     }
 
-    final route = ref.read(workoutControllerProvider.notifier).route;
-    final routePoints = route
-        .map((point) => latlong.LatLng(point.lat, point.lng))
-        .toList();
-    await _routeLayerController.updateRoute(routePoints);
-    await _routeLayerController.updateTerritoryPolygon(routePoints);
-    if (routePoints.isNotEmpty) {
-      await _routeLayerController.updateCurrentPosition(routePoints.last);
-      await _routeLayerController.updateRunnerMarker(
-        routePoints.last,
-        bearingDeg: route.isNotEmpty ? route.last.bearingDeg : null,
-      );
-      _fitRouteBounds(routePoints);
+    // 🔥 STATIC PATH PRIORITY
+    if (widget.staticPath != null && widget.staticPath!.isNotEmpty) {
+      await _routeLayerController.updateRoute(widget.staticPath!);
+      if (widget.isCaptured) {
+         await _routeLayerController.updateTerritoryPolygon(widget.staticPath!);
+      }
+      _fitRouteBounds(widget.staticPath!);
+    } else {
+      final route = ref.read(workoutControllerProvider.notifier).route;
+      final routePoints = route
+          .map((point) => latlong.LatLng(point.lat, point.lng))
+          .toList();
+      await _routeLayerController.updateRoute(routePoints);
+      await _routeLayerController.updateTerritoryPolygon(routePoints);
+      if (routePoints.isNotEmpty) {
+        await _routeLayerController.updateCurrentPosition(routePoints.last);
+        await _routeLayerController.updateRunnerMarker(
+          routePoints.last,
+          bearingDeg: route.isNotEmpty ? route.last.bearingDeg : null,
+        );
+        _fitRouteBounds(routePoints);
+      }
     }
     
     final presenceData = ref.read(presenceLinesProvider);
@@ -244,20 +255,22 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
     });
 
     // 1. Listeners for reactive updates
-    ref.listen(workoutControllerProvider, (previous, next) {
-      final route = next.points.map((p) => latlong.LatLng(p.lat, p.lng)).toList();
-      if (route.isNotEmpty) {
-        _routeLayerController.updateRoute(route);
-        _routeLayerController.updateTerritoryPolygon(route);
-        _routeLayerController.updateCurrentPosition(route.last);
-        _routeLayerController.updateRunnerMarker(route.last, bearingDeg: next.points.last.bearingDeg);
-      }
-    });
+    if (widget.staticPath == null) {
+      ref.listen(workoutControllerProvider, (previous, next) {
+        final route = next.points.map((p) => latlong.LatLng(p.lat, p.lng)).toList();
+        if (route.isNotEmpty) {
+          _routeLayerController.updateRoute(route);
+          _routeLayerController.updateTerritoryPolygon(route);
+          _routeLayerController.updateCurrentPosition(route.last);
+          _routeLayerController.updateRunnerMarker(route.last, bearingDeg: next.points.last.bearingDeg);
+        }
+      });
 
-    ref.listen(presenceLinesProvider, (previous, next) {
-      final lines = next.map((p) => p.route).toList();
-      _routeLayerController.updatePresenceLines(lines);
-    });
+      ref.listen(presenceLinesProvider, (previous, next) {
+        final lines = next.map((p) => p.route).toList();
+        _routeLayerController.updatePresenceLines(lines);
+      });
+    }
 
     ref.listen(allTerritoriesProvider, (previous, next) {
       if (next.hasValue && next.value != null) {
@@ -311,14 +324,15 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
 
   Widget _buildMap(BuildContext context, CameraPosition initialPos) {
     final bool isFake = ref.read(fakeLocationActiveProvider);
+    final bool isStaticMode = widget.staticPath != null;
     return MapLibreMap(
       onMapCreated: _onMapCreated,
       onStyleLoadedCallback: _onStyleLoadedCallback,
       initialCameraPosition: initialPos,
       styleString: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-      myLocationEnabled: !isFake,
+      myLocationEnabled: isStaticMode ? false : !isFake,
       compassEnabled: false,
-      myLocationRenderMode: isFake ? MyLocationRenderMode.normal : MyLocationRenderMode.compass,
+      myLocationRenderMode: isStaticMode ? MyLocationRenderMode.normal : (isFake ? MyLocationRenderMode.normal : MyLocationRenderMode.compass),
     );
   }
 
