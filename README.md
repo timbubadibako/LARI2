@@ -10,9 +10,17 @@ LARI2 is a gamified fitness application built on a high-performance geospatial e
 - **Frontend (The Interface):** Built with **Flutter & Dart** to deliver a responsive, neon-aesthetic tactical experience.
 - **Geospatial Intelligence:** Custom algorithms perform loop detection and area conquest processing, enabling users to claim real-world territory.
 
+## 📱 Visual Showcase
+
+| Active Workout | History Detail |
+| :--- | :--- |
+| ![Active Run](docs/assets/screenshots/active_run.jpeg) | ![History Detail](docs/assets/screenshots/history_detail.jpeg) |
+| **Social Room** | **Pocket Mode** |
+| ![Social Room](docs/assets/screenshots/social_room.jpeg) | ![Pocket Mode](docs/assets/screenshots/pocket_mode.jpeg) |
+
 ## 📱 Documentation
 - [Installation Guide](INSTALLATION.md)
-- [Project Documentation](docs/assets/)
+- [Project Documentation](docs/PROJECT_DOCS.md)
 
 ## 🛠 Features
 - **Territory Conquest:** Capture real-world locations by running in closed loops.
