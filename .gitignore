@@ -48,3 +48,6 @@ build/
 .packages
 .flutter-plugins
 .flutter-plugins-dependencies
+.local_docs/
+fix_with_opacity.py
+mark_issues.py
