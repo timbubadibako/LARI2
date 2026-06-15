@@ -1,12 +1,50 @@
 # Installation Guide
 
-## Backend
-1. Ensure PostgreSQL with PostGIS extension is installed.
-2. Configure `backend/.env` with your database credentials.
-3. Run `go run cmd/server/main.go`.
+## 1. Prerequisites
+- **Git** installed.
+- **Flutter SDK** (3.x recommended).
+- **Go** (1.26+ recommended).
+- **PostgreSQL** (15+) with **PostGIS** extension enabled.
 
-## Frontend
-1. Ensure Flutter SDK is installed.
-2. Run `flutter pub get`.
-3. Configure `frontend/lib/core/config/api_config.dart` with your tunnel URL.
-4. Run `flutter run`.
+## 2. Clone Repository
+```bash
+git clone https://github.com/timbubadibako/LARI2.git
+cd LARI2
+```
+
+## 3. Backend Setup
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+2. Set up your `.env` file (create one if not exists):
+   ```env
+   DATABASE_URL=postgresql://user:password@localhost:5432/LARI2?sslmode=disable
+   PORT=8080
+   BASE_URL=http://localhost:8080
+   ```
+3. Ensure PostGIS is enabled in your database:
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS postgis;
+   ```
+4. Run the server:
+   ```bash
+   go run cmd/server/main.go
+   ```
+
+## 4. Frontend Setup
+1. Navigate to the frontend directory:
+   ```bash
+   cd ../frontend
+   ```
+2. Install dependencies:
+   ```bash
+   flutter pub get
+   ```
+3. Configure your API base URL in `lib/core/config/api_config.dart` if using a tunneling service.
+4. Build and run:
+   ```bash
+   # For Android
+   flutter run --release
+   ```
+EOF
