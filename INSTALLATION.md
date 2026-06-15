@@ -23,9 +23,15 @@ cd LARI2
    PORT=8080
    BASE_URL=http://localhost:8080
    ```
-3. Ensure PostGIS is enabled in your database:
-   ```sql
-   CREATE EXTENSION IF NOT EXISTS postgis;
+3. Initialize the database:
+   ```bash
+   # Connect to your database
+   psql -d LARI2 -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
+   psql -d LARI2 -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+   
+   # Execute schema
+   psql -d LARI2 -f internal/db/SCHEMA_LARI2.sql
+   psql -d LARI2 -f internal/db/SEED_GUILDS.sql
    ```
 4. Run the server:
    ```bash
