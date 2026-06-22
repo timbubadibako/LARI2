@@ -63,14 +63,14 @@ class _DevMenuState extends ConsumerState<DevMenu> {
       ),
     );
     if (ref.read(fakeLocationActiveProvider)) {
-      ref.read(workoutControllerProvider.notifier).refreshTrackingSource();
+      // Tracking source is rebuilt automatically via Riverpod when devFakeLocationConfigProvider changes.
     }
   }
 
   Future<void> _setFakeEnabled(bool enabled) async {
     await ref.read(useFakeLocationPrefProvider.notifier).setEnabled(enabled);
     if (ref.read(workoutControllerProvider).state == WorkoutState.running) {
-      ref.read(workoutControllerProvider.notifier).refreshTrackingSource();
+      // Tracking source is rebuilt automatically via Riverpod when useFakeLocationPrefProvider changes.
     }
   }
 
@@ -78,7 +78,7 @@ class _DevMenuState extends ConsumerState<DevMenu> {
     await ref.read(devFakeLocationConfigProvider.notifier).applyPreset(config);
     _applyConfigToControllers(config);
     if (ref.read(fakeLocationActiveProvider)) {
-      ref.read(workoutControllerProvider.notifier).refreshTrackingSource();
+      // Tracking source is rebuilt automatically via Riverpod when devFakeLocationConfigProvider changes.
     }
     setState(() {});
   }

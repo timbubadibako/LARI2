@@ -11,6 +11,12 @@ type SpatialEngine struct {
 	db *pgxpool.Pool
 }
 
+// minConquestAreaSqm is the minimum enclosed area (in square meters) required
+// to register a territory capture. This prevents accidental micro-loops from
+// GPS jitter near the start point from claiming territory.
+// 50 m² ≈ roughly the size of a large room — intentional loops will be much larger.
+const minConquestAreaSqm = 50.0
+
 func NewSpatialEngine(db *pgxpool.Pool) *SpatialEngine {
 	return &SpatialEngine{db: db}
 }
@@ -119,8 +125,8 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 		}
 	}
 
-	// 5. If area > 0, PROCESS CONQUEST (Clip others, then merge for self)
-	if areaSqm > 0 && capturedPolyWKT != "" {
+	// 5. If area > minConquestAreaSqm, PROCESS CONQUEST (Clip others, then merge for self)
+	if areaSqm >= minConquestAreaSqm && capturedPolyWKT != "" {
 		// A. COOKIE CUTTER: Subtract this area from ALL OTHER agents
 		_, err = tx.Exec(ctx, `
 			UPDATE user_territories 

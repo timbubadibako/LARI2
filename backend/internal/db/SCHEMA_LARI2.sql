@@ -87,11 +87,30 @@ CREATE TABLE IF NOT EXISTS public.pending_trails (
   is_active BOOLEAN DEFAULT TRUE
 );
 CREATE INDEX IF NOT EXISTS pending_trails_spatial_idx ON public.pending_trails USING GIST(geom);
+CREATE INDEX IF NOT EXISTS pending_trails_start_point_idx ON public.pending_trails USING GIST(start_point);
+CREATE INDEX IF NOT EXISTS pending_trails_end_point_idx ON public.pending_trails USING GIST(end_point);
+CREATE INDEX IF NOT EXISTS pending_trails_user_id_idx ON public.pending_trails(user_id);
+CREATE INDEX IF NOT EXISTS pending_trails_expires_at_idx ON public.pending_trails(expires_at);
+
+-- Spatial index for territory conquest queries (viewport filter + cookie-cutter)
+CREATE INDEX IF NOT EXISTS user_territories_spatial_idx ON public.user_territories USING GIST(merged_boundary);
+CREATE INDEX IF NOT EXISTS user_territories_user_id_idx ON public.user_territories(user_id);
+CREATE INDEX IF NOT EXISTS user_territories_guild_id_idx ON public.user_territories(guild_id);
+CREATE INDEX IF NOT EXISTS user_territories_sector_id_idx ON public.user_territories(sector_id);
+
+-- Spatial index for run history path queries
+CREATE INDEX IF NOT EXISTS runs_spatial_idx ON public.runs USING GIST(path_geometry);
+CREATE INDEX IF NOT EXISTS runs_user_id_idx ON public.runs(user_id);
+CREATE INDEX IF NOT EXISTS runs_status_idx ON public.runs(status);
+CREATE INDEX IF NOT EXISTS runs_created_at_idx ON public.runs(created_at DESC);
 
 -- 8. GRAFFITI
 CREATE TABLE IF NOT EXISTS public.graffiti (
   id SERIAL PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  location GEOMETRY(Point, 4326), -- spatial column for geo-querying nearby graffiti
   data JSONB NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS graffiti_spatial_idx ON public.graffiti USING GIST(location);
+CREATE INDEX IF NOT EXISTS graffiti_user_id_idx ON public.graffiti(user_id);

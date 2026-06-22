@@ -79,15 +79,14 @@ func (h *RunHandler) SyncRun(c echo.Context) error {
 	// 1. Calculate Metrics (Algorithm Service)
 	summary := h.algo.CalculateSummary(req.Points)
 
-	/*
 	// 🔥 PRODUCTION SPEED LIMITER: Anti-Spoofing: Velocity Check (Max 40 km/h)
 	if summary.MovingDurationSec > 0 {
 		velocityKmh := (summary.TotalDistanceMeters / 1000.0) / (float64(summary.MovingDurationSec) / 3600.0)
 		if velocityKmh > 40.0 {
+			log.Printf("ANTI_SPOOFING: Velocity anomaly detected for user %s: %.2f km/h", req.UserID, velocityKmh)
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "velocity anomaly detected: speed exceeds human limits"})
 		}
 	}
-	*/
 
 	// 2. Process Conquest & Integrity Protocol (Spatial Engine)
 	capturedArea, err := h.spatial.ProcessConquest(ctx, req.UserID, guildIDStr, req.Points)
