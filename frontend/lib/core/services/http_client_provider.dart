@@ -4,7 +4,7 @@ import 'shared_preferences_provider.dart';
 
 class AuthInterceptorClient extends http.BaseClient {
   final http.Client _inner;
-  final ProviderRef _ref;
+  final Ref _ref;
 
   AuthInterceptorClient(this._inner, this._ref);
 

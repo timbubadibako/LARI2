@@ -9,28 +9,10 @@ class ApiConfig {
   static const String localUrl = 'http://localhost:8080';
 
   static String getBaseUrl(Ref ref) {
-    if (kReleaseMode) return hfUrl;
-    
-    final isLocal = ref.watch(localBackendActiveProvider);
-    if (isLocal) {
-      if (!kIsWeb && Platform.isAndroid) {
-        return 'http://localhost:8080'; // Menggunakan localhost + adb reverse untuk HP Asli
-      }
-      return localUrl;
-    }
-    return tunnelUrl;
+    return hfUrl; // ALWAYS use HF Backend for field testing
   }
 }
 
 final baseUrlProvider = Provider<String>((ref) {
-  if (kReleaseMode) return ApiConfig.hfUrl;
-  
-  final isLocal = ref.watch(localBackendActiveProvider);
-  if (isLocal) {
-    if (!kIsWeb && Platform.isAndroid) {
-      return 'http://localhost:8080'; // Menggunakan localhost + adb reverse untuk HP Asli
-    }
-    return ApiConfig.localUrl;
-  }
-  return ApiConfig.tunnelUrl;
+  return ApiConfig.hfUrl; // ALWAYS use HF Backend for field testing
 });
