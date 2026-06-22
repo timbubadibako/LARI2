@@ -12,7 +12,7 @@ import (
 	"lari-backend/internal/config"
 	"lari-backend/internal/db"
 	"lari-backend/internal/worker"
-	_ "lari-backend/docs" // This will be the generated docs package
+	_ "lari-backend/docs"
 )
 
 // @title LARI API
@@ -45,7 +45,7 @@ func main() {
 	go wsHub.Run()
 
 	// Initialize Handlers
-	authHandler := api.NewAuthHandler(dbPool)
+	authHandler := api.NewAuthHandler(dbPool, cfg.JWTSecret)
 	runHandler := api.NewRunHandler(dbPool, wsHub)
 	leaderboardHandler := api.NewLeaderboardHandler(dbPool)
 	guildHandler := api.NewGuildHandler(dbPool)
@@ -53,63 +53,77 @@ func main() {
 	territoryHandler := api.NewTerritoryHandler(dbPool)
 	graffitiHandler := api.NewGraffitiHandler(dbPool)
 	wsHandler := api.NewWebSocketHandler(wsHub)
+	friendsHandler := api.NewFriendsHandler(dbPool)
+	seasonHandler := api.NewSeasonHandler(dbPool)
 
 	// Initialize Workers
 	cleanupWorker := worker.NewCleanupWorker(dbPool)
 	go cleanupWorker.Start(context.Background())
 
+	seasonWorker := worker.NewSeasonWorker(dbPool)
+	go seasonWorker.Start(context.Background())
+
 	// Initialize Echo
 	e := echo.New()
 
-	// Middleware
+	// Global Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
 
-	// WebSocket Route
+	// ── Public Routes (Tidak perlu login) ─────────────────────────────────────
+	e.GET("/health", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"status": "up"})
+	})
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 	e.GET("/ws", wsHandler.HandleWS)
 
-	// Swagger Route
-	e.GET("/swagger/*", echoSwagger.WrapHandler)
-
-	// Routes
-	e.GET("/health", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{
-			"status": "up",
-		})
-	})
-
-	// Auth Routes
+	// Auth — public
 	e.POST("/auth/register", authHandler.Register)
 	e.POST("/auth/login", authHandler.Login)
 
-	// Run Routes
-	e.POST("/sync/run", runHandler.SyncRun)
-	e.GET("/runs", runHandler.GetRuns)
-	e.GET("/runs/global", runHandler.GetGlobalRuns)
-	e.DELETE("/runs", runHandler.DeleteRuns)
-
-	// Leaderboard Routes
-	e.GET("/leaderboard/:district", leaderboardHandler.GetLeaderboard)
-	e.POST("/leaderboard/:district/refresh", leaderboardHandler.RefreshLeaderboardCache)
-
-	// Guild Routes
+	// Public data (bisa dilihat tanpa login)
+	e.GET("/territories", territoryHandler.GetAllTerritories)
 	e.GET("/guilds", guildHandler.GetGuilds)
 	e.GET("/guilds/dominion", guildHandler.GetGuildDominion)
-	e.POST("/guilds/join", guildHandler.JoinGuild)
-	e.POST("/guilds/leave", guildHandler.LeaveGuild)
+	e.GET("/leaderboard/:district", leaderboardHandler.GetLeaderboard)
+	e.GET("/seasons", seasonHandler.GetSeasons)
+	e.GET("/graffiti", graffitiHandler.GetRecentGraffiti)
+
+	// ── Protected Routes (Wajib JWT) ───────────────────────────────────────────
+	protected := e.Group("")
+	protected.Use(api.JWTMiddleware(cfg.JWTSecret))
+
+	// Run Routes
+	protected.POST("/sync/run", runHandler.SyncRun)
+	protected.GET("/runs", runHandler.GetRuns)
+	protected.GET("/runs/global", runHandler.GetGlobalRuns)
+	protected.DELETE("/runs", runHandler.DeleteRuns)
+
+	// Leaderboard refresh (admin action)
+	protected.POST("/leaderboard/:district/refresh", leaderboardHandler.RefreshLeaderboardCache)
+
+	// Guild Routes
+	protected.POST("/guilds/join", guildHandler.JoinGuild)
+	protected.POST("/guilds/leave", guildHandler.LeaveGuild)
 
 	// Profile Routes
-	e.GET("/profiles/:id", profileHandler.GetProfile)
-	e.PUT("/profiles/:id", profileHandler.UpdateProfile)
+	protected.GET("/profiles/:id", profileHandler.GetProfile)
+	protected.PUT("/profiles/:id", profileHandler.UpdateProfile)
+	protected.GET("/profiles/:id/badges", seasonHandler.GetUserBadges)
 
-	// Territory Routes
-	e.GET("/territories", territoryHandler.GetAllTerritories)
-	e.GET("/territories/:userId", territoryHandler.GetUserTerritories)
+	// Territory Routes (user-specific)
+	protected.GET("/territories/:userId", territoryHandler.GetUserTerritories)
 
-	// Graffiti Routes
-	e.POST("/graffiti", graffitiHandler.PostGraffiti)
-	e.GET("/graffiti", graffitiHandler.GetRecentGraffiti)
+	// Graffiti
+	protected.POST("/graffiti", graffitiHandler.PostGraffiti)
+
+	// Friends Routes
+	protected.POST("/friends/request", friendsHandler.SendFriendRequest)
+	protected.PUT("/friends/:friendId/accept", friendsHandler.AcceptFriendRequest)
+	protected.DELETE("/friends/:friendId", friendsHandler.RemoveFriend)
+	protected.GET("/friends", friendsHandler.GetFriends)
+	protected.GET("/friends/pending", friendsHandler.GetPendingRequests)
 
 	// Start server
 	log.Printf("Starting server on port %s", cfg.Port)

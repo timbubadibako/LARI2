@@ -2,21 +2,23 @@ package api
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthHandler struct {
-	db *pgxpool.Pool
+	db        *pgxpool.Pool
+	jwtSecret string
 }
 
-func NewAuthHandler(db *pgxpool.Pool) *AuthHandler {
-	return &AuthHandler{db: db}
+func NewAuthHandler(db *pgxpool.Pool, jwtSecret string) *AuthHandler {
+	return &AuthHandler{db: db, jwtSecret: jwtSecret}
 }
 
 type RegisterRequest struct {
@@ -29,6 +31,19 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+// generateToken membuat JWT token baru untuk user yang berhasil login.
+func (h *AuthHandler) generateToken(userID string) (string, error) {
+	claims := &JWTClaims{
+		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * 24 * time.Hour)), // Berlaku 30 hari
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(h.jwtSecret))
 }
 
 // Register godoc
@@ -49,6 +64,14 @@ func (h *AuthHandler) Register(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
 	}
 
+	// Validasi dasar
+	if req.Email == "" || req.Password == "" || req.DisplayName == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "email, password, and display_name are required"})
+	}
+	if len(req.Password) < 6 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "password must be at least 6 characters"})
+	}
+
 	// Hash the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -67,30 +90,27 @@ func (h *AuthHandler) Register(c echo.Context) error {
 		"INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id",
 		req.Email, string(hashedPassword)).Scan(&userID)
 	if err != nil {
-		log.Printf("Registration DB Error: %v", err)
-		// Robust check for duplicate key error
 		if strings.Contains(err.Error(), "unique constraint") || strings.Contains(err.Error(), "23505") {
 			return c.JSON(http.StatusConflict, map[string]string{"error": "This email identifier is already claimed by another agent."})
 		}
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "User creation failed: " + err.Error()})
 	}
 
-	// Insert into profiles
-	username := req.Email // Simple fallback
+	// Insert into profiles — cari guild berdasarkan warna faksi
+	username := req.Email
+	var guildID string
+	searchColor := strings.ToUpper(req.FactionColor)
+	if searchColor == "#FFFF5F00" {
+		searchColor = "#FF5F00"
+	}
 
-	// 🔥 AUTO-GUILD ASSIGNMENT based on color
-	guildID := ""
-	switch strings.ToUpper(req.FactionColor) {
-	case "#CCFF00": // Neon Green
-		guildID = "00000000-0000-0000-0000-000000000001" // THE_VANGUARD
-	case "#00F0FF": // Electric Blue
-		guildID = "00000000-0000-0000-0000-000000000002" // SAPPHIRE_SYNDICATE
-	case "#FFFF5F00", "#FF5F00": // Inferno Orange
-		guildID = "00000000-0000-0000-0000-000000000003" // CYBER_CORE
-	case "#FF0000": // Infra Red
-		guildID = "00000000-0000-0000-0000-000000000004" // RED_REBEL_CELL
-	default:
-		guildID = "00000000-0000-0000-0000-000000000001" // Default to Vanguard
+	err = tx.QueryRow(context.Background(), "SELECT id FROM guilds WHERE emblem_color = $1 LIMIT 1", searchColor).Scan(&guildID)
+	if err != nil {
+		// Fallback ke guild pertama yang ada
+		err = tx.QueryRow(context.Background(), "SELECT id FROM guilds LIMIT 1").Scan(&guildID)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "No guilds available in database"})
+		}
 	}
 
 	_, err = tx.Exec(context.Background(),
@@ -104,15 +124,22 @@ func (h *AuthHandler) Register(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "could not commit transaction"})
 	}
 
+	// Generate JWT token langsung setelah registrasi berhasil
+	token, err := h.generateToken(userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
+	}
+
 	return c.JSON(http.StatusCreated, map[string]string{
 		"id":      userID,
+		"token":   token,
 		"message": "user registered successfully",
 	})
 }
 
 // Login godoc
 // @Summary Login agent
-// @Description Authenticate user and get session ID
+// @Description Authenticate user and return JWT token
 // @Tags auth
 // @Accept  json
 // @Produce  json
@@ -137,13 +164,19 @@ func (h *AuthHandler) Login(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 	}
 
-	// Compare hashed password
 	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(req.Password)); err != nil {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 	}
 
+	// Generate JWT token
+	token, err := h.generateToken(userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
+	}
+
 	return c.JSON(http.StatusOK, map[string]string{
 		"id":      userID,
+		"token":   token,
 		"message": "login successful",
 	})
 }
