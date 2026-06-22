@@ -114,3 +114,39 @@ CREATE TABLE IF NOT EXISTS public.graffiti (
 );
 CREATE INDEX IF NOT EXISTS graffiti_spatial_idx ON public.graffiti USING GIST(location);
 CREATE INDEX IF NOT EXISTS graffiti_user_id_idx ON public.graffiti(user_id);
+
+-- 9. SEASON HISTORY (Hall of Fame)
+CREATE TABLE IF NOT EXISTS public.season_history (
+  id SERIAL PRIMARY KEY,
+  season_id TEXT NOT NULL, -- e.g., '2026-W25'
+  sector_id TEXT NOT NULL,
+  winner_user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  guild_id UUID REFERENCES public.guilds(id) ON DELETE SET NULL,
+  total_area_sqm FLOAT DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS season_history_season_idx ON public.season_history(season_id);
+CREATE INDEX IF NOT EXISTS season_history_sector_idx ON public.season_history(sector_id);
+
+-- 10. USER BADGES (Achievements)
+CREATE TABLE IF NOT EXISTS public.user_badges (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  badge_id TEXT NOT NULL, -- e.g., 'RULER_SENAYAN_W25'
+  badge_name TEXT NOT NULL,
+  description TEXT,
+  earned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, badge_id)
+);
+CREATE INDEX IF NOT EXISTS user_badges_user_id_idx ON public.user_badges(user_id);
+
+-- 11. SOCIAL (Friends / Followers)
+CREATE TABLE IF NOT EXISTS public.friendships (
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  friend_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  status TEXT DEFAULT 'pending', -- 'pending', 'accepted', 'blocked'
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  PRIMARY KEY (user_id, friend_id)
+);
+CREATE INDEX IF NOT EXISTS friendships_user_id_idx ON public.friendships(user_id);
+CREATE INDEX IF NOT EXISTS friendships_friend_id_idx ON public.friendships(friend_id);

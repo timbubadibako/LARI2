@@ -11,17 +11,26 @@ class ApiConfig {
   static String getBaseUrl(Ref ref) {
     if (kReleaseMode) return hfUrl;
     
-    // 🔥 TUNNEL PRIORITY: Use tunnel if available, fallback to localhost
-    // We use tunnelUrl for physical devices testing via devtunnels
-    const url = tunnelUrl; 
-    debugPrint('API_CONFIG: Using base URL: $url');
-    return url;
+    final isLocal = ref.watch(localBackendActiveProvider);
+    if (isLocal) {
+      if (!kIsWeb && Platform.isAndroid) {
+        return 'http://10.0.2.2:8080'; // Android emulator local loopback
+      }
+      return localUrl;
+    }
+    return tunnelUrl;
   }
 }
 
 final baseUrlProvider = Provider<String>((ref) {
   if (kReleaseMode) return ApiConfig.hfUrl;
   
-  // Default to tunnel for dev, change to localUrl if testing on emulator only
+  final isLocal = ref.watch(localBackendActiveProvider);
+  if (isLocal) {
+    if (!kIsWeb && Platform.isAndroid) {
+      return 'http://10.0.2.2:8080'; // Android emulator local loopback
+    }
+    return ApiConfig.localUrl;
+  }
   return ApiConfig.tunnelUrl;
 });

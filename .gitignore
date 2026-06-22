@@ -51,3 +51,6 @@ build/
 .local_docs/
 fix_with_opacity.py
 mark_issues.py
+docs/
+jobsheet_time.md
+wbs_lari2.md
