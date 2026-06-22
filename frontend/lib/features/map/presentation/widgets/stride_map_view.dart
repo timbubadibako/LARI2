@@ -53,9 +53,25 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
     _routeLayerController.setMapController(controller);
   }
 
+  void _onCameraIdle() async {
+    if (mapController == null) return;
+    try {
+      final bounds = await mapController!.getVisibleRegion();
+      ref.read(territoryViewportBoundsProvider.notifier).updateBounds(TerritoryViewportBounds(
+        lonMin: bounds.southwest.longitude,
+        latMin: bounds.southwest.latitude,
+        lonMax: bounds.northeast.longitude,
+        latMax: bounds.northeast.latitude,
+      ));
+    } catch (e) {
+      debugPrint('Error getting visible region bounds: $e');
+    }
+  }
+
   void _onStyleLoadedCallback() async {
     await _routeLayerController.initialize();
     _generateGrid();
+    _onCameraIdle();
 
     // Set initial route color based on profile
     final profile = ref.read(profileControllerProvider).value;
@@ -90,8 +106,9 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
     }
     
     final presenceData = ref.read(presenceLinesProvider);
-    final presenceLines = presenceData.map((p) => p.route).toList();
-    await _routeLayerController.updatePresenceLines(presenceLines);
+    await _routeLayerController.updatePresenceLines(
+      presenceData.map((p) => (route: p.route, color: p.color)).toList(),
+    );
 
     final territories = ref.read(allTerritoriesProvider).value ?? <UserTerritory>[];
     await _routeLayerController.updateMasteredTerritories(
@@ -267,8 +284,9 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
       });
 
       ref.listen(presenceLinesProvider, (previous, next) {
-        final lines = next.map((p) => p.route).toList();
-        _routeLayerController.updatePresenceLines(lines);
+        _routeLayerController.updatePresenceLines(
+          next.map((p) => (route: p.route, color: p.color)).toList(),
+        );
       });
     }
 
@@ -333,6 +351,7 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
       myLocationEnabled: isStaticMode ? false : !isFake,
       compassEnabled: false,
       myLocationRenderMode: isStaticMode ? MyLocationRenderMode.normal : (isFake ? MyLocationRenderMode.normal : MyLocationRenderMode.compass),
+      onCameraIdle: _onCameraIdle,
     );
   }
 

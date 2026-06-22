@@ -145,7 +145,7 @@ class MapRouteLineLayerController {
       presenceSourceId,
       presenceLayerId,
       LineLayerProperties(
-        lineColor: '#FFA500', 
+        lineColor: ['coalesce', ['get', 'color'], '#FFA500'],
         lineWidth: 3.0,
         lineOpacity: 0.4,
         lineDasharray: [2.0, 2.0],
@@ -269,7 +269,7 @@ class MapRouteLineLayerController {
     await _mapController!.setGeoJsonSource(currentPosSourceId, geoJson);
   }
 
-  Future<void> updatePresenceLines(List<List<latlong.LatLng>> lines) async {
+  Future<void> updatePresenceLines(List<({List<latlong.LatLng> route, String color})> lines) async {
     if (_mapController == null) return;
     final geoJson = _buildPresenceGeoJson(lines);
     await _mapController!.setGeoJsonSource(presenceSourceId, geoJson);
@@ -277,7 +277,7 @@ class MapRouteLineLayerController {
 
   Future<void> updateHistoryLines(List<List<latlong.LatLng>> lines) async {
     if (_mapController == null) return;
-    final geoJson = _buildPresenceGeoJson(lines);
+    final geoJson = _buildHistoryGeoJson(lines);
     await _mapController!.setGeoJsonSource(historySourceId, geoJson);
   }
 
@@ -428,13 +428,40 @@ class MapRouteLineLayerController {
     };
   }
 
-  Map<String, dynamic> _buildPresenceGeoJson(List<List<latlong.LatLng>> lines) {
+  Map<String, dynamic> _buildPresenceGeoJson(List<({List<latlong.LatLng> route, String color})> lines) {
     if (lines.isEmpty) return _emptyRouteGeoJson();
 
     return {
       'type': 'FeatureCollection',
       'features': lines.map((line) {
         // Very simple downsampling to improve performance if many lines
+        final step = line.route.length > 50 ? 5 : 1;
+        final simplified = <latlong.LatLng>[];
+        for (int i = 0; i < line.route.length; i += step) {
+          simplified.add(line.route[i]);
+        }
+        if (simplified.isNotEmpty && simplified.last != line.route.last) simplified.add(line.route.last);
+
+        return {
+          'type': 'Feature',
+          'properties': {'color': line.color},
+          'geometry': {
+            'type': 'LineString',
+            'coordinates': simplified
+                .map((p) => [p.longitude, p.latitude])
+                .toList()
+          }
+        };
+      }).toList(),
+    };
+  }
+
+  Map<String, dynamic> _buildHistoryGeoJson(List<List<latlong.LatLng>> lines) {
+    if (lines.isEmpty) return _emptyRouteGeoJson();
+
+    return {
+      'type': 'FeatureCollection',
+      'features': lines.map((line) {
         final step = line.length > 50 ? 5 : 1;
         final simplified = <latlong.LatLng>[];
         for (int i = 0; i < line.length; i += step) {
