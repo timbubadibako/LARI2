@@ -13,7 +13,27 @@ class LariSyncService {
   final Box<dynamic> _box;
   final Ref _ref;
 
-  LariSyncService(this._box, this._ref);
+  LariSyncService(this._box, this._ref) {
+    cleanOldSynced();
+  }
+
+  Future<void> cleanOldSynced() async {
+    try {
+      final syncedKeys = _box.keys.where((key) {
+        final val = _box.get(key);
+        return val is Map && val['status'] == 'synced';
+      }).toList();
+
+      for (final key in syncedKeys) {
+        await _box.delete(key);
+      }
+      if (syncedKeys.isNotEmpty) {
+        LariLogger.log(_logEnabled, 'CLEANUP: Removed ${syncedKeys.length} legacy synced items from local database.');
+      }
+    } catch (e) {
+      debugPrint('CLEANUP_ERROR: Failed to remove legacy synced items: $e');
+    }
+  }
 
   String get _baseUrl => _ref.read(baseUrlProvider);
   bool get _logEnabled => _ref.read(lariDevLogEnabledProvider);
@@ -48,11 +68,24 @@ class LariSyncService {
     final pending = _box.values.where((t) => t['status'] == 'pending').toList();
     if (pending.isEmpty) return true;
 
+    const int maxRetries = 5;
     bool allSuccess = true;
     for (var task in pending) {
       try {
         final id = task['id'];
-        debugPrint('SYNC_ATTEMPT: Uploading $id to $_baseUrl/sync/run');
+        final retryCount = (task['retry_count'] as int?) ?? 0;
+
+        // Skip tasks that have exhausted retries
+        if (retryCount >= maxRetries) {
+          final quarantined = Map<String, dynamic>.from(task);
+          quarantined['status'] = 'quarantined';
+          quarantined['quarantine_reason'] = 'max_retries_exceeded';
+          await _box.put(id, quarantined);
+          LariLogger.log(_logEnabled, 'SYNC_QUARANTINE: $id exceeded max retries ($maxRetries).');
+          continue;
+        }
+
+        debugPrint('SYNC_ATTEMPT: Uploading $id to $_baseUrl/sync/run (attempt ${retryCount + 1}/$maxRetries)');
         
         final response = await http.post(
           Uri.parse('$_baseUrl/sync/run'),
@@ -61,17 +94,22 @@ class LariSyncService {
         ).timeout(const Duration(seconds: 15));
 
         if (response.statusCode == 200 || response.statusCode == 201) {
-          final updated = Map<String, dynamic>.from(task);
-          updated['status'] = 'synced';
-          await _box.put(id, updated);
-          LariLogger.log(_logEnabled, 'SYNC_SUCCESS: $id');
-        } else if (response.statusCode == 400) {
-          // 🔥 AUTO-CLEANUP: If data is invalid (400), delete it so it stops failing
           await _box.delete(id);
-          debugPrint('SYNC_CLEANUP: Removed invalid task $id from queue.');
+          LariLogger.log(_logEnabled, 'SYNC_SUCCESS: Run $id uploaded successfully. Deleted from local queue.');
+        } else if (response.statusCode == 400) {
+          // 400 = server rejected data as invalid. Quarantine (don't delete) for debugging.
+          final quarantined = Map<String, dynamic>.from(task);
+          quarantined['status'] = 'quarantined';
+          quarantined['quarantine_reason'] = 'server_rejected_400: ${response.body}';
+          await _box.put(id, quarantined);
+          LariLogger.log(_logEnabled, 'SYNC_QUARANTINE: $id rejected by server (400). Data preserved for review.');
         } else {
+          // Transient error — increment retry count
           allSuccess = false;
-          debugPrint('SYNC_FAILED: HTTP ${response.statusCode} - ${response.body}');
+          final updated = Map<String, dynamic>.from(task);
+          updated['retry_count'] = retryCount + 1;
+          await _box.put(id, updated);
+          debugPrint('SYNC_FAILED: HTTP ${response.statusCode} for $id. Retry count: ${retryCount + 1}/$maxRetries.');
         }
       } catch (e) {
         allSuccess = false;
