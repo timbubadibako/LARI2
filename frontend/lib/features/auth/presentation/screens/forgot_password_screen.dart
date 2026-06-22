@@ -25,7 +25,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your agent email'), backgroundColor: Colors.redAccent),
+        const SnackBar(content: Text('Please enter your email address'), backgroundColor: Colors.redAccent),
       );
       return;
     }
@@ -39,7 +39,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Security clearance reset link sent to your channel.'),
+          content: Text('Password reset link sent to your email.'),
           backgroundColor: AppTheme.sapphire,
         ),
       );
@@ -78,7 +78,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             children: [
               const SizedBox(height: 16),
               Text(
-                'RESET CLEARANCE',
+                'RESET PASSWORD',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: Colors.white,
@@ -91,7 +91,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Enter your registered agent identifier. A reset link will be transmitted.',
+                'Enter your email address and we\'ll send you a password reset link.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white54, fontSize: 14),
               ),
@@ -99,7 +99,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
               _buildInputField(
                 controller: _emailController,
-                label: 'AGENT IDENTIFIER (EMAIL)',
+                label: 'EMAIL ADDRESS',
                 icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
               ),
@@ -122,7 +122,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                         child: CircularProgressIndicator(strokeWidth: 3, valueColor: AlwaysStoppedAnimation<Color>(AppTheme.obsidian)),
                       )
                     : const Text(
-                        'TRANSMIT RESET LINK',
+                        'SEND RESET LINK',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 2.0),
                       ),
               ),

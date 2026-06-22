@@ -192,7 +192,7 @@ class UseLocalBackendPrefNotifier extends Notifier<bool> {
     return ref
             .read(sharedPreferencesProvider)
             .getBool(kUseLocalBackendPrefKey) ??
-        false; // Default to HF
+        true; // Default to Local (untuk tes Supabase)
   }
 
   Future<void> setEnabled(bool enabled) async {

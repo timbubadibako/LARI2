@@ -75,7 +75,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('REGISTRATION REJECTED. IDENTITY ALREADY CLAIMED OR SERVER OFFLINE.'),
+            content: Text('Registration failed. This email may already be in use.'),
             backgroundColor: StrideColors.error,
           ),
         );
@@ -167,7 +167,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                         ),
                                         const SizedBox(height: 12),
                                         Text(
-                                          'JOIN THE GLOBAL MOVEMENT.',
+                                          'JOIN THE MOVEMENT.',
                                           style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textSecondary),
                                         ),
                                       ],
@@ -184,7 +184,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                     V3InputField(
                                       controller: _displayNameController,
                                       label: 'FULL NAME',
-                                      hint: 'CODENAME',
+                                      hint: 'Your name',
                                       activeBorderColor: _factionColors[_selectedColorIndex],
                                       autofillHints: const [AutofillHints.name],
                                     ),
@@ -192,7 +192,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                     V3InputField(
                                       controller: _emailController,
                                       label: 'EMAIL',
-                                      hint: 'IDENTIFIER',
+                                      hint: 'Your email',
                                       activeBorderColor: _factionColors[_selectedColorIndex],
                                       keyboardType: TextInputType.emailAddress,
                                       autofillHints: const [AutofillHints.email],
@@ -201,7 +201,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                     V3InputField(
                                       controller: _passwordController,
                                       label: 'PASSWORD',
-                                      hint: 'SECURITY KEY',
+                                      hint: 'Min. 6 characters',
                                       isPassword: true,
                                       activeBorderColor: _factionColors[_selectedColorIndex],
                                       autofillHints: const [AutofillHints.newPassword],
@@ -214,7 +214,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                               // Faction Color Picker
                               Text(
-                                'SELECT FACTION COLOR',
+                                'PICK YOUR COLOR',
                                 style: StrideTypography.labelTactical.copyWith(fontSize: 8),
                               ),
                               const SizedBox(height: 12),

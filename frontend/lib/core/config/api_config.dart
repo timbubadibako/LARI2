@@ -14,7 +14,7 @@ class ApiConfig {
     final isLocal = ref.watch(localBackendActiveProvider);
     if (isLocal) {
       if (!kIsWeb && Platform.isAndroid) {
-        return 'http://10.0.2.2:8080'; // Android emulator local loopback
+        return 'http://localhost:8080'; // Menggunakan localhost + adb reverse untuk HP Asli
       }
       return localUrl;
     }
@@ -28,7 +28,7 @@ final baseUrlProvider = Provider<String>((ref) {
   final isLocal = ref.watch(localBackendActiveProvider);
   if (isLocal) {
     if (!kIsWeb && Platform.isAndroid) {
-      return 'http://10.0.2.2:8080'; // Android emulator local loopback
+      return 'http://localhost:8080'; // Menggunakan localhost + adb reverse untuk HP Asli
     }
     return ApiConfig.localUrl;
   }

@@ -11,6 +11,7 @@ import '../../../dev/dev_providers.dart';
 import '../../profile/application/profile_controller.dart';
 
 const String kUserSessionIdKey = 'auth.session_id';
+const String kUserTokenKey = 'auth.jwt_token';
 
 class CurrentUserSessionNotifier extends Notifier<String?> {
   @override
@@ -19,12 +20,16 @@ class CurrentUserSessionNotifier extends Notifier<String?> {
     return prefs.getString(kUserSessionIdKey);
   }
 
-  Future<void> setSession(String? userId) async {
+  Future<void> setSession(String? userId, {String? token}) async {
     final prefs = ref.read(sharedPreferencesProvider);
     if (userId == null) {
       await prefs.remove(kUserSessionIdKey);
+      await prefs.remove(kUserTokenKey);
     } else {
       await prefs.setString(kUserSessionIdKey, userId);
+      if (token != null) {
+        await prefs.setString(kUserTokenKey, token);
+      }
     }
     state = userId;
   }
@@ -75,7 +80,8 @@ class AuthController {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final String userId = data['id'];
-        await _ref.read(currentUserSessionProvider.notifier).setSession(userId);
+        final String? token = data['token'];
+        await _ref.read(currentUserSessionProvider.notifier).setSession(userId, token: token);
         LariLogger.log(_logEnabled, 'LARI2 Auth SignIn Success');
         return true;
       } else {
@@ -107,7 +113,8 @@ class AuthController {
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
         final String userId = data['id'];
-        await _ref.read(currentUserSessionProvider.notifier).setSession(userId);
+        final String? token = data['token'];
+        await _ref.read(currentUserSessionProvider.notifier).setSession(userId, token: token);
         LariLogger.log(_logEnabled, 'LARI2 Auth SignUp Success');
         return true;
       } else {
