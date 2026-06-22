@@ -63,7 +63,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       setState(() => _isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? 'SYSTEM_CONFIGURATION_UPDATED' : 'UPDATE_FAILED_RETRY_UPLINK'),
+          content: Text(success ? 'Settings saved' : 'Failed to save settings'),
           backgroundColor: success ? StrideColors.neonGreen : StrideColors.error,
         ),
       );
@@ -82,9 +82,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TacticalHeader(
-            title: 'SYSTEM_SETTINGS',
-            subTitle: 'CONFIGURATION',
-            status: _isSaving ? 'UPLOADING...' : 'OFFLINE_CONFIG',
+            title: 'SETTINGS',
+            subTitle: 'PREFERENCES',
+            status: _isSaving ? 'UPLOADING...' : 'OFFLINE',
             statusColor: _isSaving ? StrideColors.warning : StrideColors.textMuted,
             actions: [
               TacticalIconButton(
@@ -107,34 +107,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // IDENTITY RECON
-                  _sectionHeader('IDENTITY_RECON'),
+                  _sectionHeader('PROFILE'),
                   const SizedBox(height: 24),
                   V3InputField(
                     controller: _nameController,
-                    label: 'DISPLAY_NAME',
-                    hint: 'AGENT_ID',
+                    label: 'DISPLAY NAME',
+                    hint: 'Your name',
                   ),
                   const SizedBox(height: 24),
                   V3InputField(
                     controller: _bioController,
-                    label: 'BIO_ENCODING',
-                    hint: 'MISSION_MOTTO',
+                    label: 'BIO',
+                    hint: 'A little about yourself',
                   ),
                   
                   const SizedBox(height: 48),
                   
                   // PRIVACY PROTOCOLS
-                  _sectionHeader('PRIVACY_PROTOCOLS'),
+                  _sectionHeader('PRIVACY'),
                   const SizedBox(height: 16),
                   _buildToggle(
-                    'PUBLIC_PROFILE',
-                    'Visibility of your stats to other agents.',
+                    'PUBLIC PROFILE',
+                    'Visibility of your stats to other runners.',
                     _publicProfile,
                     (v) => setState(() => _publicProfile = v),
                   ),
                   const SizedBox(height: 12),
                   _buildToggle(
-                    'GHOST_MODE',
+                    'GHOST MODE',
                     'Hide your presence from real-time radar.',
                     _ghostMode,
                     (v) => setState(() => _ghostMode = v),

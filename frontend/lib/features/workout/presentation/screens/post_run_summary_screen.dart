@@ -41,7 +41,7 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
     final time = '${(duration / 60).floor()}m ${duration % 60}s';
     
     Share.share(
-      'MISSION_REPORT: Captured $dist KM in $time. \nJoin the LARI movement and reclaim your city! 🚀🏙️',
+      'RUN SUMMARY: Captured $dist KM in $time. \nJoin the LARI movement and reclaim your city! 🚀🏙️',
       subject: 'LARI Run Summary',
     );
   }
@@ -114,7 +114,7 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
                       color: isLoopClosed ? StrideColors.neonGreen : StrideColors.white,
                       child: Text(
-                        isLoopClosed ? 'AREA_SECURED' : 'RUN_COMPLETE',
+                        isLoopClosed ? 'TERRITORY SECURED' : 'RUN COMPLETE',
                         style: StrideTypography.headlineMD.copyWith(color: StrideColors.background, fontSize: 24),
                       ),
                     ),
@@ -128,7 +128,7 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       color: StrideColors.warning,
                       child: Text(
-                        'ARCHIVE_REPLAY',
+                        'HISTORY',
                         style: StrideTypography.labelBold.copyWith(color: Colors.black, fontSize: 10),
                       ),
                     ),
@@ -142,7 +142,7 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       color: StrideColors.neonGreen,
                       child: Text(
-                        '+${xpGained}_XP_GAINED',
+                        '+${xpGained} XP EARNED',
                         style: StrideTypography.labelBold.copyWith(color: StrideColors.background, fontSize: 14),
                       ),
                     ),
@@ -154,11 +154,11 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('MISSION_REPORT_LOC', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.white.withOpacity(0.5))),
+                      Text('LOCATION', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.white.withOpacity(0.5))),
                       addressAsync.when(
                         data: (address) => Text(address, style: StrideTypography.headlineLG.copyWith(fontSize: 28)),
-                        loading: () => Text('LOCATING...', style: StrideTypography.headlineLG.copyWith(fontSize: 28)),
-                        error: (e, s) => Text('UNKNOWN_SECTOR', style: StrideTypography.headlineLG.copyWith(fontSize: 28)),
+                        loading: () => Text('Locating...', style: StrideTypography.headlineLG.copyWith(fontSize: 28)),
+                        error: (e, s) => Text('UNKNOWN LOCATION', style: StrideTypography.headlineLG.copyWith(fontSize: 28)),
                       ),
                     ],
                   ),
@@ -181,7 +181,7 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
                         children: [
                           Container(width: 2, height: 24, color: StrideColors.white.withOpacity(0.2)),
                           const SizedBox(width: 12),
-                          Text('RUN_SUMMARY', style: StrideTypography.headlineMD.copyWith(fontSize: 24, fontStyle: FontStyle.italic)),
+                          Text('RUN SUMMARY', style: StrideTypography.headlineMD.copyWith(fontSize: 24, fontStyle: FontStyle.italic)),
                         ],
                       ),
                       IconButton(
@@ -216,7 +216,7 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
                         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                       ),
                       child: Text(
-                        isReplay ? 'BACK_TO_ARCHIVES' : 'RETURN TO DASHBOARD', 
+                        isReplay ? 'BACK TO HISTORY' : 'RETURN TO DASHBOARD', 
                         style: StrideTypography.buttonText.copyWith(fontSize: 24, color: Colors.black)
                       ),
                     ),

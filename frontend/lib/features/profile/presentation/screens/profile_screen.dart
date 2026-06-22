@@ -38,9 +38,9 @@ class ProfileScreen extends ConsumerWidget {
         children: [
           // CONSISTENT TACTICAL HEADER
           TacticalHeader(
-            title: 'AGENT_DOSSIER',
-            subTitle: 'IDENTITY_VERIFICATION',
-            status: 'RANK: VANGUARD_04',
+            title: 'PROFILE',
+            subTitle: 'YOUR ACCOUNT',
+            status: '',
             actions: [
               TacticalIconButton(
                 onPressed: () {
@@ -58,15 +58,15 @@ class ProfileScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // IDENTITY CUSTOM
-                  _sectionHeader('IDENTITY_CUSTOM'),
+                  _sectionHeader('CUSTOMIZATION'),
                   const SizedBox(height: 16),
                   
-                  Text('ACTIVE_RADIATION_SIGNAL', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textPrimary.withOpacity(0.4))),
+                  Text('TERRITORY COLOR', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textPrimary.withOpacity(0.4))),
                   const SizedBox(height: 12),
                   _buildColorPicker(),
                   
                   const SizedBox(height: 24),
-                  Text('SIGNATURE_TAG', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textPrimary.withOpacity(0.4))),
+                  Text('SIGNATURE', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textPrimary.withOpacity(0.4))),
                   const SizedBox(height: 12),
                   GestureDetector(
                     onTap: () {
@@ -104,7 +104,7 @@ class ProfileScreen extends ConsumerWidget {
                               else
                                 Transform.rotate(
                                   angle: -0.05,
-                                  child: Text(profile?.displayNameOrFallback.toUpperCase() ?? 'AGENT_ID', style: StrideTypography.graffitiStyle.copyWith(fontSize: 32, color: StrideColors.neonGreen.withOpacity(0.3))),
+                                  child: Text(profile?.displayNameOrFallback.toUpperCase() ?? 'YOUR NAME', style: StrideTypography.graffitiStyle.copyWith(fontSize: 32, color: StrideColors.neonGreen.withOpacity(0.3))),
                                 ),
                                 
                               Positioned(
@@ -115,7 +115,7 @@ class ProfileScreen extends ConsumerWidget {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                     color: StrideColors.white.withOpacity(0.1),
-                                    child: Text(hasSignature ? 'UPDATE_TAG' : 'CREATE_TAG', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.white)),
+                                    child: Text(hasSignature ? 'UPDATE' : 'ADD SIGNATURE', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.white)),
                                   ),
                                 ),
                               ),
@@ -123,7 +123,7 @@ class ProfileScreen extends ConsumerWidget {
                           );
                         },
                         loading: () => Center(
-                          child: Text('LOADING_ENCRYPTION...', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textMuted))
+                          child: Text('Loading...', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textMuted))
                         ),
                         error: (e, s) => Center(
                           child: Column(
@@ -131,7 +131,7 @@ class ProfileScreen extends ConsumerWidget {
                             children: [
                               const Icon(Icons.wifi_off, color: StrideColors.error, size: 16),
                               const SizedBox(height: 4),
-                              Text('UPLINK_OFFLINE', style: StrideTypography.labelTactical.copyWith(fontSize: 6, color: StrideColors.error)),
+                              Text('Connection error', style: StrideTypography.labelTactical.copyWith(fontSize: 6, color: StrideColors.error)),
                             ],
                           )
                         ),
@@ -142,7 +142,7 @@ class ProfileScreen extends ConsumerWidget {
                   const SizedBox(height: 48),
 
                   // CAREER DOSSIER
-                  _sectionHeader('CAREER_STATS'),
+                  _sectionHeader('STATS'),
                   const SizedBox(height: 16),
                   profileAsync.when(
                     data: (profile) {
@@ -154,13 +154,13 @@ class ProfileScreen extends ConsumerWidget {
                         children: [
                           Row(
                             children: [
-                              Expanded(child: _buildStatsCard('TOTAL_CAPTURE', dist.toStringAsFixed(1), 'KM', StrideColors.neonGreen)),
+                              Expanded(child: _buildStatsCard('DISTANCE', dist.toStringAsFixed(1), 'KM', StrideColors.neonGreen)),
                               const SizedBox(width: 12),
-                              Expanded(child: _buildStatsCard('SECTORS_HELD', sectors.toString(), 'GRIDS', StrideColors.white)),
+                              Expanded(child: _buildStatsCard('AREAS HELD', sectors.toString(), 'GRIDS', StrideColors.white)),
                             ],
                           ),
                           const SizedBox(height: 12),
-                          _buildStatsCard('GLOBAL_RANK', rank > 0 ? '#$rank' : 'UNRANKED', 'KUNINGAN_SECTOR', StrideColors.white.withOpacity(0.2)),
+                          _buildStatsCard('GLOBAL RANK', rank > 0 ? '#$rank' : 'UNRANKED', 'OVERALL', StrideColors.white.withOpacity(0.2)),
                         ],
                       );
                     },
@@ -168,16 +168,16 @@ class ProfileScreen extends ConsumerWidget {
                       children: [
                         Row(
                           children: [
-                            Expanded(child: _buildStatsCard('TOTAL_CAPTURE', '...', 'KM', StrideColors.neonGreen.withOpacity(0.2))),
+                            Expanded(child: _buildStatsCard('DISTANCE', '...', 'KM', StrideColors.neonGreen.withOpacity(0.2))),
                             const SizedBox(width: 12),
-                            Expanded(child: _buildStatsCard('SECTORS_HELD', '...', 'GRIDS', StrideColors.white.withOpacity(0.2))),
+                            Expanded(child: _buildStatsCard('AREAS HELD', '...', 'GRIDS', StrideColors.white.withOpacity(0.2))),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Text('SYNCING_DOSSIER...', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted)),
+                        Text('Loading stats...', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted)),
                       ],
                     ),
-                    error: (e, s) => _buildStatsCard('DATA_CORRUPTED', 'ERR', 'OFFLINE', StrideColors.error),
+                    error: (e, s) => _buildStatsCard('ERROR', 'ERR', 'OFFLINE', StrideColors.error),
                   ),
 
                   const SizedBox(height: 48),
@@ -186,8 +186,8 @@ class ProfileScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _sectionHeader('MEDALS_RECON'),
-                      Text('4_UNLOCKED', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textPrimary.withOpacity(0.3))),
+                      _sectionHeader('ACHIEVEMENTS'),
+                      Text('4 UNLOCKED', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textPrimary.withOpacity(0.3))),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -216,7 +216,7 @@ class ProfileScreen extends ConsumerWidget {
                             if (!context.mounted) return;
                             Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
                           },
-                          child: Text('TERMINATE_SESSION', style: StrideTypography.labelBold.copyWith(color: StrideColors.error, fontSize: 10, decoration: TextDecoration.underline)),
+                          child: Text('SIGN OUT', style: StrideTypography.labelBold.copyWith(color: StrideColors.error, fontSize: 10, decoration: TextDecoration.underline)),
                         ),
                       ],
                     ),

@@ -114,7 +114,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                         : Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _sectionHeader('FACTION_DOMINION'),
+                              _sectionHeader('TEAM DOMINION'),
                               const SizedBox(height: 16),
                               _buildDominionSection(entries),
                               const SizedBox(height: 48),
@@ -130,13 +130,13 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                         : Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _sectionHeader(AppStrings.leaderboard, trailing: 'AREA: GLOBAL'),
+                              _sectionHeader(AppStrings.leaderboard, trailing: 'GLOBAL'),
                               const SizedBox(height: 16),
                               ...entries.take(5).map((e) => _buildRunnerCard(
                                 e.rank.toString().padLeft(2, '0'),
                                 e.displayName,
-                                '${(e.totalAreaSqm / 1000).toStringAsFixed(1)}K SQM SECURED',
-                                '${(e.totalAreaSqm / 10000).toStringAsFixed(1)}%', 
+                                '${(e.totalAreaSqm / 1000).toStringAsFixed(1)}K sqm held',
+                                '${(e.totalAreaSqm / 10000).toStringAsFixed(1)}%',
                                 factionColor: e.color,
                                 isYou: e.userId == currentUserId,
                               )),
@@ -278,7 +278,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader('RUN_TOGETHER'),
+        _sectionHeader('RUN TOGETHER'),
         const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
@@ -299,7 +299,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                       const Icon(Icons.login, color: StrideColors.neonGreen, size: 24),
                       const SizedBox(height: 8),
                       Text('JOIN', style: StrideTypography.labelBold.copyWith(fontSize: 10)),
-                      Text('INPUT_PIN', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted)),
+                      Text('Enter PIN', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted)),
                     ],
                   ),
                 ),
@@ -313,7 +313,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                       const Icon(Icons.share, color: StrideColors.neonGreen, size: 24),
                       const SizedBox(height: 8),
                       Text('HOST', style: StrideTypography.labelBold.copyWith(fontSize: 10)),
-                      Text('SHARE_PIN', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted)),
+                      Text('Share PIN', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted)),
                     ],
                   ),
                 ),
@@ -436,7 +436,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
                   ),
                 ),
                 Text(
-                  'TAG_${tag.id.substring(0, 4)}',
+                  '#${tag.id.substring(0, 4)}',
                   style: StrideTypography.labelTactical.copyWith(fontSize: 6, color: StrideColors.textMuted),
                 ),
               ],
@@ -453,7 +453,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> with SingleTickerPr
 
     return MissionDossierCard(
       id: activity.id,
-      title: isCaptured ? 'AREA ACQUISITION' : 'STANDARD ACTIVITY',
+      title: isCaptured ? 'TERRITORY RUN' : 'RUN',
       status: activity.status,
       distanceKm: activity.distanceKm,
       durationSec: activity.durationSec,

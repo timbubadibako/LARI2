@@ -20,14 +20,14 @@ class GuildScreen extends ConsumerWidget {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('SUCCESSFULLY ALIGNED WITH ${guild.name}'),
+            content: Text('SUCCESSFULLY JOINED ${guild.name}'),
             backgroundColor: Color(int.parse(guild.emblemColor.replaceFirst('#', '0xFF'))),
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('ALIGNMENT FAILED. PROTOCOL ERROR.'),
+            content: Text('Failed to join team.'),
             backgroundColor: StrideColors.error,
           ),
         );
@@ -43,14 +43,14 @@ class GuildScreen extends ConsumerWidget {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('ALIGNMENT SEVERED. YOU ARE NOW UNALIGNED.'),
+            content: Text('You left the team.'),
             backgroundColor: StrideColors.warning,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('DISCONNECT FAILED. SYSTEM LOCK-IN ACTIVE.'),
+            content: Text('Failed to leave team.'),
             backgroundColor: StrideColors.error,
           ),
         );
@@ -70,9 +70,9 @@ class GuildScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TacticalHeader(
-            title: 'FACTION_HQ',
-            subTitle: 'GUILD_MANAGEMENT',
-            status: 'SYSTEM_ACTIVE',
+            title: 'TEAMS',
+            subTitle: 'MANAGE TEAM',
+            status: 'ONLINE',
             statusColor: StrideColors.neonGreen,
             actions: [
               TacticalIconButton(
@@ -87,7 +87,7 @@ class GuildScreen extends ConsumerWidget {
             child: profileAsync.when(
               data: (profile) => _buildContent(context, ref, profile, guildsAsync, dominionAsync),
               loading: () => const Center(child: CircularProgressIndicator(color: StrideColors.neonGreen)),
-              error: (e, s) => Center(child: Text('DATA_CORRUPTION_DETECTED', style: StrideTypography.labelBold.copyWith(color: StrideColors.error))),
+              error: (e, s) => Center(child: Text('Error loading data', style: StrideTypography.labelBold.copyWith(color: StrideColors.error))),
             ),
           ),
           
@@ -112,34 +112,34 @@ class GuildScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // CURRENT STATUS
-          _sectionHeader('CURRENT_ALIGNMENT'),
+          _sectionHeader('CURRENT TEAM'),
           const SizedBox(height: 16),
           _buildCurrentGuildCard(context, ref, profile, guildsAsync),
           
           const SizedBox(height: 48),
 
           // FACTION DOMINION
-          _sectionHeader('GLOBAL_DOMINION'),
+          _sectionHeader('GLOBAL TERRITORY'),
           const SizedBox(height: 16),
           _buildDominionList(dominionAsync),
 
           const SizedBox(height: 48),
           
           // AVAILABLE GUILDS
-          _sectionHeader('FACTION_RECRUITMENT'),
+          _sectionHeader('AVAILABLE TEAMS'),
           const SizedBox(height: 16),
           guildsAsync.when(
             data: (guilds) {
               final otherGuilds = guilds.where((g) => g.id != currentFactionId).toList();
               if (otherGuilds.isEmpty) {
-                return Text('NO_AVAILABLE_FACTIONS_FOUND', style: StrideTypography.labelTactical.copyWith(color: StrideColors.textMuted));
+                return Text('No teams available', style: StrideTypography.labelTactical.copyWith(color: StrideColors.textMuted));
               }
               return Column(
                 children: otherGuilds.map((guild) => _buildGuildJoinCard(context, ref, guild)).toList(),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator(color: StrideColors.neonGreen)),
-            error: (e, s) => Text('ERROR_FETCHING_FACTIONS', style: StrideTypography.labelTactical.copyWith(color: StrideColors.error)),
+            error: (e, s) => Text('Error fetching teams', style: StrideTypography.labelTactical.copyWith(color: StrideColors.error)),
           ),
           
           const SizedBox(height: 60),
@@ -164,7 +164,7 @@ class GuildScreen extends ConsumerWidget {
         ? Color(int.parse(profile!.territoryColor!.replaceFirst('#', '0xFF')))
         : StrideColors.textMuted;
 
-    String factionName = 'NO_AFFILIATION';
+    String factionName = 'NO TEAM';
     if (hasGuild) {
       guildsAsync.whenData((guilds) {
         final g = guilds.firstWhere((element) => element.id == profile?.guildId, orElse: () => Guild(id: '', name: 'UNKNOWN', emblemColor: ''));
@@ -186,7 +186,7 @@ class GuildScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                hasGuild ? 'ASSIGNED_TO_FACTION' : 'STATUS: UNALIGNED',
+                hasGuild ? 'YOUR TEAM' : 'STATUS: NO TEAM',
                 style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: color.withOpacity(0.6)),
               ),
               if (hasGuild)
@@ -197,7 +197,7 @@ class GuildScreen extends ConsumerWidget {
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: Text('LEAVE_FACTION', style: StrideTypography.labelBold.copyWith(fontSize: 8, color: StrideColors.error)),
+                  child: Text('LEAVE TEAM', style: StrideTypography.labelBold.copyWith(fontSize: 8, color: StrideColors.error)),
                 ),
             ],
           ),
@@ -209,13 +209,13 @@ class GuildScreen extends ConsumerWidget {
           if (hasGuild) ...[
             const SizedBox(height: 12),
             Text(
-              'Your efforts contribute to the global dominion of this faction.',
+              'Your efforts contribute to the global territory of this team.',
               style: StrideTypography.bodyMD.copyWith(fontSize: 12, color: StrideColors.textSecondary),
             ),
           ] else ...[
             const SizedBox(height: 12),
             Text(
-              'Align with a faction below to start claiming territory for your team.',
+              'Join a team below to start claiming territory.',
               style: StrideTypography.bodyMD.copyWith(fontSize: 12, color: StrideColors.textSecondary),
             ),
           ],
@@ -266,7 +266,7 @@ class GuildScreen extends ConsumerWidget {
           Align(
             alignment: Alignment.centerRight,
             child: Text(
-              'TOTAL_AREA: ${(d.totalArea / 1000).toStringAsFixed(1)}K SQM',
+              'TOTAL AREA: ${(d.totalArea / 1000).toStringAsFixed(1)}K SQM',
               style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted),
             ),
           ),
@@ -298,7 +298,7 @@ class GuildScreen extends ConsumerWidget {
                     Text(guild.name, style: StrideTypography.headlineMD.copyWith(fontSize: 20)),
                     const SizedBox(height: 4),
                     Text(
-                      'FACTION_ID: ${guild.id.substring(0, 8).toUpperCase()}',
+                      'TEAM ID: ${guild.id.substring(0, 8).toUpperCase()}',
                       style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted),
                     ),
                   ],
