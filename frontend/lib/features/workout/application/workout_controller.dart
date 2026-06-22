@@ -86,16 +86,14 @@ class WorkoutController extends Notifier<WorkoutSession> {
     try {
       debugPrint('WorkoutController: Ending session ${state.id}');
       
-      // 🔥 STATIONARY TEST FIX: If 0 or 1 point, add dummy points so it's a valid LINESTRING
+      // Guard: discard sessions with insufficient GPS data — do not inject dummy coords.
       if (state.points.length < 2) {
-        debugPrint('WorkoutController: Insufficient points (${state.points.length}). Generating dummy points for test...');
-        final baseLat = -6.225;
-        final baseLng = 106.827;
-        final p1 = state.points.isNotEmpty ? state.points.first : PositionSample(ts: DateTime.now(), lat: baseLat, lng: baseLng, accuracyMeters: 5);
-        final p2 = PositionSample(ts: DateTime.now().add(const Duration(milliseconds: 100)), lat: p1.lat + 0.0001, lng: p1.lng + 0.0001, accuracyMeters: 5);
-        state = state.copyWith(points: [p1, p2]);
+        debugPrint('WorkoutController: Session discarded — insufficient GPS points (${state.points.length}). Minimum 2 required.');
+        pause();
+        state = _idleState();
+        return;
       }
-      
+
       pause();
       
       // Hand off to sync service
@@ -144,7 +142,31 @@ class WorkoutController extends Notifier<WorkoutSession> {
       }
       
       points.add(sample);
-      state = state.copyWith(points: points, distanceMeters: dist);
+
+      // Determine if loop is closed dynamically
+      bool isClosed = false;
+      if (points.length >= 3) {
+        final first = points.first;
+        final last = points.last;
+        final gapToStart = Geolocator.distanceBetween(first.lat, first.lng, last.lat, last.lng);
+        
+        double maxDisplacement = 0.0;
+        for (final p in points) {
+          final d = Geolocator.distanceBetween(first.lat, first.lng, p.lat, p.lng);
+          if (d > maxDisplacement) {
+            maxDisplacement = d;
+          }
+        }
+
+        // Must displace by more than 30 meters and return within 25 meters to close loop
+        isClosed = maxDisplacement > 30.0 && gapToStart <= 25.0;
+      }
+      
+      state = state.copyWith(
+        points: points,
+        distanceMeters: dist,
+        isLoopClosed: isClosed,
+      );
     });
   }
 }

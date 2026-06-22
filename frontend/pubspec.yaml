@@ -67,6 +67,8 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.13.1
+  mocktail: ^1.0.5
+  fake_async: any
 
 flutter_launcher_icons:
   android: true
@@ -78,8 +80,6 @@ flutter_launcher_icons:
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
-  fake_async: any
-  mocktail: ^1.0.5
 flutter:
 
   # The following line ensures that the Material Icons font is
