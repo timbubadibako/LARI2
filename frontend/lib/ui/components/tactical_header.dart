@@ -13,7 +13,7 @@ class TacticalHeader extends StatelessWidget {
   const TacticalHeader({
     super.key,
     required this.title,
-    this.subTitle = 'OPERATIONAL_ARCHIVES',
+    this.subTitle = 'YOUR RUNNING SPACE',
     this.status,
     this.statusColor,
     this.actions,
@@ -21,135 +21,141 @@ class TacticalHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasStatus = status != null && status!.trim().isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 1. SYSTEM METADATA BAR
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.black,
-            border: Border(
-              bottom: BorderSide(color: StrideColors.white.withOpacity(0.1), width: 1),
-            ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Container(
-              height: 24,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  _metaText('OP_PROTOCOL: LARI_V3.3'),
-                  const Spacer(),
-                  _metaText('UPLINK: ACTIVE'),
-                  const SizedBox(width: 12),
-                  _metaText('ENCRYPTION: AES_256'),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // 2. MAIN HEADER STACK WITH ACTIONS
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // PRIMARY SLANTED PATCH
-                  V3SlantBox(
-                    slantWidth: 40,
-                    isRightSlant: true,
-                    color: StrideColors.white,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 20, 60, 32),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            subTitle, 
-                            style: StrideTypography.labelTactical.copyWith(
-                              fontSize: 8, 
-                              color: Colors.black45,
-                              letterSpacing: 2,
-                            )
+        SafeArea(
+          bottom: false,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    V3SlantBox(
+                      slantWidth: 34,
+                      isRightSlant: true,
+                      color: StrideColors.surface,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.white.withOpacity(0.03),
+                              Colors.transparent,
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            title, 
-                            style: StrideTypography.displayXL.copyWith(
-                              fontSize: 48, 
-                              color: Colors.black,
-                              height: 0.9,
-                              letterSpacing: -1,
-                            )
+                          border: Border(
+                            bottom: BorderSide(color: StrideColors.white.withOpacity(0.06)),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // 3. DYNAMIC STATUS TAB (HITCHHIKER)
-                  if (status != null)
-                    Positioned(
-                      bottom: -10,
-                      left: 100,
-                      child: V3SkewBox(
-                        skewAmount: -0.2,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          color: statusColor ?? StrideColors.neonGreen,
-                          child: Text(
-                            status!,
-                            style: StrideTypography.labelBold.copyWith(
-                              fontSize: 8,
-                              color: Colors.black,
-                              fontStyle: FontStyle.italic,
-                            ),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(24, 18, 84, hasStatus ? 30 : 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 4,
+                                    height: 42,
+                                    margin: const EdgeInsets.only(right: 14, top: 2),
+                                    color: statusColor ?? StrideColors.neonGreen,
+                                  ),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          subTitle,
+                                          style: StrideTypography.labelTactical.copyWith(
+                                            fontSize: 8,
+                                            color: StrideColors.textSecondary,
+                                            letterSpacing: 1.6,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          title,
+                                          style: StrideTypography.headlineLG.copyWith(
+                                            fontSize: 34,
+                                            color: StrideColors.white,
+                                            height: 0.95,
+                                            letterSpacing: 0.8,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                ],
+                    if (hasStatus)
+                      Positioned(
+                        bottom: -10,
+                        left: 42,
+                        child: V3SkewBox(
+                          skewAmount: -0.18,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: statusColor ?? StrideColors.neonGreen,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (statusColor ?? StrideColors.neonGreen).withOpacity(0.18),
+                                  blurRadius: 16,
+                                  spreadRadius: -6,
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              status!,
+                              style: StrideTypography.labelBold.copyWith(
+                                fontSize: 8,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            
-            // ACTION BUTTONS AREA WITH NEON STROKE
-            if (actions != null)
-              Container(
-                margin: const EdgeInsets.only(top: 24),
-                padding: const EdgeInsets.only(left: 16, right: 16, top: 4, bottom: 4),
-                decoration: BoxDecoration(
-                  border: Border(
-                    right: BorderSide(
-                      color: statusColor ?? StrideColors.neonGreen, 
-                      width: 2,
+              
+              if (actions != null)
+                Container(
+                  margin: const EdgeInsets.only(top: 18),
+                  padding: const EdgeInsets.only(left: 10, right: 10, top: 8, bottom: 8),
+                  decoration: BoxDecoration(
+                    color: StrideColors.surface.withOpacity(0.92),
+                    border: Border(
+                      left: BorderSide(
+                        color: StrideColors.white.withOpacity(0.06),
+                      ),
+                      right: BorderSide(
+                        color: statusColor ?? StrideColors.neonGreen,
+                        width: 2,
+                      ),
                     ),
                   ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: actions!,
+                  ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: actions!,
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 20),
       ],
-    );
-  }
-
-  Widget _metaText(String text) {
-    return Text(
-      text,
-      style: StrideTypography.labelTactical.copyWith(
-        fontSize: 6,
-        color: StrideColors.white.withOpacity(0.3),
-        letterSpacing: 1,
-      ),
     );
   }
 }
@@ -179,6 +185,15 @@ class TacticalIconButton extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: StrideColors.surface,
+            boxShadow: isDisabled
+                ? null
+                : [
+                    BoxShadow(
+                      color: color.withOpacity(0.08),
+                      blurRadius: 18,
+                      spreadRadius: -6,
+                    ),
+                  ],
             border: Border.all(
               color: isDisabled ? color.withOpacity(0.05) : color.withOpacity(0.3), 
               width: 1.5,

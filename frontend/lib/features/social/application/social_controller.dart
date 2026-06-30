@@ -117,6 +117,26 @@ class SocialController {
   }
 }
 
+typedef SocialActiveNowSummary = ({int activeRunners, int capturedRuns, int hotZones});
+
+class HotZonePreview {
+  final String zoneName;
+  final String statusLabel;
+  final Color intensity;
+  final int seed;
+  final String displayName;
+  final double distanceKm;
+
+  HotZonePreview({
+    required this.zoneName,
+    required this.statusLabel,
+    required this.intensity,
+    required this.seed,
+    required this.displayName,
+    required this.distanceKm,
+  });
+}
+
 
 final leaderboardProvider = FutureProvider.family<List<LeaderboardEntry>, String>((ref, district) async {
   return ref.read(socialControllerProvider).fetchLeaderboard(district);
@@ -136,4 +156,45 @@ final recentGraffitiProvider = FutureProvider<List<Graffiti>>((ref) async {
 
 final globalActivityStreamProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
   return ref.read(socialControllerProvider).watchGlobalActivityStream();
+});
+
+final socialActiveNowSummaryProvider = Provider<SocialActiveNowSummary>((ref) {
+  final activities = ref.watch(globalActivityProvider).asData?.value ?? const <GlobalActivity>[];
+  final activeRunners = activities.length;
+  final capturedRuns = activities.where((a) => a.status == 'captured').length;
+  final hotZones = activeRunners == 0 ? 0 : ((activeRunners / 2).ceil()).clamp(1, 9);
+
+  return (
+    activeRunners: activeRunners,
+    capturedRuns: capturedRuns,
+    hotZones: hotZones,
+  );
+});
+
+final hotZonePreviewProvider = Provider<List<HotZonePreview>>((ref) {
+  final activities = ref.watch(globalActivityProvider).asData?.value ?? const <GlobalActivity>[];
+  return activities.take(3).toList().asMap().entries.map((entry) {
+    final index = entry.key;
+    final zone = entry.value;
+    final intensity = index == 0
+        ? Colors.orange
+        : index == 1
+            ? const Color(0xFFFFB300)
+            : const Color(0xFFCCFF00);
+    final statusLabel = index == 0 ? 'HIGH TRAFFIC' : index == 1 ? 'BUILDING' : 'WARM';
+
+    return HotZonePreview(
+      zoneName: 'SECTOR ${String.fromCharCode(65 + index)}',
+      statusLabel: statusLabel,
+      intensity: intensity,
+      seed: index + 1,
+      displayName: zone.displayName,
+      distanceKm: zone.distanceKm,
+    );
+  }).toList();
+});
+
+final topWeeklyLeadersProvider = Provider<List<LeaderboardEntry>>((ref) {
+  final entries = ref.watch(leaderboardProvider('KEC-GLOBAL')).asData?.value ?? const <LeaderboardEntry>[];
+  return entries.take(5).toList();
 });

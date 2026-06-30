@@ -11,6 +11,10 @@ final historyControllerProvider = Provider<HistoryController>((ref) {
   return HistoryController(ref);
 });
 
+enum HistoryRange { week, month, year }
+
+typedef HistorySummary = ({double distanceKm, int runCount, int capturedCount});
+
 class HistoryController {
   final Ref _ref;
 
@@ -95,4 +99,47 @@ class HistoryController {
 
 final userHistoryProvider = FutureProvider<List<RunHistory>>((ref) async {
   return ref.read(historyControllerProvider).fetchUserHistory();
+});
+
+class HistoryRangeNotifier extends Notifier<HistoryRange> {
+  @override
+  HistoryRange build() => HistoryRange.week;
+
+  void setRange(HistoryRange range) => state = range;
+}
+
+final historyRangeProvider = NotifierProvider<HistoryRangeNotifier, HistoryRange>(
+  HistoryRangeNotifier.new,
+);
+
+final filteredUserHistoryProvider = Provider<List<RunHistory>>((ref) {
+  final history = ref.watch(userHistoryProvider).asData?.value ?? const <RunHistory>[];
+  final range = ref.watch(historyRangeProvider);
+  final now = DateTime.now();
+  final start = switch (range) {
+    HistoryRange.week => now.subtract(const Duration(days: 7)),
+    HistoryRange.month => DateTime(now.year, now.month - 1, now.day),
+    HistoryRange.year => DateTime(now.year - 1, now.month, now.day),
+  };
+
+  return history.where((mission) => mission.createdAt.isAfter(start)).toList();
+});
+
+final historySummaryProvider = Provider<HistorySummary>((ref) {
+  final missions = ref.watch(filteredUserHistoryProvider);
+  double distanceKm = 0;
+  int capturedCount = 0;
+
+  for (final mission in missions) {
+    distanceKm += mission.distanceKm;
+    if (mission.status == 'captured') {
+      capturedCount++;
+    }
+  }
+
+  return (
+    distanceKm: distanceKm,
+    runCount: missions.length,
+    capturedCount: capturedCount,
+  );
 });

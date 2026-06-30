@@ -169,3 +169,27 @@ class ProfileController extends AsyncNotifier<UserProfile?> {
     }
   }
 }
+
+typedef ProfileOverviewData = ({String displayName, int level, String? bio});
+typedef ProfileTotalsData = ({double distanceKm, int sectors, int rank, int level});
+
+final profileOverviewProvider = Provider<ProfileOverviewData?>((ref) {
+  final profile = ref.watch(profileControllerProvider).asData?.value;
+  if (profile == null) return null;
+  return (
+    displayName: profile.displayNameOrFallback,
+    level: profile.level,
+    bio: profile.bio,
+  );
+});
+
+final profileTotalsProvider = Provider<ProfileTotalsData?>((ref) {
+  final profile = ref.watch(profileControllerProvider).asData?.value;
+  if (profile == null) return null;
+  return (
+    distanceKm: profile.totalDistanceKm,
+    sectors: profile.totalSectorsHeld,
+    rank: profile.globalRank,
+    level: profile.level,
+  );
+});

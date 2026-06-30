@@ -1,35 +1,19 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../ui/theme/stride_colors.dart';
 import '../../../../ui/theme/stride_typography.dart';
-import '../../../../ui/components/v3_shapes.dart';
 import '../../../../ui/components/tactical_header.dart';
-import '../../../../ui/components/signature_painter.dart';
-import '../../../auth/application/auth_controller.dart';
-import '../../../auth/presentation/screens/login_screen.dart';
 import '../../application/profile_controller.dart';
 import 'settings_screen.dart';
-import 'signature_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
-  List<List<Offset>> _parseSignature(String? data) {
-    if (data == null || data.isEmpty) return [];
-    try {
-      final List<dynamic> jsonStrokes = jsonDecode(data);
-      return jsonStrokes.map((stroke) => 
-        (stroke as List).map((o) => Offset((o['x'] as num).toDouble(), (o['y'] as num).toDouble())).toList()
-      ).toList();
-    } catch (e) {
-      return [];
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(profileControllerProvider);
+    final overview = ref.watch(profileOverviewProvider);
+    final totals = ref.watch(profileTotalsProvider);
 
     return Scaffold(
       backgroundColor: StrideColors.background,
@@ -38,9 +22,10 @@ class ProfileScreen extends ConsumerWidget {
         children: [
           // CONSISTENT TACTICAL HEADER
           TacticalHeader(
-            title: 'PROFILE',
-            subTitle: 'YOUR ACCOUNT',
-            status: '',
+            title: 'Profile',
+            subTitle: 'YOUR STATS, STYLE, AND SETTINGS',
+            status: 'PERSONAL HUB',
+            statusColor: StrideColors.neonGreen,
             actions: [
               TacticalIconButton(
                 onPressed: () {
@@ -57,132 +42,62 @@ class ProfileScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // IDENTITY CUSTOM
-                  _sectionHeader('CUSTOMIZATION'),
+                  _sectionHeader('ACCOUNT OVERVIEW'),
                   const SizedBox(height: 16),
-                  
-                  Text('TERRITORY COLOR', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textPrimary.withOpacity(0.4))),
-                  const SizedBox(height: 12),
-                  _buildColorPicker(),
-                  
-                  const SizedBox(height: 24),
-                  Text('SIGNATURE', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textPrimary.withOpacity(0.4))),
-                  const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SignatureScreen()));
-                    },
-                    child: Container(
-                      height: 120,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: StrideColors.surface,
-                        border: Border.all(color: StrideColors.white.withOpacity(0.05)),
-                      ),
-                      child: profileAsync.when(
-                        data: (profile) {
-                          final strokes = _parseSignature(profile?.signatureData);
-                          final hasSignature = strokes.isNotEmpty;
-                          
-                          return Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              // Background watermark
-                              Text('VERIFIED', style: StrideTypography.displayXL.copyWith(fontSize: 60, color: StrideColors.white.withOpacity(0.02))),
-                              
-                              if (hasSignature)
-                                Center(
-                                  child: CustomPaint(
-                                    painter: SignaturePainter(
-                                      strokes: strokes,
-                                      scale: 0.35, // Scale down to fit the preview
-                                      strokeWidth: 3.0,
-                                    ),
-                                    size: const Size(double.infinity, 120),
-                                  ),
-                                )
-                              else
-                                Transform.rotate(
-                                  angle: -0.05,
-                                  child: Text(profile?.displayNameOrFallback.toUpperCase() ?? 'YOUR NAME', style: StrideTypography.graffitiStyle.copyWith(fontSize: 32, color: StrideColors.neonGreen.withOpacity(0.3))),
-                                ),
-                                
-                              Positioned(
-                                bottom: 12,
-                                right: 12,
-                                child: V3SkewBox(
-                                  skewAmount: -0.15,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    color: StrideColors.white.withOpacity(0.1),
-                                    child: Text(hasSignature ? 'UPDATE' : 'ADD SIGNATURE', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.white)),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                        loading: () => Center(
-                          child: Text('Loading...', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textMuted))
-                        ),
-                        error: (e, s) => Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.wifi_off, color: StrideColors.error, size: 16),
-                              const SizedBox(height: 4),
-                              Text('Connection error', style: StrideTypography.labelTactical.copyWith(fontSize: 6, color: StrideColors.error)),
-                            ],
-                          )
-                        ),
-                      ),
+                  if (overview != null)
+                    _buildProfileHero(
+                      displayName: overview.displayName,
+                      level: overview.level,
+                      bio: overview.bio,
+                    )
+                  else
+                    profileAsync.when(
+                      data: (_) => _buildProfileHeroLoading(),
+                      loading: () => _buildProfileHeroLoading(),
+                      error: (e, s) => _buildProfileHeroError(),
                     ),
-                  ),
 
                   const SizedBox(height: 48),
 
-                  // CAREER DOSSIER
-                  _sectionHeader('STATS'),
+                  _sectionHeader('TOTALS'),
                   const SizedBox(height: 16),
-                  profileAsync.when(
-                    data: (profile) {
-                      final dist = profile?.totalDistanceKm ?? 0;
-                      final sectors = profile?.totalSectorsHeld ?? 0;
-                      final rank = profile?.globalRank ?? 0;
-                      
-                      return Column(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(child: _buildStatsCard('DISTANCE', dist.toStringAsFixed(1), 'KM', StrideColors.neonGreen)),
-                              const SizedBox(width: 12),
-                              Expanded(child: _buildStatsCard('AREAS HELD', sectors.toString(), 'GRIDS', StrideColors.white)),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          _buildStatsCard('GLOBAL RANK', rank > 0 ? '#$rank' : 'UNRANKED', 'OVERALL', StrideColors.white.withOpacity(0.2)),
-                        ],
-                      );
-                    },
-                    loading: () => Column(
+                  if (totals != null)
+                    Column(
                       children: [
+                        _buildPrimaryStatsCard('DISTANCE', totals.distanceKm.toStringAsFixed(1), 'KM'),
+                        const SizedBox(height: 12),
                         Row(
                           children: [
-                            Expanded(child: _buildStatsCard('DISTANCE', '...', 'KM', StrideColors.neonGreen.withOpacity(0.2))),
+                            Expanded(child: _buildStatsCard('AREAS HELD', totals.sectors.toString(), 'ZONES', Colors.white)),
                             const SizedBox(width: 12),
-                            Expanded(child: _buildStatsCard('AREAS HELD', '...', 'GRIDS', StrideColors.white.withOpacity(0.2))),
+                            Expanded(child: _buildStatsCard('CURRENT LEVEL', '${totals.level}', 'LEVEL', StrideColors.neonGreen.withOpacity(0.7))),
                           ],
                         ),
+                        const SizedBox(height: 12),
+                        _buildRankStrip(totals.rank),
+                      ],
+                    )
+                  else
+                    Column(
+                      children: [
+                        _buildPrimaryStatsCard('DISTANCE', '...', 'KM', isLoading: true),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(child: _buildStatsCard('AREAS HELD', '...', 'ZONES', StrideColors.white.withOpacity(0.2))),
+                            const SizedBox(width: 12),
+                            Expanded(child: _buildStatsCard('CURRENT LEVEL', '...', 'LEVEL', StrideColors.neonGreen.withOpacity(0.2))),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _buildRankStrip(0, isLoading: true),
                         const SizedBox(height: 8),
                         Text('Loading stats...', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted)),
                       ],
                     ),
-                    error: (e, s) => _buildStatsCard('ERROR', 'ERR', 'OFFLINE', StrideColors.error),
-                  ),
 
                   const SizedBox(height: 48),
 
-                  // MEDALS RECON
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -203,25 +118,6 @@ class ProfileScreen extends ConsumerWidget {
                   ),
 
                   const SizedBox(height: 60),
-
-                  // DANGER ZONE
-                  Center(
-                    child: Column(
-                      children: [
-                        const V3HazardBar(height: 4, color: StrideColors.error),
-                        const SizedBox(height: 12),
-                        TextButton(
-                          onPressed: () async {
-                            await ref.read(authControllerProvider).signOut();
-                            if (!context.mounted) return;
-                            Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
-                          },
-                          child: Text('SIGN OUT', style: StrideTypography.labelBold.copyWith(color: StrideColors.error, fontSize: 10, decoration: TextDecoration.underline)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
                   const SizedBox(height: 120),
                 ],
               ),
@@ -242,19 +138,124 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildColorPicker() {
-    final colors = [
-      const Color(0xFFCCFF00), const Color(0xFFFF007A), const Color(0xFF00F0FF),
-      const Color(0xFFFF5F00), const Color(0xFFBC00FF), const Color(0xFFFFF000),
-      const Color(0xFFFF0000),
-    ];
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: colors.map((c) => Container(
-        width: 38,
-        height: 30,
-        color: c,
-      )).toList(),
+  Widget _buildProfileHero({
+    required String displayName,
+    required int level,
+    required String? bio,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: StrideColors.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            StrideColors.neonGreen.withOpacity(0.10),
+            StrideColors.neonGreen.withOpacity(0.03),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.35, 1.0],
+        ),
+        border: Border.all(color: StrideColors.neonGreen.withOpacity(0.16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  border: Border.all(color: StrideColors.neonGreen.withOpacity(0.6)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: StrideColors.neonGreen.withOpacity(0.12),
+                      blurRadius: 20,
+                      spreadRadius: -4,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    level.toString().padLeft(2, '0'),
+                    style: StrideTypography.headlineMD.copyWith(fontSize: 24, color: StrideColors.neonGreen),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'RUNNER PROFILE',
+                      style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      displayName.toUpperCase(),
+                      style: StrideTypography.headlineLG.copyWith(fontSize: 30),
+                    ),
+                    if (bio != null && bio.trim().isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        bio,
+                        style: StrideTypography.bodyMD.copyWith(fontSize: 12, color: StrideColors.textSecondary),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMiniInfoCard('MEMBER STATUS', 'ACTIVE', StrideColors.neonGreen, isHighlighted: true),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildMiniInfoCard('PROFILE', 'READY', Colors.white),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileHeroLoading() {
+    return Container(
+      height: 200,
+      width: double.infinity,
+      color: StrideColors.surface,
+      child: Center(
+        child: Text('Loading profile...', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textMuted)),
+      ),
+    );
+  }
+
+  Widget _buildProfileHeroError() {
+    return Container(
+      height: 200,
+      width: double.infinity,
+      color: StrideColors.surface,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.wifi_off, color: StrideColors.error, size: 18),
+            const SizedBox(height: 6),
+            Text('Profile unavailable', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.error)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -279,6 +280,103 @@ class ProfileScreen extends ConsumerWidget {
               Text(unit, style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textMuted)),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrimaryStatsCard(String label, String value, String unit, {bool isLoading = false}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+      decoration: BoxDecoration(
+        color: StrideColors.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            StrideColors.neonGreen.withOpacity(isLoading ? 0.05 : 0.09),
+            Colors.transparent,
+          ],
+        ),
+        border: Border(
+          left: BorderSide(color: StrideColors.neonGreen.withOpacity(isLoading ? 0.25 : 0.7), width: 3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                value,
+                style: StrideTypography.displayXL.copyWith(
+                  fontSize: 44,
+                  color: isLoading ? StrideColors.neonGreen.withOpacity(0.35) : StrideColors.white,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 7),
+                child: Text(
+                  unit,
+                  style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.neonGreen.withOpacity(0.8)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRankStrip(int rank, {bool isLoading = false}) {
+    final value = isLoading ? '...' : (rank > 0 ? '#$rank' : 'UNRANKED');
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        border: Border.all(color: StrideColors.white.withOpacity(0.06)),
+      ),
+      child: Row(
+        children: [
+          Text(
+            'GLOBAL RANK',
+            style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: StrideTypography.labelBold.copyWith(
+              fontSize: 12,
+              color: isLoading ? StrideColors.textMuted : StrideColors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniInfoCard(String label, String value, Color accent, {bool isHighlighted = false}) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(isHighlighted ? 0.78 : 1),
+        border: Border.all(color: accent.withOpacity(isHighlighted ? 0.28 : 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted)),
+          const SizedBox(height: 6),
+          Text(value, style: StrideTypography.labelBold.copyWith(fontSize: 12, color: accent)),
         ],
       ),
     );

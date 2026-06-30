@@ -81,11 +81,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TacticalHeader(
-            title: 'SETTINGS',
-            subTitle: 'PREFERENCES',
-            status: _isSaving ? 'UPLOADING...' : 'OFFLINE',
-            statusColor: _isSaving ? StrideColors.warning : StrideColors.textMuted,
+                  TacticalHeader(
+            title: 'Settings',
+            subTitle: 'ACCOUNT, PRIVACY, AND APP INFO',
+            status: _isSaving ? 'SAVING' : 'ACCOUNT',
+            statusColor: _isSaving ? StrideColors.warning : StrideColors.neonGreen,
             actions: [
               TacticalIconButton(
                 onPressed: _isSaving ? null : () => _handleSave(),
@@ -106,8 +106,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // IDENTITY RECON
-                  _sectionHeader('PROFILE'),
+                  _sectionHeader('ACCOUNT'),
                   const SizedBox(height: 24),
                   V3InputField(
                     controller: _nameController,
@@ -123,7 +122,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   
                   const SizedBox(height: 48),
                   
-                  // PRIVACY PROTOCOLS
                   _sectionHeader('PRIVACY'),
                   const SizedBox(height: 16),
                   _buildToggle(
@@ -142,27 +140,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   
                   const SizedBox(height: 48),
                   
-                  // SYSTEM INFO
-                  _sectionHeader('SYSTEM_INFO'),
+                  _sectionHeader('ABOUT'),
                   const SizedBox(height: 16),
-                  _buildInfoRow('VERSION', '3.8.2-BETA'),
-                  _buildInfoRow('UPLINK', 'CONNECTED'),
-                  _buildInfoRow('ENCRYPTION', 'AES-256-TACTICAL'),
+                  _buildInfoRow('APP VERSION', '3.8.2-BETA'),
+                  _buildInfoRow('DEVELOPER', 'Stride IO'),
+                  _buildInfoRow('SUPPORT', 'support@lari2.app'),
+                  
+                  const SizedBox(height: 32),
+
+                  _sectionHeader('LEGAL'),
+                  const SizedBox(height: 16),
+                  _buildInfoRow('TERMS & CONDITIONS', 'Available in-app'),
+                  _buildInfoRow('PRIVACY POLICY', 'Available in-app'),
                   
                   const SizedBox(height: 64),
 
-                  // DESTRUCTIVE ACTIONS
-                  _sectionHeader('DESTRUCTIVE_PROTOCOLS'),
+                  _sectionHeader('ACCOUNT ACTIONS'),
                   const SizedBox(height: 16),
                   _buildDebugButton(
-                    'TERMINATE_SESSION (LOGOUT)',
+                    'SIGN OUT',
                     Icons.logout,
                     StrideColors.warning,
                     () async {
                       final confirmed = await _showConfirmDialog(
                         context,
-                        'TERMINATE SESSION?',
-                        'You will be disconnected from the tactical network. Local data will remain intact.'
+                        'Sign out?',
+                        'You will be logged out from this device. Your running data will stay saved.'
                       );
                       if (confirmed) {
                         await ref.read(authControllerProvider).signOut();
@@ -172,22 +175,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const SizedBox(height: 12),
                   _buildDebugButton(
-                    'WIPE_IDENTITY (DELETE ACCOUNT)',
+                    'DELETE ACCOUNT',
                     Icons.delete_forever,
                     StrideColors.error,
                     () async {
                       final confirmed = await _showConfirmDialog(
                         context, 
-                        'WIPE IDENTITY?',
-                        'This will permanently delete your agent profile and mission history. This action IS IRREVERSIBLE.'
+                        'Delete account?',
+                        'This will permanently delete your profile and running history. This action cannot be undone.'
                       );
                       if (confirmed) {
-                        // For prototype, just logout and show a message
                         ref.read(authControllerProvider).signOut();
                         if (mounted) {
                           Navigator.of(context).popUntil((route) => route.isFirst);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('IDENTITY WIPED. PROTOCOL COMPLETE.')),
+                            const SnackBar(content: Text('Account deleted.')),
                           );
                         }
                       }
