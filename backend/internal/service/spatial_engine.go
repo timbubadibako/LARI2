@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -16,6 +17,8 @@ type SpatialEngine struct {
 // GPS jitter near the start point from claiming territory.
 // 50 m² ≈ roughly the size of a large room — intentional loops will be much larger.
 const minConquestAreaSqm = 50.0
+const loopClosureToleranceMeters = 25.0
+const minLoopDisplacementMeters = 30.0
 
 func NewSpatialEngine(db *pgxpool.Pool) *SpatialEngine {
 	return &SpatialEngine{db: db}
@@ -39,6 +42,13 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 	snappedPoints, err := s.MapMatchPoints(ctx, points)
 	if err == nil {
 		points = snappedPoints
+	}
+
+	// Align backend polygonization with the frontend loop-closure rule.
+	// The UI marks a loop as closed when the runner returns near the start point,
+	// even if the final GPS sample does not exactly equal the first sample.
+	if s.shouldForceCloseLoop(points) {
+		points = append(points, points[0])
 	}
 
 	// 1. Create a WKT LineString from points
@@ -186,4 +196,48 @@ func (s *SpatialEngine) pointsToWKT(points []Point) string {
 	}
 	res += ")"
 	return res
+}
+
+func (s *SpatialEngine) shouldForceCloseLoop(points []Point) bool {
+	if len(points) < 3 {
+		return false
+	}
+
+	first := points[0]
+	last := points[len(points)-1]
+	if first.Lat == last.Lat && first.Lng == last.Lng {
+		return false
+	}
+
+	if s.haversineMeters(first, last) > loopClosureToleranceMeters {
+		return false
+	}
+
+	maxDisplacement := 0.0
+	for _, p := range points {
+		displacement := s.haversineMeters(first, p)
+		if displacement > maxDisplacement {
+			maxDisplacement = displacement
+		}
+	}
+
+	return maxDisplacement > minLoopDisplacementMeters
+}
+
+func (s *SpatialEngine) haversineMeters(p1, p2 Point) float64 {
+	const earthRadius = 6371000.0
+
+	lat1 := p1.Lat * math.Pi / 180.0
+	lng1 := p1.Lng * math.Pi / 180.0
+	lat2 := p2.Lat * math.Pi / 180.0
+	lng2 := p2.Lng * math.Pi / 180.0
+
+	dLat := lat2 - lat1
+	dLng := lng2 - lng1
+
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
+		math.Cos(lat1)*math.Cos(lat2)*math.Sin(dLng/2)*math.Sin(dLng/2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+
+	return earthRadius * c
 }

@@ -38,7 +38,7 @@ func (h *TerritoryHandler) GetUserTerritories(c echo.Context) error {
 			ut.total_area_sqm,
 			COALESCE(p.territory_color, '#0ea5e9') as color
 		FROM user_territories ut
-		JOIN profiles p ON ut.user_id = p.id
+		LEFT JOIN profiles p ON ut.user_id = p.id
 		WHERE ut.user_id = $1
 	`
 
@@ -98,7 +98,7 @@ func (h *TerritoryHandler) GetAllTerritories(c echo.Context) error {
 				ut.total_area_sqm,
 				COALESCE(p.territory_color, '#0ea5e9') as color
 			FROM user_territories ut
-			JOIN profiles p ON ut.user_id = p.id
+			LEFT JOIN profiles p ON ut.user_id = p.id
 			WHERE ST_Intersects(
 				ut.merged_boundary,
 				ST_MakeEnvelope($1::float8, $2::float8, $3::float8, $4::float8, 4326)
@@ -114,7 +114,7 @@ func (h *TerritoryHandler) GetAllTerritories(c echo.Context) error {
 				ut.total_area_sqm,
 				COALESCE(p.territory_color, '#0ea5e9') as color
 			FROM user_territories ut
-			JOIN profiles p ON ut.user_id = p.id
+			LEFT JOIN profiles p ON ut.user_id = p.id
 		`)
 	}
 
