@@ -15,6 +15,8 @@ class MissionDossierCard extends StatelessWidget {
   final String? pathWkt;
   final Color statusColor;
   final bool isPendingSync;
+  final bool isProcessingSync;
+  final String? syncError;
   final VoidCallback onTap;
 
   const MissionDossierCard({
@@ -28,12 +30,18 @@ class MissionDossierCard extends StatelessWidget {
     this.pathWkt,
     required this.statusColor,
     this.isPendingSync = false,
+    this.isProcessingSync = false,
+    this.syncError,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isCaptured = status.toLowerCase() == 'captured';
+    final normalizedStatus = status.toLowerCase();
+    final isCaptured = normalizedStatus == 'captured';
+    final syncLabel = isProcessingSync
+        ? 'SYNCING'
+        : (isPendingSync ? 'SYNC PENDING' : null);
     final dateStr = '${createdAt.day}_${_monthName(createdAt.month)}_${createdAt.year}'.toUpperCase();
 
     final paceSec = distanceKm > 0 ? (durationSec / distanceKm) : 0.0;
@@ -96,13 +104,19 @@ class MissionDossierCard extends StatelessWidget {
                           children: [
                             Text(dateStr, style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: Colors.white24)),
                             const Spacer(),
-                            if (isPendingSync) ...[
+                            if (syncLabel != null) ...[
                               V3SkewBox(
                                 skewAmount: -0.1,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  color: StrideColors.warning,
-                                  child: Text('SYNC PENDING', style: StrideTypography.labelBold.copyWith(fontSize: 7, color: Colors.black)),
+                                  color: isProcessingSync ? StrideColors.neonGreen : StrideColors.warning,
+                                  child: Text(
+                                    syncLabel,
+                                    style: StrideTypography.labelBold.copyWith(
+                                      fontSize: 7,
+                                      color: Colors.black,
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 4),
@@ -135,6 +149,18 @@ class MissionDossierCard extends StatelessWidget {
                             _miniStat('PACE', pace),
                           ],
                         ),
+                        if (syncError != null && syncError!.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            syncError!,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: StrideTypography.labelTactical.copyWith(
+                              fontSize: 7,
+                              color: StrideColors.error.withValues(alpha: 0.85),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

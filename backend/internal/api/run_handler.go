@@ -44,6 +44,10 @@ type SyncRunResponse struct {
 	Message             string                  `json:"message"`
 	Summary             service.ActivitySummary `json:"summary"`
 	NewlyCapturedAreaM2 float64                 `json:"newly_captured_area"`
+	RunStatus           string                  `json:"run_status"`
+	ClaimReason         string                  `json:"claim_reason"`
+	PendingTrailActive  bool                    `json:"pending_trail_active"`
+	PendingTrailUntil   *time.Time              `json:"pending_trail_until,omitempty"`
 }
 
 // SyncRun godoc
@@ -78,6 +82,16 @@ func (h *RunHandler) SyncRun(c echo.Context) error {
 		authUserID != "" && authUserID == req.UserID,
 	)
 
+	if authUserID == "" {
+		log.Printf("SYNC_REJECT: reason=missing_auth_user payload_user=%s", req.UserID)
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "missing authenticated user context"})
+	}
+
+	if req.UserID == "" || authUserID != req.UserID {
+		log.Printf("SYNC_REJECT: reason=user_mismatch auth_user=%s payload_user=%s", authUserID, req.UserID)
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "payload user does not match authenticated user"})
+	}
+
 	if len(req.Points) < 2 {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "insufficient points for sync"})
 	}
@@ -98,16 +112,15 @@ func (h *RunHandler) SyncRun(c echo.Context) error {
 	// }
 
 	// 2. Process Conquest & Integrity Protocol (Spatial Engine)
-	capturedArea, err := h.spatial.ProcessConquest(ctx, req.UserID, guildIDStr, req.Points)
+	conquest, err := h.spatial.ProcessConquest(ctx, req.UserID, guildIDStr, req.Points)
 	if err != nil {
 		log.Printf("SYNC_ERROR: Conquest processing failed for user %s: %v", req.UserID, err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "conquest processing failed: " + err.Error()})
 	}
 
-	// Override status if conquest occurred
-	runStatus := req.Status
-	if capturedArea > 0 {
-		runStatus = "captured"
+	runStatus := conquest.RunStatus
+	if runStatus == "" {
+		runStatus = req.Status
 	}
 
 	// 3. Persist the Run record (Historical)
@@ -149,7 +162,11 @@ func (h *RunHandler) SyncRun(c echo.Context) error {
 	return c.JSON(http.StatusOK, SyncRunResponse{
 		Message:             "Grid synchronization complete.",
 		Summary:             summary,
-		NewlyCapturedAreaM2: capturedArea,
+		NewlyCapturedAreaM2: conquest.CapturedAreaSqm,
+		RunStatus:           runStatus,
+		ClaimReason:         conquest.ClaimReason,
+		PendingTrailActive:  conquest.PendingTrailActive,
+		PendingTrailUntil:   conquest.PendingTrailExpiresAt,
 	})
 }
 

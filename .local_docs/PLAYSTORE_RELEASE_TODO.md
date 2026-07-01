@@ -1,145 +1,155 @@
 # Play Store Release TODO
 
-Status: working draft untuk rilis awal Android dengan fokus gameplay core.
+Status: checklist operasional untuk membawa build saat ini ke kondisi `tester-ready`.
 
-Referensi audit implementasi workout aktif:
-- lihat `.local_docs/WORKOUT_FEATURE_AUDIT.md`
+Referensi:
+- `.local_docs/WORKOUT_FEATURE_AUDIT.md`
+- `.local_docs/GEMINI.md`
+- `.local_docs/GAME_DESIGN.md`
 
 ## Release Goal
 
-Rilis awal harus membuktikan bahwa loop conquest dan territory conflict berjalan stabil untuk sekitar 20 tester di 1 kecamatan yang sama.
+Target cycle ini bukan `production-ready`, tetapi `tester-ready` untuk dibagikan ke rekan sebagai batch tester awal Android.
 
-Target perilaku utama:
-- user A menyelesaikan run dan menutup loop
-- claim territory divalidasi backend dan tersimpan final
-- user B melihat hasil territory user A setelah proses finalisasi
-- user B membuat overlap dan territory user A terpotong sesuai cookie-cutter logic
-- contested zone tampil sebagai indikator visual near real-time untuk runner aktif
-- lasso run valid: user bisa berangkat dari titik A, membentuk loop tertutup di titik B, lalu kembali ke titik B tanpa harus menutup loop ke titik A
-- tail yang belum tertutup tetap disimpan sebagai `pending_trail` dengan window lanjutan 72 jam
+Kriteria sukses utama:
+- loop conquest stabil untuk sekitar 20 tester
+- semua tester berada di 1 kecamatan yang sama
+- territory final hanya publish setelah backend selesai validasi
+- overlap/cookie-cutter benar-benar mengubah world state
+- contested zone tampil stabil sebagai indikator visual
+- run gagal sync atau claim gagal tidak hilang dari history lokal
+- `lasso run` valid: `A -> B -> ... -> B`
+- `pending_trail` bertahan 72 jam untuk lanjutan run berikutnya
 
-Catatan implementasi saat ini:
-- minimum distance guard, frontend speed limiter, dan backend velocity anomaly sengaja tetap nonaktif untuk mode dev
-- jika kandidat rilis sudah stabil, ketiga guard ini harus diaktifkan kembali sebelum final release
+## Dev Toggle Yang Sengaja Ditahan
 
-## Out Of Scope Untuk Rilis Awal
-
-- social polish
-- profile polish
-- realtime territory update saat user masih berlari
-- contested zone yang mempengaruhi gameplay rules
-- leaderboard, guild, XP balancing lanjutan
+Untuk cycle test ini, fitur berikut tetap nonaktif dan harus diperlakukan sebagai `TODO(production)`:
+- minimum distance guard
+- frontend speed limiter / GPS jump limiter
+- backend velocity anomaly / anti-spoofing strict mode
 
 Catatan:
-- poin dasar untuk setiap run selesai tetap harus ada, agar mudah dikoneksikan ke progression nanti
+- `hold to finish` tetap `3s` untuk phase test ini
+- sebelum kandidat produksi, tiga guard di atas wajib diaktifkan kembali
 
-## Product Rules Yang Sudah Terkunci
+## Out Of Scope Saat Ini
 
-- publish territory ke user lain hanya setelah validasi dan cookie-cutter selesai
-- target waktu finalisasi claim setelah finish: 5-15 detik
-- lasso run `A -> B -> ... -> B` dianggap valid jika membentuk sub-loop tertutup dengan area cukup
-- bagian tail yang tidak ikut tertutup tetap aktif sebagai `pending_trail`
+- social polish lanjutan
+- profile polish lanjutan
+- realtime gameplay update saat user masih berlari
+- contested zone yang mempengaruhi rules conquest
+- balancing leaderboard, guild, XP lanjutan
+
+## Product Rules Yang Terkunci
+
+- publish territory ke user lain hanya setelah final state tersimpan
+- target finalisasi claim setelah finish: 5-15 detik dalam kondisi normal
+- `lasso run` valid jika terbentuk sub-loop tertutup dengan area cukup, tanpa harus kembali ke titik start awal
+- tail yang tidak ikut tertutup harus tetap tersimpan sebagai `pending_trail`
 - window lanjutan `pending_trail` adalah 72 jam
 - jika claim gagal:
-  - run tetap masuk history
+  - run tetap ada di history
   - territory tidak berubah
   - user mendapat alasan singkat
-- semua tester difokuskan di 1 kecamatan yang sama
 
 ## Contested Zone Rules
 
-- contested zone adalah indikator visual saja untuk rilis awal
-- sumber data: semua runner aktif, bukan hanya yang dekat territory existing
-- radius dasar per runner: 500m
-- tampil ke semua user, tetapi hanya hotspot dalam radius 20km dari posisi user yang dimuat
-- skala warna:
+- contested zone hanya indikator visual untuk rilis awal
+- sumber data: semua runner aktif
+- radius dasar per runner aktif: 500m
+- hotspot ditampilkan hanya dalam radius 20km dari viewer
+- severity:
   - 1-2 runner: kuning
   - 3-4 runner: oranye
   - 5+ runner: merah
-- jika beberapa radius overlap dalam toleransi yang wajar, sistem membentuk cluster
-- cluster besar bisa memakai center gabungan dan radius lebih besar
-- hotspot tetap hidup selama masih ada runner aktif di cluster
-- saat jumlah runner turun, warna harus turun bertahap merah -> oranye -> kuning
-- saat semua runner nonaktif, hotspot memudar bertahap lalu hilang
+- overlap beberapa runner membentuk cluster
+- cluster padat bisa membuat center gabungan dan radius lebih besar
+- saat jumlah runner turun, warna turun bertahap merah -> oranye -> kuning
+- saat semua runner cluster nonaktif, hotspot memudar lalu hilang
 
-## A. Core Territory Pipeline
+## P0 Release Gate
 
-- [ ] Audit flow finish run frontend -> backend -> persistence -> map refresh
-- [ ] Pastikan closed-loop detection konsisten dan tidak terlalu sensitif terhadap GPS noise
-- [ ] Pastikan payload run yang dikirim cukup untuk final territory calculation
-- [ ] Finalize satu kontrak status run yang jelas: pending, processing, captured, rejected
-- [ ] Simpan run history walau claim territory gagal
-- [ ] Tampilkan alasan singkat saat claim gagal
-- [ ] Pastikan publish ke akun lain hanya terjadi setelah final state tersimpan
-- [ ] Pastikan final claim target 5-15 detik realistis di environment uji
+P0 adalah syarat minimum supaya build aman dites 2 akun lalu dibagikan ke 20 tester.
 
-## B. Cookie-Cutter Overlap
+- [x] Archive lokal sekarang menyimpan `created_at`, `retry_count`, `last_error`, dan `path_wkt`
+- [x] History sekarang menampilkan local run berstatus `pending`, `processing`, dan `quarantined`
+- [x] Backend `/sync/run` sekarang menolak payload `user_id` yang tidak cocok dengan JWT
+- [x] Backend conquest logging sekarang mencatat pending trail merge, cookie-cutter clip, dan result status
+- [ ] Verifikasi alur `finish run -> archive lokal -> sync -> backend final -> history`
+- [ ] Verifikasi `lasso run A -> B -> ... -> B` menghasilkan claim valid
+- [ ] Verifikasi tail non-closed tetap tersimpan sebagai `pending_trail`
+- [ ] Verifikasi `pending_trail` masih bisa dipakai lanjut run dalam window 72 jam
+- [ ] Verifikasi run gagal sync tidak hilang dari archive/history lokal
+- [ ] Verifikasi claim gagal tidak menghapus run dan memberi alasan singkat
+- [ ] Verifikasi akun B hanya melihat territory baru setelah backend final
+- [ ] Verifikasi overlap benar-benar memotong territory lawan di persistence backend
+- [ ] Verifikasi skenario `A claim -> B overlap -> A terpotong -> B bertambah`
+- [ ] Verifikasi final claim masih masuk akal di target 5-15 detik pada environment HF
 
-- [ ] Audit implementasi overlap dan pemotongan territory existing di backend
-- [ ] Verifikasi bahwa overlap benar-benar mengurangi area lawan, bukan hanya overlay visual
-- [ ] Verifikasi multi-user scenario: A claim -> B overlap -> A territory terpotong -> B territory bertambah
-- [ ] Verifikasi urutan update persistence agar world state tetap konsisten jika dua finisher hampir bersamaan
-- [ ] Definisikan expected behavior untuk overlap kecil, tipis, atau nyaris bersentuhan
-- [ ] Tambahkan logging/debug trace untuk investigasi claim dispute
+## P1 Field Stability
 
-## C. Near Real-Time World Refresh
+P1 adalah stabilitas lapangan yang sangat mempengaruhi hasil test, walau tidak selalu memblok total.
 
-- [ ] Tentukan mekanisme refresh final state setelah run selesai: push event, invalidation, atau short polling
-- [ ] Pastikan akun lain menerima state baru hanya setelah backend final
-- [ ] Pastikan map dashboard refresh territory tanpa perlu force restart app
-- [ ] Pastikan stale cache tidak membuat user melihat territory lama terlalu lama
+- [ ] Audit GPS noise yang mempengaruhi loop closure dan area
+- [x] Auto-pause dan auto-resume 15 detik sudah ada di controller
+- [x] Resume baseline sekarang tidak menambah lonjakan distance langsung setelah resume
+- [ ] Audit pause/resume agar tidak menambah segmen palsu setelah berhenti
+- [ ] Verifikasi finish saat koneksi buruk atau app sempat di-background-kan
+- [ ] Verifikasi retry sync aman dan tidak membuat double claim
+- [x] Status run untuk tester sekarang mencakup `pending`, `processing`, `captured`, `finished`, `quarantined`
+- [ ] Verifikasi stale cache map tidak menahan state lama terlalu lama
+- [x] Logging minimum untuk investigasi sync failure dan dispute claim sudah ditambah di backend
 
-## D. Contested Zone System
+## P2 Contested Zone
 
-- [ ] Definisikan model data runner aktif untuk contested zone
-- [ ] Tentukan source of truth aktif/nonaktif runner
-- [ ] Implement radius dasar 500m per runner aktif
-- [ ] Implement density bucketing 1-2 kuning, 3-4 oranye, 5+ merah
-- [ ] Implement clustering overlap antar runner aktif
-- [ ] Implement merged hotspot center dan radius eskalasi untuk cluster padat
-- [ ] Batasi query/render hotspot ke radius 20km dari user
-- [ ] Implement fade down bertahap saat jumlah runner berkurang
-- [ ] Implement removal saat semua runner cluster nonaktif
-- [ ] Tambahkan icon warning yang jelas di hotspot
-- [ ] Pastikan overlay tidak merusak performa map
+P2 tetap penting untuk cycle ini karena user menandai contested zone sebagai prioritas.
 
-## E. Stability And Anti-Bad-Data
+- [x] Presence stale runner sekarang dipangkas otomatis agar hotspot tidak hidup terus
+- [x] Own runner position sekarang di-dedupe supaya tidak double count dengan echo presence
+- [ ] Verifikasi source of truth runner aktif untuk hotspot
+- [ ] Verifikasi radius dasar 500m per runner aktif
+- [ ] Verifikasi severity `kuning/oranye/merah` sesuai jumlah runner
+- [ ] Verifikasi cluster overlap membentuk hotspot gabungan yang masuk akal
+- [ ] Verifikasi hotspot dibatasi ke radius 20km dari viewer
+- [ ] Verifikasi fade down saat runner berkurang
+- [ ] Verifikasi hotspot hilang saat semua runner nonaktif
+- [ ] Verifikasi overlay dan icon warning tetap ringan di device tester
 
-- [ ] Audit GPS noise handling yang mempengaruhi closure dan area
-- [ ] Audit pause/resume flow agar tidak menciptakan lompatan area palsu
-- [ ] Audit run finish saat koneksi jelek atau app di-background-kan
-- [ ] Pastikan sync retry aman tanpa duplikasi claim
-- [ ] Pastikan backend validation failure tidak merusak run history
-- [ ] Review dev toggles di `.local_docs/GEMINI.md` sebelum kandidat rilis
+## P3 Tester Ops
 
-## F. Minimal Progression Hook
+P3 fokus ke kesiapan operasi test, observability, dan handoff ke batch tester.
 
-- [ ] Beri poin dasar untuk setiap run selesai
-- [ ] Pisahkan poin dasar run dari bonus territory agar progression nanti mudah disambungkan
-- [ ] Pastikan data points/per-run reward tersimpan di tempat yang mudah dipakai ulang
+- [ ] Tentukan kecamatan uji tunggal
+- [ ] Siapkan minimal 2 akun inti untuk test overlap terstruktur
+- [ ] Siapkan panduan singkat untuk tester umum
+- [ ] Siapkan checklist hasil test yang bisa diisi manual
+- [ ] Catat log yang wajib dicek saat terjadi sync fail atau claim aneh
+- [ ] Catat acceptance gate sebelum APK dibagikan lebih luas
 
-## G. Test Readiness For 20 Testers
+## P4 Production Deferred
 
-- [ ] Tentukan kecamatan uji tunggal untuk fase awal
-- [ ] Siapkan skenario uji terstruktur untuk 20 tester:
-  - [ ] simple loop claim
-  - [ ] overlapping claim antar 2 akun
-  - [ ] beberapa runner aktif memicu contested zone
-  - [ ] retry/network jelek saat finish
-  - [ ] claim gagal tapi history tetap tersimpan
-- [ ] Buat seed/test accounts dan panduan test ringkas
-- [ ] Siapkan observability minimum: logs, failed claims, processing time, overlap disputes
+Jangan diaktifkan di cycle test ini. Cukup dicatat dan dikomentari jelas untuk aktivasi nanti.
 
-## H. Release Gating
+- [ ] Aktifkan minimum distance guard
+- [ ] Aktifkan frontend speed limiter
+- [ ] Aktifkan backend velocity anomaly
+- [ ] Naikkan `hold to finish` ke durasi produksi
+- [ ] Tambahkan accuracy gating per sample
+- [ ] Tambahkan suspicious-run handling yang lebih strict
 
-- [ ] Jangan masuk Play Store testing sebelum skenario A claim -> B lihat -> B potong territory A benar-benar lolos end-to-end
-- [ ] Jangan masuk Play Store testing sebelum contested zone tampil stabil di map
-- [ ] Jangan masuk Play Store testing sebelum run gagal tetap tersimpan dengan benar
-- [ ] Jangan masuk Play Store testing sebelum latency finalisasi claim acceptable untuk tester
+## Acceptance Gate Sebelum Share Ke Tester
 
-## Open Questions Yang Masih Bisa Diputuskan Nanti
+- [ ] Skenario `A claim -> B lihat -> B overlap` lolos end-to-end
+- [ ] `lasso run` lolos tanpa harus kembali ke titik start awal
+- [ ] `pending_trail` tidak hilang setelah run belum closed
+- [ ] contested zone tampil dan turun severity dengan benar
+- [ ] sync fail tidak menghapus run lokal
+- [ ] history tetap menampilkan run pending/quarantined/failed
+- [ ] backend logs cukup jelas untuk debug auth, sync, claim, dan overlap
 
-- threshold toleransi cluster contested zone yang tepat
+## Open Questions Yang Bisa Diputuskan Nanti
+
+- threshold cluster overlap yang paling masuk akal untuk contested zone
 - radius eskalasi hotspot besar saat cluster padat
-- apakah contested zone nanti memberi bonus gameplay
-- kapan leaderboard/guild/XP territory mulai disambungkan penuh
+- kapan contested zone mulai mempengaruhi gameplay
+- kapan dev guard dikembalikan untuk produksi

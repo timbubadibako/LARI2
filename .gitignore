@@ -48,8 +48,12 @@ build/
 .packages
 .flutter-plugins
 .flutter-plugins-dependencies
-.local_docs/
+.local_docs/*
+!.local_docs/PLAYSTORE_RELEASE_TODO.md
+!.local_docs/WORKOUT_FEATURE_AUDIT.md
+!.local_docs/TEST_RUN_CHECKLIST.md
 .local_docs/.codex_context/
+.local_docs/v2_brainstorming/
 fix_with_opacity.py
 mark_issues.py
 docs/

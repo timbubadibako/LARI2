@@ -17,12 +17,9 @@ MVP workout yang benar-benar aktif saat ini:
 - history menampilkan remote run dan local run yang belum sinkron
 
 Hal penting yang tidak aktif / tidak ada:
-- auto pause saat berhenti
-- auto resume setelah gerak stabil 15 detik
 - minimum distance guard produksi
 - speed limiter / GPS jump filter frontend
 - accuracy gating per sample
-- skip-first-segment setelah resume
 - raw/display point separation
 - restore session after crash
 - heart-rate / wearable
@@ -40,13 +37,13 @@ Hal penting yang tidak aktif / tidak ada:
 | Local sync queue | Ada | Run dimasukkan ke Hive queue lalu dicoba sync background | `frontend/lib/core/services/lari_sync_service.dart` |
 | History merge local + remote | Ada | Pending dan quarantined sekarang tampil lagi | `frontend/lib/features/history/application/history_controller.dart` |
 | Loop closure detection | Ada | Rule sederhana: displacement > 30m lalu kembali <= 25m | `frontend/lib/features/workout/application/workout_controller.dart` |
-| Auto pause | Tidak ada | Tidak ada deteksi idle movement sama sekali | `frontend/lib/features/workout/application/workout_controller.dart` |
-| Auto resume 15 detik | Tidak ada | Tidak ada motion-state timer / stable movement timer | `frontend/lib/features/workout/application/workout_controller.dart` |
+| Auto pause | Ada | Auto-pause saat speed rendah stabil 15 detik | `frontend/lib/features/workout/application/workout_controller.dart` |
+| Auto resume 15 detik | Ada | Auto-resume saat gerak stabil 15 detik | `frontend/lib/features/workout/application/workout_controller.dart` |
 | Minimum distance guard | Nonaktif | Blok validasi dikomentari untuk dev mode | `frontend/lib/features/workout/presentation/screens/active_workout_screen.dart` |
 | Speed limiter frontend | Nonaktif | Semua gap langsung ditambahkan ke distance | `frontend/lib/features/workout/application/workout_controller.dart` |
 | Velocity anomaly backend | Longgar / perlu cek deploy | Di local code sebelumnya didokumentasikan sebagai dev toggle sensitif | `.local_docs/GEMINI.md`, `backend/internal/api/run_handler.go` |
 | Accuracy gating | Tidak ada | Sample akurasi buruk tidak difilter | `frontend/lib/features/workout/application/workout_controller.dart` |
-| Resume jump protection | Tidak ada | `resume()` langsung lanjut tracking tanpa guard segmen awal | `frontend/lib/features/workout/application/workout_controller.dart` |
+| Resume jump protection | Ada dasar | Baseline resume dibuang dari jarak, tetapi route masih belum dipisah segmen | `frontend/lib/features/workout/application/workout_controller.dart` |
 | Raw points vs display points | Tidak ada | Hanya ada satu list `points` aktif | `frontend/lib/core/domain/models/workout_session.dart`, `frontend/lib/features/workout/application/workout_controller.dart` |
 | Restore interrupted session | Tidak terlihat aktif | Tidak ada flow aktif untuk restore dari storage | `frontend/lib/features/workout/application/workout_controller.dart` |
 | Heart rate tile/integration | Tidak ada | Tidak ada BPM stream atau widget aktif | repo search |
@@ -64,9 +61,6 @@ Hal penting yang tidak aktif / tidak ada:
 - history dasar
 
 ### Tidak Ada
-- auto pause saat berhenti
-- auto resume saat bergerak lagi 15 detik
-- resume jump protection
 - accuracy-based sample rejection
 - motion-quality validation
 - warning bahwa run sedang invalid / kurang gerak
@@ -94,12 +88,12 @@ Di `workout_controller.dart`:
     - langsung tambahkan ke distance
     - append point
     - cek loop closure sederhana
+  - auto-pause saat speed rendah stabil
+  - auto-resume saat gerak kembali stabil
+  - baseline resume tidak ikut menambah distance
 
 Tidak ada:
-- state machine untuk idle / moving / auto-paused
-- timer 15 detik untuk resume otomatis
 - gating akurasi
-- skip-first-resume-segment
 - deteksi loncatan GPS
 
 ### Minimum finish guard memang sengaja dimatikan
@@ -118,6 +112,14 @@ Artinya:
 - bukan minimum distance
 - bukan minimum durasi
 - bukan minimum movement quality
+
+### Sync & history sekarang lebih kuat
+
+Di `lari_sync_service.dart` dan `history_controller.dart`:
+- queue lokal menyimpan `created_at`, `retry_count`, `last_error`, dan `path_wkt`
+- state lokal `pending`, `processing`, dan `quarantined` ikut tampil di history
+- sync gagal tidak langsung menghapus archive lokal
+- history card sekarang bisa menampilkan error sync singkat
 
 ## 5. Fitur Pendukung Alur Game Yang Seharusnya Ada
 
@@ -146,7 +148,7 @@ Untuk rilis awal gameplay conquest yang stabil, fitur penunjang yang paling pent
 - indikator loop hampir tertutup
 - indikator loop valid
 - penjelasan saat run selesai tapi claim gagal
-- status run final yang konsisten: `pending`, `processing`, `captured`, `rejected`
+- status run final yang konsisten: `pending`, `processing`, `captured`, `finished`, `quarantined`
 
 ### Recovery & Safety
 - restore session setelah app mati mendadak

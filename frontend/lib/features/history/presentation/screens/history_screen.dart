@@ -66,7 +66,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Widget build(BuildContext context) {
     final historyAsync = ref.watch(userHistoryProvider);
     final missions = historyAsync.asData?.value ?? [];
-    final hasPending = missions.any((m) => m.syncStatus == 'pending');
+    final hasPending = missions.any((m) => m.syncStatus == 'pending' || m.syncStatus == 'processing');
     final hasQuarantined = missions.any((m) => m.syncStatus == 'quarantined');
     final filteredMissions = ref.watch(filteredUserHistoryProvider);
     final summary = ref.watch(historySummaryProvider);
@@ -146,13 +146,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         final mission = filteredMissions[index];
                         final isCaptured = mission.status == 'captured';
                         final isPendingSync = mission.syncStatus == 'pending';
+                        final isProcessingSync = mission.syncStatus == 'processing';
                         final isSyncBlocked = mission.syncStatus == 'quarantined';
-                        final statusColor = isPendingSync
+                        final statusColor = isProcessingSync
+                            ? StrideColors.neonGreen
+                            : isPendingSync
                             ? StrideColors.warning
                             : isSyncBlocked
                                 ? StrideColors.error
                             : (isCaptured ? StrideColors.neonGreen : Colors.white.withValues(alpha: 0.4));
-                        final title = isSyncBlocked
+                        final title = isProcessingSync
+                            ? 'Sync In Progress'
+                            : isSyncBlocked
                             ? 'Sync Blocked'
                             : (isCaptured ? 'Area Acquisition' : 'Standard Activity');
 
@@ -168,6 +173,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                             pathWkt: mission.pathWkt,
                             statusColor: statusColor,
                             isPendingSync: isPendingSync,
+                            isProcessingSync: isProcessingSync,
+                            syncError: mission.syncError,
                             onTap: () {
                               HapticFeedback.lightImpact();
                               Navigator.push(

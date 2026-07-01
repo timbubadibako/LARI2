@@ -3,13 +3,23 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 	"math"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type SpatialEngine struct {
 	db *pgxpool.Pool
+}
+
+type ConquestResult struct {
+	CapturedAreaSqm      float64
+	RunStatus            string
+	ClaimReason          string
+	PendingTrailActive   bool
+	PendingTrailExpiresAt *time.Time
 }
 
 // minConquestAreaSqm is the minimum enclosed area (in square meters) required
@@ -38,7 +48,12 @@ func (s *SpatialEngine) MapMatchPoints(ctx context.Context, points []Point) ([]P
 }
 
 // ProcessConquest handles the "Elastic Trails" and Loop Detection logic.
-func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guildID string, points []Point) (float64, error) {
+func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guildID string, points []Point) (ConquestResult, error) {
+	result := ConquestResult{
+		RunStatus:   "finished",
+		ClaimReason: "no_closed_loop",
+	}
+
 	// A. Snap to Road first to increase accuracy (20m boundary inside MapMatchPoints)
 	snappedPoints, err := s.MapMatchPoints(ctx, points)
 	if err == nil {
@@ -58,7 +73,7 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 	// 2. Check for "Integrity Protocol" (Connection to pending trails)
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
-		return 0, err
+		return result, err
 	}
 	defer tx.Rollback(ctx)
 
@@ -79,12 +94,13 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 
 	var fullTrailWKT string
 	if err == nil {
+		log.Printf("CONQUEST_PENDING_TRAIL_MERGE: user_id=%s pending_id=%d", userID, pendingID)
 		// Found a connection! Merge them.
 		err = tx.QueryRow(ctx, `
 			SELECT ST_AsText(ST_LineMerge(ST_Union(ST_GeomFromText($1, 4326), ST_GeomFromText($2, 4326))))
 		`, pendingGeomWKT, wktLine).Scan(&fullTrailWKT)
 		if err != nil {
-			return 0, fmt.Errorf("failed to merge lines: %w", err)
+			return result, fmt.Errorf("failed to merge lines: %w", err)
 		}
 		// Delete the old segment as it will be updated or turned into a polygon
 		_, _ = tx.Exec(ctx, "DELETE FROM pending_trails WHERE id = $1", pendingID)
@@ -143,6 +159,7 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 
 	// 4. Update Pending Trails with leftovers
 	if remainingLinesWKT != "" && remainingLinesWKT != "GEOMETRYCOLLECTION EMPTY" {
+		var pendingExpiresAt time.Time
 		_, err = tx.Exec(ctx, `
 			INSERT INTO pending_trails (user_id, geom, start_point, end_point, expires_at)
 			VALUES (
@@ -154,14 +171,17 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 			)
 		`, userID, remainingLinesWKT)
 		if err != nil {
-			return 0, fmt.Errorf("failed to save pending trail: %w", err)
+			return result, fmt.Errorf("failed to save pending trail: %w", err)
 		}
+		pendingExpiresAt = time.Now().UTC().Add(time.Duration(pendingTrailContinuationWindowHours) * time.Hour)
+		result.PendingTrailActive = true
+		result.PendingTrailExpiresAt = &pendingExpiresAt
 	}
 
 	// 5. If area > minConquestAreaSqm, PROCESS CONQUEST (Clip others, then merge for self)
 	if areaSqm >= minConquestAreaSqm && capturedPolyWKT != "" {
 		// A. COOKIE CUTTER: Subtract this area from ALL OTHER agents
-		_, err = tx.Exec(ctx, `
+		tag, err := tx.Exec(ctx, `
 			UPDATE user_territories 
 			SET 
 				merged_boundary = ST_Multi(ST_Difference(merged_boundary, ST_GeomFromText($2, 4326))),
@@ -171,8 +191,14 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 			  AND ST_Intersects(merged_boundary, ST_GeomFromText($2, 4326))
 		`, userID, capturedPolyWKT)
 		if err != nil {
-			return 0, fmt.Errorf("failed to clip rival territories: %w", err)
+			return result, fmt.Errorf("failed to clip rival territories: %w", err)
 		}
+		log.Printf(
+			"CONQUEST_COOKIE_CUTTER: user_id=%s clipped_rows=%d captured_area_sqm=%.2f",
+			userID,
+			tag.RowsAffected(),
+			areaSqm,
+		)
 
 		// B. UPDATE SELF: Merge the new area into current territory
 		var guildIDVal interface{}
@@ -198,15 +224,34 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 				guild_id = EXCLUDED.guild_id
 		`, userID, guildIDVal, capturedPolyWKT, areaSqm)
 		if err != nil {
-			return 0, fmt.Errorf("failed to update territories: %w", err)
+			return result, fmt.Errorf("failed to update territories: %w", err)
 		}
+
+		result.CapturedAreaSqm = areaSqm
+		result.RunStatus = "captured"
+		result.ClaimReason = "territory_captured"
+	} else if result.PendingTrailActive {
+		result.RunStatus = "pending"
+		result.ClaimReason = "pending_trail_saved"
+	} else if areaSqm > 0 && areaSqm < minConquestAreaSqm {
+		result.RunStatus = "finished"
+		result.ClaimReason = "loop_area_below_threshold"
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return 0, err
+		return result, err
 	}
 
-	return areaSqm, nil
+	log.Printf(
+		"CONQUEST_RESULT: user_id=%s run_status=%s area_sqm=%.2f pending_trail=%t reason=%s",
+		userID,
+		result.RunStatus,
+		result.CapturedAreaSqm,
+		result.PendingTrailActive,
+		result.ClaimReason,
+	)
+
+	return result, nil
 }
 
 func (s *SpatialEngine) pointsToWKT(points []Point) string {

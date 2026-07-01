@@ -7,6 +7,9 @@ class RunHistory {
   final String? pathWkt;
   final DateTime createdAt;
   final String syncStatus; // 'pending' or 'synced'
+  final int retryCount;
+  final String? syncError;
+  final String? quarantineReason;
 
   RunHistory({
     required this.id,
@@ -17,6 +20,9 @@ class RunHistory {
     this.pathWkt,
     required this.createdAt,
     this.syncStatus = 'synced',
+    this.retryCount = 0,
+    this.syncError,
+    this.quarantineReason,
   });
 
   // Factory for API response (Go Backend)
@@ -30,12 +36,19 @@ class RunHistory {
       pathWkt: json['path_geometry'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       syncStatus: 'synced',
+      retryCount: 0,
     );
   }
 
   // Factory for Unified Local/Remote structure (The "Sync Queue" format)
   factory RunHistory.fromMap(Map<String, dynamic> map) {
-    final payload = map['payload'] as Map<dynamic, dynamic>;
+    final payload = Map<String, dynamic>.from(
+      (map['payload'] as Map<dynamic, dynamic>).map(
+        (key, value) => MapEntry(key.toString(), value),
+      ),
+    );
+    final createdAtRaw =
+        map['created_at'] ?? map['createdAt'] ?? payload['created_at'];
     return RunHistory(
       id: map['id'] as String,
       userId: payload['user_id'] as String,
@@ -43,8 +56,11 @@ class RunHistory {
       durationSec: (payload['duration_sec'] as num).toInt(),
       status: payload['status'] as String,
       pathWkt: payload['path_wkt'] as String?,
-      createdAt: DateTime.parse(map['createdAt'] as String),
-      syncStatus: map['status'] as String,
+      createdAt: DateTime.parse(createdAtRaw as String),
+      syncStatus: (map['status'] as String?) ?? 'pending',
+      retryCount: (map['retry_count'] as int?) ?? 0,
+      syncError: map['last_error'] as String?,
+      quarantineReason: map['quarantine_reason'] as String?,
     );
   }
 
@@ -59,6 +75,7 @@ class RunHistory {
       pathWkt: map['path_geometry'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
       syncStatus: 'synced',
+      retryCount: 0,
     );
   }
 }

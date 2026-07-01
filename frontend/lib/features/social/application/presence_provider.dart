@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -10,6 +11,7 @@ import '../../../core/services/shared_preferences_provider.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../profile/application/profile_controller.dart';
 import '../../workout/application/workout_controller.dart';
+import '../../map/application/current_location_provider.dart';
 import '../../../core/domain/models/workout_session.dart';
 import '../../../core/domain/models/position_sample.dart';
 
@@ -68,17 +70,37 @@ class PresenceData {
   final String userId;
   final List<LatLng> route;
   final String color;
+  final DateTime lastSeenAt;
 
   PresenceData({
     required this.userId,
     required this.route,
     required this.color,
+    required this.lastSeenAt,
+  });
+}
+
+class ContestedZone {
+  final LatLng center;
+  final double radiusMeters;
+  final int runnerCount;
+  final String colorHex;
+  final String severity;
+
+  const ContestedZone({
+    required this.center,
+    required this.radiusMeters,
+    required this.runnerCount,
+    required this.colorHex,
+    required this.severity,
   });
 }
 
 class PresenceLinesNotifier extends Notifier<List<PresenceData>> {
+  static const Duration _presenceStaleAfter = Duration(seconds: 25);
   StreamSubscription? _wsSubscription;
   Timer? _reconnectTimer;
+  Timer? _pruneTimer;
 
   @override
   List<PresenceData> build() {
@@ -88,6 +110,7 @@ class PresenceLinesNotifier extends Notifier<List<PresenceData>> {
     if (!optedIn || userId == null) {
       _wsSubscription?.cancel();
       _reconnectTimer?.cancel();
+      _pruneTimer?.cancel();
       return [];
     }
 
@@ -107,6 +130,10 @@ class PresenceLinesNotifier extends Notifier<List<PresenceData>> {
       );
     }
 
+    _pruneTimer ??= Timer.periodic(const Duration(seconds: 5), (_) {
+      _pruneStalePresence();
+    });
+
     // Set up a listener for workoutControllerProvider to send user's own location updates
     ref.listen<WorkoutSession>(workoutControllerProvider, (previous, next) {
       if (next.state == WorkoutState.running && next.points.isNotEmpty) {
@@ -123,6 +150,7 @@ class PresenceLinesNotifier extends Notifier<List<PresenceData>> {
     ref.onDispose(() {
       _wsSubscription?.cancel();
       _reconnectTimer?.cancel();
+      _pruneTimer?.cancel();
     });
 
     return [];
@@ -168,6 +196,7 @@ class PresenceLinesNotifier extends Notifier<List<PresenceData>> {
         final lat = (data['lat'] as num).toDouble();
         final lng = (data['lng'] as num).toDouble();
         final color = data['color'] as String? ?? '#FFA500';
+        final seenAt = DateTime.now().toUtc();
         
         final newPoint = LatLng(lat, lng);
         
@@ -189,6 +218,7 @@ class PresenceLinesNotifier extends Notifier<List<PresenceData>> {
                   userId: userId,
                   route: updatedRoute,
                   color: color,
+                  lastSeenAt: seenAt,
                 )
               else
                 state[i]
@@ -200,6 +230,7 @@ class PresenceLinesNotifier extends Notifier<List<PresenceData>> {
               userId: userId,
               route: [newPoint],
               color: color,
+              lastSeenAt: seenAt,
             ),
           ];
         }
@@ -208,9 +239,107 @@ class PresenceLinesNotifier extends Notifier<List<PresenceData>> {
       debugPrint('Error parsing incoming WS message: $e');
     }
   }
+
+  void _pruneStalePresence() {
+    final cutoff = DateTime.now().toUtc().subtract(_presenceStaleAfter);
+    final filtered = state.where((entry) => entry.lastSeenAt.isAfter(cutoff)).toList();
+    if (filtered.length != state.length) {
+      state = filtered;
+    }
+  }
 }
 
 final presenceLinesProvider =
     NotifierProvider<PresenceLinesNotifier, List<PresenceData>>(
       PresenceLinesNotifier.new,
     );
+
+final contestedZonesProvider = Provider<List<ContestedZone>>((ref) {
+  final presenceLines = ref.watch(presenceLinesProvider);
+  final workout = ref.watch(workoutControllerProvider);
+  final initialPosition = ref.watch(userInitialPositionProvider).asData?.value;
+  final currentUserId = ref.watch(currentUserSessionProvider);
+
+  final runnerPoints = <String, LatLng>{};
+  for (final entry in presenceLines) {
+    if (entry.route.isNotEmpty) {
+      runnerPoints[entry.userId] = entry.route.last;
+    }
+  }
+
+  if (workout.state == WorkoutState.running && workout.points.isNotEmpty) {
+    final own = workout.points.last;
+    runnerPoints[currentUserId ?? '__self__'] = LatLng(own.lat, own.lng);
+  }
+
+  if (runnerPoints.isEmpty || initialPosition == null) {
+    return const [];
+  }
+
+  final viewer = LatLng(initialPosition.latitude, initialPosition.longitude);
+  final nearPoints = runnerPoints.values.where((point) {
+    final distance = Geolocator.distanceBetween(
+      viewer.latitude,
+      viewer.longitude,
+      point.latitude,
+      point.longitude,
+    );
+    return distance <= 20000;
+  }).toList();
+
+  if (nearPoints.isEmpty) {
+    return const [];
+  }
+
+  final clusters = <List<LatLng>>[];
+  for (final point in nearPoints) {
+    List<LatLng>? matchedCluster;
+    for (final cluster in clusters) {
+      final clusterCenter = _averageLatLng(cluster);
+      final distance = Geolocator.distanceBetween(
+        clusterCenter.latitude,
+        clusterCenter.longitude,
+        point.latitude,
+        point.longitude,
+      );
+      if (distance <= 1000) {
+        matchedCluster = cluster;
+        break;
+      }
+    }
+    if (matchedCluster != null) {
+      matchedCluster.add(point);
+    } else {
+      clusters.add([point]);
+    }
+  }
+
+  return clusters.map((cluster) {
+    final count = cluster.length;
+    final center = _averageLatLng(cluster);
+    final severity = count >= 5 ? 'HIGH' : count >= 3 ? 'MEDIUM' : 'LOW';
+    final colorHex = count >= 5
+        ? '#FF3B30'
+        : count >= 3
+            ? '#FF9500'
+            : '#FFD60A';
+    final radiusMeters = count >= 5 ? 2000.0 : 500.0;
+    return ContestedZone(
+      center: center,
+      radiusMeters: radiusMeters,
+      runnerCount: count,
+      colorHex: colorHex,
+      severity: severity,
+    );
+  }).toList();
+});
+
+LatLng _averageLatLng(List<LatLng> points) {
+  var lat = 0.0;
+  var lng = 0.0;
+  for (final point in points) {
+    lat += point.latitude;
+    lng += point.longitude;
+  }
+  return LatLng(lat / points.length, lng / points.length);
+}
