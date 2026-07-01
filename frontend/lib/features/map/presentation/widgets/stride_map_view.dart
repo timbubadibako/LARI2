@@ -9,7 +9,6 @@ import '../../../../ui/theme/stride_typography.dart';
 import '../../../../ui/components/v3_shapes.dart';
 import '../../../../core/services/geospatial_service.dart';
 import '../../../../dev/dev_providers.dart';
-import '../../../../dev/fake_location_service.dart';
 import '../../../profile/application/profile_controller.dart';
 import '../../../workout/application/workout_controller.dart';
 import '../../../social/application/presence_provider.dart';
@@ -26,8 +25,15 @@ class StrideMapView extends ConsumerStatefulWidget {
   final CameraPosition? initialCameraPositionOverride;
   final List<latlong.LatLng>? staticPath;
   final bool isCaptured;
+  final bool isPreviewMode;
 
-  const StrideMapView({super.key, this.initialCameraPositionOverride, this.staticPath, this.isCaptured = false});
+  const StrideMapView({
+    super.key,
+    this.initialCameraPositionOverride,
+    this.staticPath,
+    this.isCaptured = false,
+    this.isPreviewMode = false,
+  });
 
   @override
   ConsumerState<StrideMapView> createState() => _StrideMapViewState();
@@ -87,7 +93,7 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
       if (widget.isCaptured) {
          await _routeLayerController.updateTerritoryPolygon(widget.staticPath!);
       }
-      _fitRouteBounds(widget.staticPath!);
+      await _fitRouteBounds(widget.staticPath!, isPreviewMode: widget.isPreviewMode);
     } else {
       final route = ref.read(workoutControllerProvider.notifier).route;
       final routePoints = route
@@ -96,12 +102,14 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
       await _routeLayerController.updateRoute(routePoints);
       await _routeLayerController.updateTerritoryPolygon(routePoints);
       if (routePoints.isNotEmpty) {
-        await _routeLayerController.updateCurrentPosition(routePoints.last);
-        await _routeLayerController.updateRunnerMarker(
-          routePoints.last,
-          bearingDeg: route.isNotEmpty ? route.last.bearingDeg : null,
-        );
-        _fitRouteBounds(routePoints);
+        if (!widget.isPreviewMode) {
+          await _routeLayerController.updateCurrentPosition(routePoints.last);
+          await _routeLayerController.updateRunnerMarker(
+            routePoints.last,
+            bearingDeg: route.isNotEmpty ? route.last.bearingDeg : null,
+          );
+        }
+        await _fitRouteBounds(routePoints, isPreviewMode: widget.isPreviewMode);
       }
     }
     
@@ -120,17 +128,20 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
     _updateHistoryFromData(history);
   }
 
-  void _fitRouteBounds(List<latlong.LatLng> route) {
+  Future<void> _fitRouteBounds(List<latlong.LatLng> route, {bool isPreviewMode = false}) async {
     if (mapController == null || route.isEmpty) return;
 
     if (route.length == 1) {
       final point = route.first;
-      mapController!.animateCamera(
+      await mapController!.animateCamera(
         CameraUpdate.newLatLngZoom(
           LatLng(point.latitude, point.longitude),
-          ref.read(fakeLocationActiveProvider) ? 17.0 : 16.0,
+          isPreviewMode ? 16.6 : (ref.read(fakeLocationActiveProvider) ? 17.0 : 16.0),
         ),
       );
+      if (isPreviewMode) {
+        await mapController!.animateCamera(CameraUpdate.tiltTo(44));
+      }
       return;
     }
 
@@ -149,19 +160,37 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
     const minSpan = 0.0015;
     final latSpan = (maxLat - minLat).abs().clamp(minSpan, 999.0);
     final lngSpan = (maxLng - minLng).abs().clamp(minSpan, 999.0);
+    final centerLat = (minLat + maxLat) / 2;
+    final centerLng = (minLng + maxLng) / 2;
+
+    if (isPreviewMode) {
+      final dominantSpan = math.max(latSpan, lngSpan);
+      final zoom = (16.9 - (math.log(dominantSpan / minSpan) / math.ln2)).clamp(14.3, 17.2);
+      await mapController!.moveCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: LatLng(centerLat - latSpan * 0.08, centerLng),
+            zoom: zoom,
+            bearing: -12,
+            tilt: 48,
+          ),
+        ),
+      );
+      return;
+    }
 
     final bounds = LatLngBounds(
       southwest: LatLng(minLat - latSpan * 0.18, minLng - lngSpan * 0.18),
       northeast: LatLng(maxLat + latSpan * 0.18, maxLng + lngSpan * 0.18),
     );
 
-    mapController!.animateCamera(
+    await mapController!.moveCamera(
       CameraUpdate.newLatLngBounds(
         bounds,
-        left: 36,
-        top: 36,
-        right: 36,
-        bottom: 36,
+        left: isPreviewMode ? 56 : 36,
+        top: isPreviewMode ? 56 : 36,
+        right: isPreviewMode ? 56 : 36,
+        bottom: isPreviewMode ? 56 : 36,
       ),
     );
   }
@@ -235,8 +264,10 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
 
     try {
       Position? position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 5),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 5),
+        ),
       );
       
       mapController!.animateCamera(
@@ -278,8 +309,10 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
         if (route.isNotEmpty) {
           _routeLayerController.updateRoute(route);
           _routeLayerController.updateTerritoryPolygon(route);
-          _routeLayerController.updateCurrentPosition(route.last);
-          _routeLayerController.updateRunnerMarker(route.last, bearingDeg: next.points.last.bearingDeg);
+          if (!widget.isPreviewMode) {
+            _routeLayerController.updateCurrentPosition(route.last);
+            _routeLayerController.updateRunnerMarker(route.last, bearingDeg: next.points.last.bearingDeg);
+          }
         }
       });
 
@@ -342,7 +375,7 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
 
   Widget _buildMap(BuildContext context, CameraPosition initialPos) {
     final bool isFake = ref.read(fakeLocationActiveProvider);
-    final bool isStaticMode = widget.staticPath != null;
+    final bool isStaticMode = widget.staticPath != null || widget.isPreviewMode;
     return MapLibreMap(
       onMapCreated: _onMapCreated,
       onStyleLoadedCallback: _onStyleLoadedCallback,
@@ -351,6 +384,12 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
       myLocationEnabled: isStaticMode ? false : !isFake,
       compassEnabled: false,
       myLocationRenderMode: isStaticMode ? MyLocationRenderMode.normal : (isFake ? MyLocationRenderMode.normal : MyLocationRenderMode.compass),
+      scrollGesturesEnabled: !widget.isPreviewMode,
+      zoomGesturesEnabled: !widget.isPreviewMode,
+      rotateGesturesEnabled: !widget.isPreviewMode,
+      tiltGesturesEnabled: !widget.isPreviewMode,
+      doubleClickZoomEnabled: !widget.isPreviewMode,
+      dragEnabled: !widget.isPreviewMode,
       onCameraIdle: _onCameraIdle,
     );
   }
@@ -393,7 +432,7 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
             Text(
               'GRID SYNC REQUIRES ACTIVE GPS SIGNAL.',
               textAlign: TextAlign.center,
-              style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textSecondary.withOpacity(0.5)),
+              style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textSecondary.withValues(alpha: 0.5)),
             ),
             const SizedBox(height: 32),
             V3SkewBox(
