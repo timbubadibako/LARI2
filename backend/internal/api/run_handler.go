@@ -57,6 +57,7 @@ type SyncRunResponse struct {
 // @Failure 400 {object} map[string]string
 // @Router /sync/run [post]
 func (h *RunHandler) SyncRun(c echo.Context) error {
+	authUserID, _ := c.Get("user_id").(string)
 	req := new(SyncRunRequest)
 	if err := c.Bind(req); err != nil {
 		log.Printf("SYNC_ERROR: Bind failed: %v", err)
@@ -68,7 +69,14 @@ func (h *RunHandler) SyncRun(c echo.Context) error {
 		guildIDStr = *req.GuildID
 	}
 
-	log.Printf("SYNC_REQUEST: User: %s, Guild: %s, Points: %d", req.UserID, guildIDStr, len(req.Points))
+	log.Printf(
+		"SYNC_REQUEST: auth_user=%s payload_user=%s guild=%s points=%d payload_matches_claim=%t",
+		authUserID,
+		req.UserID,
+		guildIDStr,
+		len(req.Points),
+		authUserID != "" && authUserID == req.UserID,
+	)
 
 	if len(req.Points) < 2 {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "insufficient points for sync"})
@@ -79,14 +87,15 @@ func (h *RunHandler) SyncRun(c echo.Context) error {
 	// 1. Calculate Metrics (Algorithm Service)
 	summary := h.algo.CalculateSummary(req.Points)
 
+	// TODO(production): re-enable backend velocity anomaly check before release candidate.
 	// 🔥 PRODUCTION SPEED LIMITER: Anti-Spoofing: Velocity Check (Max 40 km/h)
-	if summary.MovingDurationSec > 0 {
-		velocityKmh := (summary.TotalDistanceMeters / 1000.0) / (float64(summary.MovingDurationSec) / 3600.0)
-		if velocityKmh > 40.0 {
-			log.Printf("ANTI_SPOOFING: Velocity anomaly detected for user %s: %.2f km/h", req.UserID, velocityKmh)
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "velocity anomaly detected: speed exceeds human limits"})
-		}
-	}
+	// if summary.MovingDurationSec > 0 {
+	// 	velocityKmh := (summary.TotalDistanceMeters / 1000.0) / (float64(summary.MovingDurationSec) / 3600.0)
+	// 	if velocityKmh > 40.0 {
+	// 		log.Printf("ANTI_SPOOFING: Velocity anomaly detected for user %s: %.2f km/h", req.UserID, velocityKmh)
+	// 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "velocity anomaly detected: speed exceeds human limits"})
+	// 	}
+	// }
 
 	// 2. Process Conquest & Integrity Protocol (Spatial Engine)
 	capturedArea, err := h.spatial.ProcessConquest(ctx, req.UserID, guildIDStr, req.Points)

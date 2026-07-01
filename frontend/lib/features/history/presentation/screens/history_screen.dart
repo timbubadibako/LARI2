@@ -67,6 +67,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final historyAsync = ref.watch(userHistoryProvider);
     final missions = historyAsync.asData?.value ?? [];
     final hasPending = missions.any((m) => m.syncStatus == 'pending');
+    final hasQuarantined = missions.any((m) => m.syncStatus == 'quarantined');
     final filteredMissions = ref.watch(filteredUserHistoryProvider);
     final summary = ref.watch(historySummaryProvider);
     final selectedRange = ref.watch(historyRangeProvider);
@@ -79,10 +80,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           TacticalHeader(
             title: 'History',
             subTitle: 'YOUR RUNS AND RECENT RESULTS',
-            status: hasPending ? 'SYNC NEEDED' : 'UP TO DATE',
-            statusColor: hasPending ? StrideColors.warning : StrideColors.neonGreen,
+            status: hasQuarantined
+                ? 'SYNC BLOCKED'
+                : (hasPending ? 'SYNC NEEDED' : 'UP TO DATE'),
+            statusColor: hasQuarantined
+                ? StrideColors.error
+                : (hasPending ? StrideColors.warning : StrideColors.neonGreen),
             actions: [
-              if (hasPending)
+              if (hasPending || hasQuarantined)
                 TacticalIconButton(
                   onPressed: () async {
                     HapticFeedback.mediumImpact();
@@ -141,15 +146,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         final mission = filteredMissions[index];
                         final isCaptured = mission.status == 'captured';
                         final isPendingSync = mission.syncStatus == 'pending';
+                        final isSyncBlocked = mission.syncStatus == 'quarantined';
                         final statusColor = isPendingSync
                             ? StrideColors.warning
+                            : isSyncBlocked
+                                ? StrideColors.error
                             : (isCaptured ? StrideColors.neonGreen : Colors.white.withValues(alpha: 0.4));
+                        final title = isSyncBlocked
+                            ? 'Sync Blocked'
+                            : (isCaptured ? 'Area Acquisition' : 'Standard Activity');
 
                         return Padding(
                           padding: EdgeInsets.only(bottom: index == filteredMissions.length - 1 ? 0 : 16),
                           child: MissionDossierCard(
                             id: mission.id,
-                            title: isCaptured ? 'Area Acquisition' : 'Standard Activity',
+                            title: title,
                             status: mission.status,
                             distanceKm: mission.distanceKm,
                             durationSec: mission.durationSec,
@@ -178,7 +189,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     SizedBox(
                       height: MediaQuery.of(context).size.height * 0.5,
                       child: Center(
-                        child: Text('SYNC_FAIL: ARCHIVE UNREACHABLE',
+                        child: Text('SYNC FAIL: RUN ARCHIVE UNAVAILABLE',
                         style: StrideTypography.labelTactical.copyWith(color: StrideColors.error),
                         ),
                       ),
@@ -198,7 +209,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: StrideColors.surface,
-        border: Border.all(color: StrideColors.white.withOpacity(0.05)),
+        border: Border.all(color: StrideColors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: HistoryRange.values.map((range) {
@@ -265,7 +276,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
       decoration: BoxDecoration(
         color: const Color(0xFF0A0A0A),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

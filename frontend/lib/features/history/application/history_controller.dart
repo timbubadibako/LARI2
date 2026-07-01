@@ -26,10 +26,10 @@ class HistoryController {
 
     final syncService = _ref.read(lariSyncServiceProvider);
     
-    // 1. Get Local Pending Missions (Offline data)
+    // 1. Get Local Offline Missions that are not fully synced yet.
     final localMissions = syncService.getAllMissions();
     final List<RunHistory> localHistory = localMissions
-        .where((m) => m['status'] == 'pending')
+        .where((m) => m['status'] == 'pending' || m['status'] == 'quarantined')
         .map((m) => RunHistory.fromMap(m))
         .toList();
 

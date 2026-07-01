@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/config/api_config.dart';
@@ -49,10 +50,28 @@ class TerritoryViewportBounds {
     required this.lonMax,
     required this.latMax,
   });
+
+  static const double _epsilon = 0.00025;
+
+  bool isRoughlyEqualTo(TerritoryViewportBounds other) {
+    return (lonMin - other.lonMin).abs() < _epsilon &&
+        (latMin - other.latMin).abs() < _epsilon &&
+        (lonMax - other.lonMax).abs() < _epsilon &&
+        (latMax - other.latMax).abs() < _epsilon;
+  }
+
+  String toRequestKey() {
+    String format(double value) => value.toStringAsFixed(5);
+    return '${format(lonMin)}:${format(latMin)}:${format(lonMax)}:${format(latMax)}';
+  }
 }
 
 class TerritoryController {
   final Ref _ref;
+  final Map<String, Future<List<UserTerritory>>> _inFlightRequests = {};
+  String? _lastResolvedKey;
+  DateTime? _lastResolvedAt;
+  List<UserTerritory> _lastResolvedData = const [];
 
   TerritoryController(this._ref);
 
@@ -72,6 +91,36 @@ class TerritoryController {
   }
 
   Future<List<UserTerritory>> _fetchTerritories(TerritoryViewportBounds? bounds) async {
+    final requestKey = bounds?.toRequestKey() ?? 'all';
+    final now = DateTime.now();
+
+    if (_lastResolvedKey == requestKey &&
+        _lastResolvedAt != null &&
+        now.difference(_lastResolvedAt!) < const Duration(milliseconds: 900)) {
+      debugPrint('TERRITORY_DEDUPE: Reusing recent result for key=$requestKey');
+      return _lastResolvedData;
+    }
+
+    final existingRequest = _inFlightRequests[requestKey];
+    if (existingRequest != null) {
+      debugPrint('TERRITORY_DEDUPE: Joining in-flight request for key=$requestKey');
+      return existingRequest;
+    }
+
+    final future = _performFetch(bounds, requestKey);
+    _inFlightRequests[requestKey] = future;
+
+    try {
+      return await future;
+    } finally {
+      _inFlightRequests.remove(requestKey);
+    }
+  }
+
+  Future<List<UserTerritory>> _performFetch(
+    TerritoryViewportBounds? bounds,
+    String requestKey,
+  ) async {
     try {
       final uri = Uri.parse('$_baseUrl/territories').replace(
         queryParameters: bounds != null
@@ -86,9 +135,13 @@ class TerritoryController {
       final response = await http.get(uri);
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        return data
+        final territories = data
             .map((json) => UserTerritory.fromJson(json as Map<String, dynamic>))
             .toList();
+        _lastResolvedKey = requestKey;
+        _lastResolvedAt = DateTime.now();
+        _lastResolvedData = territories;
+        return territories;
       }
       LariLogger.log(_logEnabled, 'Territories fetch: HTTP ${response.statusCode}', success: false);
       return [];
@@ -104,6 +157,10 @@ class TerritoryViewportBoundsNotifier extends Notifier<TerritoryViewportBounds?>
   TerritoryViewportBounds? build() => null;
 
   void updateBounds(TerritoryViewportBounds? newBounds) {
+    final current = state;
+    if (current != null && newBounds != null && current.isRoughlyEqualTo(newBounds)) {
+      return;
+    }
     state = newBounds;
   }
 }

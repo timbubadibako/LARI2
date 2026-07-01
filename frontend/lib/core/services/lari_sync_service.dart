@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../domain/models/workout_session.dart';
 import 'lari_logger.dart';
+import 'http_client_provider.dart';
 import '../../../dev/dev_providers.dart';
 
 class LariSyncService {
@@ -68,6 +68,7 @@ class LariSyncService {
     final pending = _box.values.where((t) => t['status'] == 'pending').toList();
     if (pending.isEmpty) return true;
 
+    final client = _ref.read(httpClientProvider);
     const int maxRetries = 5;
     bool allSuccess = true;
     for (var task in pending) {
@@ -86,8 +87,8 @@ class LariSyncService {
         }
 
         debugPrint('SYNC_ATTEMPT: Uploading $id to $_baseUrl/sync/run (attempt ${retryCount + 1}/$maxRetries)');
-        
-        final response = await http.post(
+
+        final response = await client.post(
           Uri.parse('$_baseUrl/sync/run'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(task['payload']),
@@ -101,18 +102,38 @@ class LariSyncService {
           final quarantined = Map<String, dynamic>.from(task);
           quarantined['status'] = 'quarantined';
           quarantined['quarantine_reason'] = 'server_rejected_400: ${response.body}';
+          quarantined['last_error'] = 'Server rejected run data';
           await _box.put(id, quarantined);
           LariLogger.log(_logEnabled, 'SYNC_QUARANTINE: $id rejected by server (400). Data preserved for review.');
+        } else if (response.statusCode == 401) {
+          allSuccess = false;
+          final updated = Map<String, dynamic>.from(task);
+          updated['retry_count'] = retryCount + 1;
+          updated['last_error'] = 'Unauthorized. Session expired or token missing.';
+          await _box.put(id, updated);
+          LariLogger.log(
+            _logEnabled,
+            'SYNC_AUTH_FAILED: $id unauthorized on /sync/run',
+            success: false,
+            error: 'HTTP 401',
+          );
         } else {
           // Transient error — increment retry count
           allSuccess = false;
           final updated = Map<String, dynamic>.from(task);
           updated['retry_count'] = retryCount + 1;
+          updated['last_error'] = 'HTTP ${response.statusCode}: ${response.body}';
           await _box.put(id, updated);
           debugPrint('SYNC_FAILED: HTTP ${response.statusCode} for $id. Retry count: ${retryCount + 1}/$maxRetries.');
         }
       } catch (e) {
         allSuccess = false;
+        final id = task['id'];
+        final retryCount = (task['retry_count'] as int?) ?? 0;
+        final updated = Map<String, dynamic>.from(task);
+        updated['retry_count'] = retryCount + 1;
+        updated['last_error'] = e.toString();
+        await _box.put(id, updated);
         debugPrint('SYNC_ERROR: $e');
       }
     }
