@@ -19,6 +19,7 @@ type SpatialEngine struct {
 const minConquestAreaSqm = 50.0
 const loopClosureToleranceMeters = 25.0
 const minLoopDisplacementMeters = 30.0
+const pendingTrailContinuationWindowHours = 72
 
 func NewSpatialEngine(db *pgxpool.Pool) *SpatialEngine {
 	return &SpatialEngine{db: db}
@@ -99,13 +100,34 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 	var remainingLinesWKT string
 	var capturedPolyWKT string
 
-	// FIX: Use ST_SnapToGrid to close small gaps and ST_BuildArea to fill all enclosed spaces.
+	// Use noded linework + polygonize so lasso-shaped trails (A -> B -> ... -> B)
+	// can produce a valid polygon while the dangling tail remains as leftover pending trail.
 	err = tx.QueryRow(ctx, `
-		WITH raw_geom AS (SELECT ST_SnapToGrid(ST_GeomFromText($1, 4326), 0.00001) as g),
-		     merged_poly AS (SELECT ST_BuildArea(g) as p FROM raw_geom),
-		     captured_wkt AS (SELECT ST_AsText(p) as wkt FROM merged_poly WHERE p IS NOT NULL),
-		     area_calc AS (SELECT ST_Area(p::geography) as area FROM merged_poly WHERE p IS NOT NULL),
-		     leftovers AS (SELECT ST_AsText(ST_Difference(ST_GeomFromText($1, 4326), (SELECT p FROM merged_poly))) as residue)
+		WITH raw_geom AS (
+			SELECT ST_SnapToGrid(ST_GeomFromText($1, 4326), 0.00001) as g
+		),
+		noded AS (
+			SELECT ST_Node(g) as g FROM raw_geom
+		),
+		polys AS (
+			SELECT ST_CollectionExtract(ST_UnaryUnion(ST_Collect((ST_Dump(ST_Polygonize(g))).geom)), 3) as p
+			FROM noded
+		),
+		captured_wkt AS (
+			SELECT ST_AsText(p) as wkt FROM polys WHERE p IS NOT NULL AND NOT ST_IsEmpty(p)
+		),
+		area_calc AS (
+			SELECT ST_Area(p::geography) as area FROM polys WHERE p IS NOT NULL AND NOT ST_IsEmpty(p)
+		),
+		leftovers AS (
+			SELECT ST_AsText(
+				ST_Difference(
+					ST_GeomFromText($1, 4326),
+					ST_Boundary((SELECT p FROM polys))
+				)
+			) as residue
+			FROM polys
+		)
 		SELECT 
 			COALESCE((SELECT area FROM area_calc), 0), 
 			COALESCE((SELECT residue FROM leftovers), $1),
@@ -122,12 +144,13 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 	// 4. Update Pending Trails with leftovers
 	if remainingLinesWKT != "" && remainingLinesWKT != "GEOMETRYCOLLECTION EMPTY" {
 		_, err = tx.Exec(ctx, `
-			INSERT INTO pending_trails (user_id, geom, start_point, end_point)
+			INSERT INTO pending_trails (user_id, geom, start_point, end_point, expires_at)
 			VALUES (
 				$1, 
 				ST_GeomFromText($2, 4326), 
 				ST_StartPoint(ST_GeomFromText($2, 4326)), 
-				ST_EndPoint(ST_GeomFromText($2, 4326))
+				ST_EndPoint(ST_GeomFromText($2, 4326)),
+				NOW() + INTERVAL '72 hours'
 			)
 		`, userID, remainingLinesWKT)
 		if err != nil {

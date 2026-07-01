@@ -227,8 +227,9 @@ class MapRouteLineLayerController {
   }) async {
     if (_mapController == null) return;
 
-    final geoJson = _isTerritoryClosed(route, closeToleranceMeters)
-        ? _buildTerritoryGeoJson(route)
+    final territoryLoop = _extractLatestClosedLoop(route, closeToleranceMeters);
+    final geoJson = territoryLoop != null
+        ? _buildTerritoryGeoJson(territoryLoop)
         : _emptyTerritoryGeoJson();
     await _mapController!.setGeoJsonSource(territorySourceId, geoJson);
   }
@@ -330,22 +331,50 @@ class MapRouteLineLayerController {
     };
   }
 
-  bool _isTerritoryClosed(
+  List<latlong.LatLng>? _extractLatestClosedLoop(
     List<latlong.LatLng> route,
     double closeToleranceMeters,
   ) {
-    if (route.length < 3) return false;
-
-    final first = route.first;
+    if (route.length < 3) return null;
     final last = route.last;
-    final gapMeters = Geolocator.distanceBetween(
-      first.latitude,
-      first.longitude,
-      last.latitude,
-      last.longitude,
-    );
 
-    return gapMeters <= closeToleranceMeters;
+    for (int i = route.length - 3; i >= 0; i--) {
+      final anchor = route[i];
+      final gapMeters = Geolocator.distanceBetween(
+        anchor.latitude,
+        anchor.longitude,
+        last.latitude,
+        last.longitude,
+      );
+      if (gapMeters > closeToleranceMeters) {
+        continue;
+      }
+
+      double maxDisplacement = 0.0;
+      for (int j = i + 1; j < route.length; j++) {
+        final displacement = Geolocator.distanceBetween(
+          anchor.latitude,
+          anchor.longitude,
+          route[j].latitude,
+          route[j].longitude,
+        );
+        if (displacement > maxDisplacement) {
+          maxDisplacement = displacement;
+        }
+      }
+
+      if (maxDisplacement > 30.0) {
+        final loop = route.sublist(i).toList();
+        final first = loop.first;
+        final loopLast = loop.last;
+        if (first.latitude != loopLast.latitude || first.longitude != loopLast.longitude) {
+          loop.add(first);
+        }
+        return loop;
+      }
+    }
+
+    return null;
   }
 
   Map<String, dynamic> _buildTerritoryGeoJson(List<latlong.LatLng> route) {

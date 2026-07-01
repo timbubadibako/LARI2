@@ -29,6 +29,7 @@ class AppStrings {
   static const String resume = 'RESUME';
   static const String finish = 'FINISH';
   static const String discard = 'DISCARD';
+  // TODO(production): switch this back to HOLD 6S FINISH before release candidate.
   static const String holdToFinish = 'HOLD 3S FINISH';
   static const String syncInProgress = 'SYNCING_DATA...';
 

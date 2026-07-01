@@ -18,8 +18,16 @@ final workoutControllerProvider = NotifierProvider<WorkoutController, WorkoutSes
 
 class WorkoutController extends Notifier<WorkoutSession> {
   static const _uuid = Uuid();
+  static const double _autoPauseSpeedThresholdMps = 0.45;
+  static const int _autoPauseDelaySeconds = 15;
+  static const double _loopClosureToleranceMeters = 25.0;
+  static const double _minLoopDisplacementMeters = 30.0;
   StreamSubscription? _positionSub;
   Timer? _timer;
+  PositionSample? _lastObservedSample;
+  PositionSample? _resumeBaselineSample;
+  int _stationarySeconds = 0;
+  int _movingSeconds = 0;
 
   @override
   WorkoutSession build() {
@@ -56,6 +64,10 @@ class WorkoutController extends Notifier<WorkoutSession> {
     );
 
     _startTracking();
+    _stationarySeconds = 0;
+    _movingSeconds = 0;
+    _resumeBaselineSample = null;
+    _lastObservedSample = null;
 
     // 🔥 CAPTURE STARTING POINT IMMEDIATELY
     Geolocator.getCurrentPosition().then((pos) {
@@ -67,6 +79,7 @@ class WorkoutController extends Notifier<WorkoutSession> {
           accuracyMeters: pos.accuracy,
         );
         state = state.copyWith(points: [startSample]);
+        _lastObservedSample = startSample;
       }
     });
   }
@@ -74,11 +87,17 @@ class WorkoutController extends Notifier<WorkoutSession> {
   void pause() {
     _timer?.cancel();
     _positionSub?.cancel();
-    state = state.copyWith(state: WorkoutState.paused);
+    _resumeBaselineSample = null;
+    _stationarySeconds = 0;
+    _movingSeconds = 0;
+    state = state.copyWith(state: WorkoutState.paused, isAutoPaused: false);
   }
 
   void resume() {
-    state = state.copyWith(state: WorkoutState.running);
+    _resumeBaselineSample = null;
+    _stationarySeconds = 0;
+    _movingSeconds = 0;
+    state = state.copyWith(state: WorkoutState.running, isAutoPaused: false);
     _startTracking();
   }
 
@@ -128,45 +147,135 @@ class WorkoutController extends Notifier<WorkoutSession> {
 
     _positionSub?.cancel();
     _positionSub = ref.read(trackingSourceProvider).watchPosition().listen((sample) {
+      final lastObserved = _lastObservedSample;
+      _lastObservedSample = sample;
+
+      if (state.state == WorkoutState.paused && state.isAutoPaused) {
+        _handleAutoPausedSample(lastObserved, sample);
+        return;
+      }
+
       if (state.state != WorkoutState.running) return;
-      
+
       final points = List<PositionSample>.from(state.points);
       double dist = state.distanceMeters;
+      final lastPoint = points.isNotEmpty ? points.last : null;
+      final motion = _estimateMotion(lastObserved, sample);
 
-      if (points.isNotEmpty) {
-        final last = points.last;
-        final gap = Geolocator.distanceBetween(last.lat, last.lng, sample.lat, sample.lng);
-        
-        // DEV MODE: Speed limiter disabled (GEMINI.md)
-        dist += gap;
+      if (motion != null && motion.speedMps < _autoPauseSpeedThresholdMps) {
+        _stationarySeconds += motion.elapsedSeconds;
+        _movingSeconds = 0;
+      } else if (motion != null) {
+        _stationarySeconds = 0;
+        _movingSeconds += motion.elapsedSeconds;
       }
-      
+
+      if (_stationarySeconds >= _autoPauseDelaySeconds) {
+        _resumeBaselineSample = sample;
+        _movingSeconds = 0;
+        state = state.copyWith(state: WorkoutState.paused, isAutoPaused: true);
+        return;
+      }
+
+      double gapFromPrevious = 0.0;
+      if (_resumeBaselineSample != null) {
+        // TODO(production): model segmented routes so resume does not visually connect long gaps.
+        gapFromPrevious = 0.0;
+        _resumeBaselineSample = null;
+      } else if (lastPoint != null) {
+        gapFromPrevious = Geolocator.distanceBetween(lastPoint.lat, lastPoint.lng, sample.lat, sample.lng);
+      }
+
+      if (lastPoint != null) {
+        // TODO(production): restore frontend speed limiter before release.
+        // final elapsedSeconds = motion?.elapsedSeconds ?? 0;
+        // final speedMps = elapsedSeconds > 0 ? gapFromPrevious / elapsedSeconds : 0.0;
+        // if (speedMps > 11.11) return; // ~40 km/h
+        dist += gapFromPrevious;
+      }
+
       points.add(sample);
 
-      // Determine if loop is closed dynamically
-      bool isClosed = false;
-      if (points.length >= 3) {
-        final first = points.first;
-        final last = points.last;
-        final gapToStart = Geolocator.distanceBetween(first.lat, first.lng, last.lat, last.lng);
-        
-        double maxDisplacement = 0.0;
-        for (final p in points) {
-          final d = Geolocator.distanceBetween(first.lat, first.lng, p.lat, p.lng);
-          if (d > maxDisplacement) {
-            maxDisplacement = d;
-          }
-        }
-
-        // Must displace by more than 30 meters and return within 25 meters to close loop
-        isClosed = maxDisplacement > 30.0 && gapToStart <= 25.0;
-      }
+      final isClosed = _findLatestClosedLoopStartIndex(points) != null;
       
       state = state.copyWith(
         points: points,
         distanceMeters: dist,
         isLoopClosed: isClosed,
+        isAutoPaused: false,
       );
     });
+  }
+
+  int? _findLatestClosedLoopStartIndex(List<PositionSample> points) {
+    if (points.length < 3) return null;
+
+    final last = points.last;
+    for (int i = points.length - 3; i >= 0; i--) {
+      final anchor = points[i];
+      final gapMeters = Geolocator.distanceBetween(
+        anchor.lat,
+        anchor.lng,
+        last.lat,
+        last.lng,
+      );
+      if (gapMeters > _loopClosureToleranceMeters) {
+        continue;
+      }
+
+      double maxDisplacement = 0.0;
+      for (int j = i + 1; j < points.length; j++) {
+        final displacement = Geolocator.distanceBetween(
+          anchor.lat,
+          anchor.lng,
+          points[j].lat,
+          points[j].lng,
+        );
+        if (displacement > maxDisplacement) {
+          maxDisplacement = displacement;
+        }
+      }
+
+      if (maxDisplacement > _minLoopDisplacementMeters) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  void _handleAutoPausedSample(PositionSample? lastObserved, PositionSample sample) {
+    final motion = _estimateMotion(lastObserved, sample);
+    if (motion != null && motion.speedMps >= _autoPauseSpeedThresholdMps) {
+      _movingSeconds += motion.elapsedSeconds;
+      _stationarySeconds = 0;
+    } else if (motion != null) {
+      _movingSeconds = 0;
+      _stationarySeconds += motion.elapsedSeconds;
+    }
+
+    if (_movingSeconds >= _autoPauseDelaySeconds) {
+      _resumeBaselineSample = sample;
+      _movingSeconds = 0;
+      _stationarySeconds = 0;
+      state = state.copyWith(state: WorkoutState.running, isAutoPaused: false);
+    }
+  }
+
+  ({int elapsedSeconds, double speedMps})? _estimateMotion(
+    PositionSample? previous,
+    PositionSample current,
+  ) {
+    if (previous == null) return null;
+
+    final elapsedSeconds = current.ts.difference(previous.ts).inSeconds;
+    if (elapsedSeconds <= 0) return null;
+
+    final gapMeters = Geolocator.distanceBetween(
+      previous.lat,
+      previous.lng,
+      current.lat,
+      current.lng,
+    );
+    return (elapsedSeconds: elapsedSeconds, speedMps: gapMeters / elapsedSeconds);
   }
 }

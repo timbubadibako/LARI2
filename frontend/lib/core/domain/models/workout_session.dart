@@ -19,6 +19,7 @@ class WorkoutSession {
   final String? notes;
   final List<PositionSample> points;
   final bool isLoopClosed;
+  final bool isAutoPaused;
 
   WorkoutSession({
     required this.id,
@@ -37,6 +38,7 @@ class WorkoutSession {
     this.notes,
     List<PositionSample>? points,
     this.isLoopClosed = false,
+    this.isAutoPaused = false,
   }) : points = List.unmodifiable(points ?? const []);
 
   Duration get elapsed => Duration(seconds: durationSeconds);
@@ -57,6 +59,7 @@ class WorkoutSession {
     List<PositionSample>? points,
     bool? isLoopClosed,
     String? guildId,
+    bool? isAutoPaused,
   }) {
     return WorkoutSession(
       id: id,
@@ -75,6 +78,7 @@ class WorkoutSession {
       notes: notes ?? this.notes,
       points: points ?? this.points,
       isLoopClosed: isLoopClosed ?? this.isLoopClosed,
+      isAutoPaused: isAutoPaused ?? this.isAutoPaused,
     );
   }
 }

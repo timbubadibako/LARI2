@@ -49,7 +49,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
   }
 
   void _startFinishHold() {
-    /* 
+    /*
+    // TODO(production): re-enable minimum distance guard before release candidate.
     // 🔥 PRODUCTION VALIDASI DISTANCE: Jangan izinkan hold jika 0.00 KM
     final workout = ref.read(workoutControllerProvider);
     if (workout.distanceMeters < 1.0) {
@@ -76,6 +77,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
     setState(() => _finishProgress = 0.0);
   }
 
+  // ignore: unused_element
   void _showMissionAbortedDialog() {
     HapticFeedback.vibrate();
     showDialog(
@@ -177,6 +179,13 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
     final paceStr = paceSec > 0 
         ? '${(paceSec / 60).floor().toString().padLeft(2, '0')}:${(paceSec % 60).floor().toString().padLeft(2, '0')}' 
         : '--:--';
+    final isAutoPaused = workout.state == WorkoutState.paused && workout.isAutoPaused;
+    final workoutStatusLabel = isAutoPaused
+        ? 'AUTO_PAUSED'
+        : (workout.state == WorkoutState.paused ? 'MANUAL_PAUSED' : 'CAPTURE_IN_PROGRESS');
+    final pauseButtonLabel = isAutoPaused
+        ? 'AUTO PAUSED'
+        : (workout.state == WorkoutState.paused ? '${AppStrings.resume} (TAP 2X)' : '${AppStrings.pause} (TAP 2X)');
 
     final distKmParts = (workout.distanceMeters / 1000).toStringAsFixed(2).split('.');
     final distKmMain = distKmParts[0].padLeft(2, '0');
@@ -236,7 +245,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                               borderRadius: BorderRadius.circular(2),
                             ),
                             child: Text(
-                              'CAPTURE_IN_PROGRESS',
+                              workoutStatusLabel,
                               style: StrideTypography.labelBold.copyWith(fontSize: 10, color: StrideColors.background),
                             ),
                           ),
@@ -338,7 +347,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                                   ),
                                   child: Center(
                                     child: Text(
-                                      workout.state == WorkoutState.paused ? '${AppStrings.resume} (TAP 2X)' : '${AppStrings.pause} (TAP 2X)',
+                                      pauseButtonLabel,
                                       style: StrideTypography.labelBold.copyWith(color: StrideColors.white, fontSize: 10, letterSpacing: 1.2),
                                     ),
                                   ),
@@ -367,7 +376,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                                       ),
                                       Center(
                                         child: Text(
-                                          _finishProgress > 0 ? 'FINISHING...' : 'HOLD 3S FINISH',
+                                          _finishProgress > 0 ? 'FINISHING...' : AppStrings.holdToFinish,
                                           style: StrideTypography.labelBold.copyWith(color: StrideColors.background, fontSize: 10, letterSpacing: 1.2),
                                         ),
                                       ),
