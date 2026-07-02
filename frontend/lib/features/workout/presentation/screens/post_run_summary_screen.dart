@@ -19,7 +19,8 @@ class PostRunSummaryScreen extends ConsumerStatefulWidget {
   const PostRunSummaryScreen({super.key, this.workout, this.missionOverride});
 
   @override
-  ConsumerState<PostRunSummaryScreen> createState() => _PostRunSummaryScreenState();
+  ConsumerState<PostRunSummaryScreen> createState() =>
+      _PostRunSummaryScreenState();
 }
 
 class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
@@ -51,16 +52,18 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
     final isReplay = mission != null;
 
     List<latlong.LatLng> replayPath = [];
-    if (isReplay && mission.pathWkt != null && mission.pathWkt!.startsWith('LINESTRING')) {
+    if (isReplay &&
+        mission.pathWkt != null &&
+        mission.pathWkt!.startsWith('LINESTRING')) {
       replayPath = _parseWKT(mission.pathWkt!);
     }
 
     final previewPath = replayPath.isNotEmpty
         ? replayPath
         : (workout?.points
-                .map((point) => latlong.LatLng(point.lat, point.lng))
-                .toList() ??
-            const <latlong.LatLng>[]);
+                  .map((point) => latlong.LatLng(point.lat, point.lng))
+                  .toList() ??
+              const <latlong.LatLng>[]);
     final previewCamera = _buildPreviewCamera(previewPath);
 
     final distKm = workout != null
@@ -68,8 +71,11 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
         : mission?.distanceKm.toStringAsFixed(2) ?? '0.00';
 
     final duration = workout?.durationSeconds ?? mission?.durationSec ?? 0;
-    final isLoopClosed = workout?.isLoopClosed ?? (mission?.status == 'captured');
-    final calories = workout?.caloriesEstimate ?? (mission != null ? (70.0 * mission.distanceKm) : 0.0);
+    final isLoopClosed =
+        workout?.isLoopClosed ?? (mission?.status == 'captured');
+    final calories =
+        workout?.caloriesEstimate ??
+        (mission != null ? (70.0 * mission.distanceKm) : 0.0);
 
     final paceSec = double.tryParse(distKm) != null && double.parse(distKm) > 0
         ? (duration / double.parse(distKm))
@@ -79,236 +85,308 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
         : '--:--';
 
     final addressAsync = ref.watch(currentAddressProvider);
-    final int xpGained = ((double.tryParse(distKm) ?? 0.0) * 100).toInt() + (isLoopClosed ? 500 : 0);
+    final int xpGained =
+        ((double.tryParse(distKm) ?? 0.0) * 100).toInt() +
+        (isLoopClosed ? 500 : 0);
 
     return Scaffold(
       backgroundColor: StrideColors.background,
-      body: Column(
-        children: [
-          Expanded(
-            flex: 38,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(22),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: StrideMapView(
-                        initialCameraPositionOverride: previewCamera,
-                        staticPath: replayPath.isNotEmpty ? replayPath : null,
-                        isCaptured: isLoopClosed,
-                        isPreviewMode: true,
-                      ),
-                    ),
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.black.withValues(alpha: 0.18),
-                                Colors.black.withValues(alpha: 0.24),
-                                Colors.black.withValues(alpha: 0.72),
-                              ],
-                              stops: const [0.0, 0.38, 1.0],
-                            ),
-                          ),
+      body: SafeArea(
+        minimum: const EdgeInsets.only(top: 8),
+        child: Column(
+          children: [
+            Expanded(
+              flex: 38,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: StrideMapView(
+                          initialCameraPositionOverride: previewCamera,
+                          staticPath: replayPath.isNotEmpty ? replayPath : null,
+                          isCaptured: isLoopClosed,
+                          isPreviewMode: true,
                         ),
                       ),
-                    ),
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                            borderRadius: BorderRadius.circular(22),
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (isReplay)
-                      Positioned(
-                        top: 16,
-                        left: 16,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.45),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                          ),
-                          child: Text(
-                            'HISTORY',
-                            style: StrideTypography.labelBold.copyWith(
-                              color: StrideColors.warning,
-                              fontSize: 9,
-                              letterSpacing: 1.1,
-                            ),
-                          ),
-                        ),
-                      ),
-                    Positioned(
-                      left: 18,
-                      right: 18,
-                      bottom: 18,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: Container(
                             decoration: BoxDecoration(
-                              color: StrideColors.neonGreen.withValues(alpha: 0.16),
-                              borderRadius: BorderRadius.circular(999),
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.18),
+                                  Colors.black.withValues(alpha: 0.24),
+                                  Colors.black.withValues(alpha: 0.72),
+                                ],
+                                stops: const [0.0, 0.38, 1.0],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.05),
+                              ),
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (isReplay)
+                        Positioned(
+                          top: 16,
+                          left: 16,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: StrideColors.neonGreen.withValues(
+                                alpha: 0.14,
+                              ),
+                              border: Border.all(
+                                color: StrideColors.neonGreen.withValues(
+                                  alpha: 0.45,
+                                ),
+                              ),
                             ),
                             child: Text(
-                              isLoopClosed ? 'NEW TERRITORY SECURED' : 'RUN COMPLETE',
+                              'HISTORY',
                               style: StrideTypography.labelBold.copyWith(
                                 color: StrideColors.neonGreen,
-                                fontSize: 8,
-                                letterSpacing: 1.0,
+                                fontSize: 9,
+                                letterSpacing: 1.1,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            _buildHeroTitle(isLoopClosed),
-                            style: StrideTypography.headlineLG.copyWith(
-                              fontSize: 22,
-                              fontStyle: FontStyle.italic,
-                              height: 0.95,
-                              color: StrideColors.white,
+                        ),
+                      Positioned(
+                        left: 18,
+                        right: 18,
+                        bottom: 18,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: StrideColors.neonGreen.withValues(
+                                  alpha: 0.16,
+                                ),
+                                border: Border.all(
+                                  color: StrideColors.neonGreen.withValues(
+                                    alpha: 0.42,
+                                  ),
+                                ),
+                              ),
+                              child: Text(
+                                isLoopClosed
+                                    ? 'NEW TERRITORY SECURED'
+                                    : 'RUN COMPLETE',
+                                style: StrideTypography.labelBold.copyWith(
+                                  color: StrideColors.neonGreen,
+                                  fontSize: 8,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              _buildHeroTitle(isLoopClosed),
+                              style: StrideTypography.headlineLG.copyWith(
+                                fontSize: 22,
+                                fontStyle: FontStyle.italic,
+                                height: 0.95,
+                                color: StrideColors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            addressAsync.when(
+                              data: (address) => Text(
+                                address,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: StrideTypography.bodyMD.copyWith(
+                                  color: StrideColors.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              loading: () => Text(
+                                'Locating...',
+                                style: StrideTypography.bodyMD.copyWith(
+                                  color: StrideColors.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              error: (e, s) => Text(
+                                'Unknown location',
+                                style: StrideTypography.bodyMD.copyWith(
+                                  color: StrideColors.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 62,
+              child: Container(
+                color: StrideColors.background,
+                padding: const EdgeInsets.fromLTRB(14, 16, 14, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isLoopClosed
+                                    ? 'Territory secured'
+                                    : 'Run complete',
+                                style: StrideTypography.labelTactical.copyWith(
+                                  fontSize: 8,
+                                  color: isLoopClosed
+                                      ? StrideColors.neonGreen
+                                      : StrideColors.textSecondary,
+                                  letterSpacing: 1.4,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'SUMMARY',
+                                style: StrideTypography.headlineLG.copyWith(
+                                  fontSize: 28,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        V3SkewBox(
+                          skewAmount: -0.12,
+                          child: InkWell(
+                            onTap: _shareMission,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: StrideColors.surface,
+                                border: Border.all(
+                                  color: StrideColors.white.withValues(
+                                    alpha: 0.08,
+                                  ),
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.share_outlined,
+                                color: StrideColors.neonGreen,
+                                size: 20,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 6),
-                          addressAsync.when(
-                            data: (address) => Text(
-                              address,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: StrideTypography.bodyMD.copyWith(
-                                color: StrideColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                            loading: () => Text(
-                              'Locating...',
-                              style: StrideTypography.bodyMD.copyWith(
-                                color: StrideColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                            error: (e, s) => Text(
-                              'Unknown location',
-                              style: StrideTypography.bodyMD.copyWith(
-                                color: StrideColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildPrimarySummaryCard(distKm),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildMetricCard(
+                            'PACE',
+                            paceStr,
+                            '/KM',
+                            StrideColors.neonGreen,
                           ),
-                        ],
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildMetricCard(
+                            'TIME',
+                            '${(duration / 60).floor()}:${(duration % 60).toString().padLeft(2, '0')}',
+                            'MIN',
+                            Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildMetricCard(
+                            'CALORIES',
+                            '${calories.toInt()}',
+                            'KCAL',
+                            StrideColors.warning,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildMetricCard(
+                            'XP EARNED',
+                            '+$xpGained',
+                            'XP',
+                            StrideColors.neonGreen.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    V3SkewBox(
+                      child: ElevatedButton(
+                        onPressed: _handleNexusReturn,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isReplay
+                              ? StrideColors.white
+                              : StrideColors.neonGreen,
+                          minimumSize: const Size(double.infinity, 64),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
+                          ),
+                        ),
+                        child: Text(
+                          isReplay ? 'BACK TO HISTORY' : 'RETURN TO DASHBOARD',
+                          style: StrideTypography.buttonText.copyWith(
+                            fontSize: 24,
+                            color: Colors.black,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-          ),
-          Expanded(
-            flex: 62,
-            child: Container(
-              color: StrideColors.background,
-              padding: const EdgeInsets.fromLTRB(14, 16, 14, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              isLoopClosed ? 'Territory secured' : 'Run complete',
-                              style: StrideTypography.labelTactical.copyWith(
-                                fontSize: 8,
-                                color: isLoopClosed ? StrideColors.neonGreen : StrideColors.textSecondary,
-                                letterSpacing: 1.4,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'SUMMARY',
-                              style: StrideTypography.headlineLG.copyWith(fontSize: 28, fontStyle: FontStyle.italic),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      V3SkewBox(
-                        skewAmount: -0.12,
-                        child: InkWell(
-                          onTap: _shareMission,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: StrideColors.surface,
-                              border: Border.all(color: StrideColors.white.withValues(alpha: 0.08)),
-                            ),
-                            child: const Icon(Icons.share_outlined, color: StrideColors.neonGreen, size: 20),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildPrimarySummaryCard(distKm),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(child: _buildMetricCard('PACE', paceStr, '/KM', StrideColors.neonGreen)),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _buildMetricCard(
-                          'TIME',
-                          '${(duration / 60).floor()}:${(duration % 60).toString().padLeft(2, '0')}',
-                          'MIN',
-                          Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(child: _buildMetricCard('CALORIES', '${calories.toInt()}', 'KCAL', StrideColors.warning)),
-                      const SizedBox(width: 10),
-                      Expanded(child: _buildMetricCard('XP EARNED', '+$xpGained', 'XP', StrideColors.neonGreen.withValues(alpha: 0.7))),
-                    ],
-                  ),
-                  const Spacer(),
-                  V3SkewBox(
-                    child: ElevatedButton(
-                      onPressed: _handleNexusReturn,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isReplay ? StrideColors.white : StrideColors.neonGreen,
-                        minimumSize: const Size(double.infinity, 64),
-                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                      ),
-                      child: Text(
-                        isReplay ? 'BACK TO HISTORY' : 'RETURN TO DASHBOARD',
-                        style: StrideTypography.buttonText.copyWith(fontSize: 24, color: Colors.black),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -328,7 +406,10 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
           ],
         ),
         border: Border(
-          left: BorderSide(color: StrideColors.neonGreen.withValues(alpha: 0.85), width: 3),
+          left: BorderSide(
+            color: StrideColors.neonGreen.withValues(alpha: 0.85),
+            width: 3,
+          ),
         ),
       ),
       child: Column(
@@ -336,7 +417,10 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
         children: [
           Text(
             AppStrings.distance,
-            style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textMuted),
+            style: StrideTypography.labelTactical.copyWith(
+              fontSize: 7,
+              color: StrideColors.textMuted,
+            ),
           ),
           const SizedBox(height: 10),
           Row(
@@ -351,7 +435,10 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
                   'KM',
-                  style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.neonGreen.withValues(alpha: 0.8)),
+                  style: StrideTypography.labelTactical.copyWith(
+                    fontSize: 8,
+                    color: StrideColors.neonGreen.withValues(alpha: 0.8),
+                  ),
                 ),
               ),
             ],
@@ -361,7 +448,12 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
     );
   }
 
-  Widget _buildMetricCard(String label, String value, String unit, Color accent) {
+  Widget _buildMetricCard(
+    String label,
+    String value,
+    String unit,
+    Color accent,
+  ) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
@@ -406,10 +498,19 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Flexible(
-                child: Text(value, style: StrideTypography.headlineMD.copyWith(fontSize: 24)),
+                child: Text(
+                  value,
+                  style: StrideTypography.headlineMD.copyWith(fontSize: 24),
+                ),
               ),
               const SizedBox(width: 4),
-              Text(unit, style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textMuted)),
+              Text(
+                unit,
+                style: StrideTypography.labelTactical.copyWith(
+                  fontSize: 8,
+                  color: StrideColors.textMuted,
+                ),
+              ),
             ],
           ),
         ],
@@ -450,10 +551,16 @@ class _PostRunSummaryScreenState extends ConsumerState<PostRunSummaryScreen> {
     final latSpan = (maxLat - minLat).abs().clamp(minSpan, 999.0);
     final lngSpan = (maxLng - minLng).abs().clamp(minSpan, 999.0);
     final dominantSpan = latSpan > lngSpan ? latSpan : lngSpan;
-    final zoom = (16.9 - (math.log(dominantSpan / minSpan) / math.ln2)).clamp(14.3, 17.2);
+    final zoom = (16.9 - (math.log(dominantSpan / minSpan) / math.ln2)).clamp(
+      14.3,
+      17.2,
+    );
 
     return CameraPosition(
-      target: LatLng(((minLat + maxLat) / 2) - latSpan * 0.08, (minLng + maxLng) / 2),
+      target: LatLng(
+        ((minLat + maxLat) / 2) - latSpan * 0.08,
+        (minLng + maxLng) / 2,
+      ),
       zoom: zoom,
       bearing: -12,
       tilt: 48,

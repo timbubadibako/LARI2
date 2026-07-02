@@ -18,6 +18,8 @@ class HistoryScreen extends ConsumerStatefulWidget {
 }
 
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  bool _isSyncing = false;
+
   Future<void> _clearHistory() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -30,7 +32,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               side: BorderSide(color: StrideColors.white),
               borderRadius: BorderRadius.zero,
             ),
-            title: Text('ERASE MISSION LOGS?', style: StrideTypography.headlineMD.copyWith(color: StrideColors.error)),
+            title: Text(
+              'ERASE MISSION LOGS?',
+              style: StrideTypography.headlineMD.copyWith(
+                color: StrideColors.error,
+              ),
+            ),
             content: Text(
               'THIS ACTION WILL PERMANENTLY WIPE ALL ARCHIVES FROM THE CENTRAL INTEL SERVER.',
               style: StrideTypography.bodyMD,
@@ -38,13 +45,31 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                style: TextButton.styleFrom(shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero)),
-                child: Text('CANCEL', style: StrideTypography.labelTactical.copyWith(color: StrideColors.textMuted)),
+                style: TextButton.styleFrom(
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                ),
+                child: Text(
+                  'CANCEL',
+                  style: StrideTypography.labelTactical.copyWith(
+                    color: StrideColors.textMuted,
+                  ),
+                ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
-                style: TextButton.styleFrom(shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero)),
-                child: Text('CONFIRM_ERASE', style: StrideTypography.labelTactical.copyWith(color: StrideColors.error)),
+                style: TextButton.styleFrom(
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                ),
+                child: Text(
+                  'CONFIRM_ERASE',
+                  style: StrideTypography.labelTactical.copyWith(
+                    color: StrideColors.error,
+                  ),
+                ),
               ),
             ],
           ),
@@ -56,7 +81,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       final success = await ref.read(historyControllerProvider).clearHistory();
       if (mounted && success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ARCHIVES PURGED.'), backgroundColor: StrideColors.error),
+          const SnackBar(
+            content: Text('ARCHIVES PURGED.'),
+            backgroundColor: StrideColors.error,
+          ),
         );
       }
     }
@@ -66,7 +94,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Widget build(BuildContext context) {
     final historyAsync = ref.watch(userHistoryProvider);
     final missions = historyAsync.asData?.value ?? [];
-    final hasPending = missions.any((m) => m.syncStatus == 'pending' || m.syncStatus == 'processing');
+    final hasPending = missions.any(
+      (m) => m.syncStatus == 'pending' || m.syncStatus == 'processing',
+    );
     final hasQuarantined = missions.any((m) => m.syncStatus == 'quarantined');
     final filteredMissions = ref.watch(filteredUserHistoryProvider);
     final summary = ref.watch(historySummaryProvider);
@@ -80,22 +110,61 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           TacticalHeader(
             title: 'History',
             subTitle: 'YOUR RUNS AND RECENT RESULTS',
-            status: hasQuarantined
+            status: _isSyncing
+                ? 'SYNCING NOW'
+                : hasQuarantined
                 ? 'SYNC BLOCKED'
                 : (hasPending ? 'SYNC NEEDED' : 'UP TO DATE'),
-            statusColor: hasQuarantined
+            statusColor: _isSyncing
+                ? StrideColors.neonGreen
+                : hasQuarantined
                 ? StrideColors.error
                 : (hasPending ? StrideColors.warning : StrideColors.neonGreen),
             actions: [
               if (hasPending || hasQuarantined)
                 TacticalIconButton(
                   onPressed: () async {
+                    if (_isSyncing) return;
                     HapticFeedback.mediumImpact();
-                    await ref.read(lariSyncServiceProvider).processQueue();
-                    ref.invalidate(userHistoryProvider);
+                    setState(() => _isSyncing = true);
+                    final messenger = ScaffoldMessenger.of(context);
+                    messenger.hideCurrentSnackBar();
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('RETRYING RUN SYNC...'),
+                        duration: Duration(seconds: 1),
+                        backgroundColor: StrideColors.neonGreen,
+                      ),
+                    );
+                    try {
+                      final success = await ref
+                          .read(lariSyncServiceProvider)
+                          .processQueue();
+                      ref.invalidate(userHistoryProvider);
+                      if (!mounted) return;
+                      messenger.hideCurrentSnackBar();
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            success
+                                ? 'SYNC RETRY COMPLETE.'
+                                : 'SYNC RETRY SENT. SOME RUNS STILL NEED ATTENTION.',
+                          ),
+                          backgroundColor: success
+                              ? StrideColors.neonGreen
+                              : StrideColors.warning,
+                        ),
+                      );
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isSyncing = false);
+                      }
+                    }
                   },
-                  icon: Icons.sync_outlined,
-                  color: StrideColors.warning,
+                  icon: _isSyncing ? Icons.sync : Icons.sync_outlined,
+                  color: _isSyncing
+                      ? StrideColors.neonGreen
+                      : StrideColors.warning,
                 ),
               TacticalIconButton(
                 onPressed: () => ref.invalidate(userHistoryProvider),
@@ -128,7 +197,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           child: Center(
                             child: Text(
                               'NO RUNS FOUND FOR THIS PERIOD.',
-                              style: StrideTypography.labelTactical.copyWith(color: StrideColors.textMuted),
+                              style: StrideTypography.labelTactical.copyWith(
+                                color: StrideColors.textMuted,
+                              ),
                             ),
                           ),
                         ),
@@ -146,23 +217,34 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         final mission = filteredMissions[index];
                         final isCaptured = mission.status == 'captured';
                         final isPendingSync = mission.syncStatus == 'pending';
-                        final isProcessingSync = mission.syncStatus == 'processing';
-                        final isSyncBlocked = mission.syncStatus == 'quarantined';
+                        final isProcessingSync =
+                            mission.syncStatus == 'processing' ||
+                            (_isSyncing && isPendingSync);
+                        final isSyncBlocked =
+                            mission.syncStatus == 'quarantined';
                         final statusColor = isProcessingSync
                             ? StrideColors.neonGreen
                             : isPendingSync
                             ? StrideColors.warning
                             : isSyncBlocked
-                                ? StrideColors.error
-                            : (isCaptured ? StrideColors.neonGreen : Colors.white.withValues(alpha: 0.4));
+                            ? StrideColors.error
+                            : (isCaptured
+                                  ? StrideColors.neonGreen
+                                  : Colors.white.withValues(alpha: 0.4));
                         final title = isProcessingSync
                             ? 'Sync In Progress'
                             : isSyncBlocked
                             ? 'Sync Blocked'
-                            : (isCaptured ? 'Area Acquisition' : 'Standard Activity');
+                            : (isCaptured
+                                  ? 'Area Acquisition'
+                                  : 'Standard Activity');
 
                         return Padding(
-                          padding: EdgeInsets.only(bottom: index == filteredMissions.length - 1 ? 0 : 16),
+                          padding: EdgeInsets.only(
+                            bottom: index == filteredMissions.length - 1
+                                ? 0
+                                : 16,
+                          ),
                           child: MissionDossierCard(
                             id: mission.id,
                             title: title,
@@ -180,7 +262,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => PostRunSummaryScreen(missionOverride: mission),
+                                  builder: (context) => PostRunSummaryScreen(
+                                    missionOverride: mission,
+                                  ),
                                 ),
                               );
                             },
@@ -190,14 +274,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     ],
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator(color: StrideColors.neonGreen)),
+                loading: () => const Center(
+                  child: CircularProgressIndicator(
+                    color: StrideColors.neonGreen,
+                  ),
+                ),
                 error: (e, s) => ListView(
                   children: [
                     SizedBox(
                       height: MediaQuery.of(context).size.height * 0.5,
                       child: Center(
-                        child: Text('SYNC FAIL: RUN ARCHIVE UNAVAILABLE',
-                        style: StrideTypography.labelTactical.copyWith(color: StrideColors.error),
+                        child: Text(
+                          'SYNC FAIL: RUN ARCHIVE UNAVAILABLE',
+                          style: StrideTypography.labelTactical.copyWith(
+                            color: StrideColors.error,
+                          ),
                         ),
                       ),
                     ),
@@ -229,13 +320,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
           return Expanded(
             child: GestureDetector(
-              onTap: () => ref.read(historyRangeProvider.notifier).setRange(range),
+              onTap: () =>
+                  ref.read(historyRangeProvider.notifier).setRange(range),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: isSelected ? StrideColors.neonGreen : Colors.transparent,
+                  color: isSelected
+                      ? StrideColors.neonGreen
+                      : Colors.transparent,
                   border: Border.all(
                     color: isSelected
                         ? StrideColors.neonGreen
@@ -260,11 +354,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Widget _buildSummaryRow(({double distanceKm, int runCount, int capturedCount}) summary) {
+  Widget _buildSummaryRow(
+    ({double distanceKm, int runCount, int capturedCount}) summary,
+  ) {
     return Row(
       children: [
         Expanded(
-          child: _buildSummaryCard('Distance', '${summary.distanceKm.toStringAsFixed(1)} km', StrideColors.neonGreen),
+          child: _buildSummaryCard(
+            'Distance',
+            '${summary.distanceKm.toStringAsFixed(1)} km',
+            StrideColors.neonGreen,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -272,7 +372,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildSummaryCard('Captured', '${summary.capturedCount}', StrideColors.warning),
+          child: _buildSummaryCard(
+            'Captured',
+            '${summary.capturedCount}',
+            StrideColors.warning,
+          ),
         ),
       ],
     );

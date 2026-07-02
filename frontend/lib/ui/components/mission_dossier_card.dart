@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart' as latlong;
 import '../../../ui/theme/stride_colors.dart';
 import '../../../ui/theme/stride_typography.dart';
-import '../../../ui/components/v3_shapes.dart';
 import '../../../ui/components/route_preview_painter.dart';
 
 class MissionDossierCard extends StatelessWidget {
@@ -42,11 +41,13 @@ class MissionDossierCard extends StatelessWidget {
     final syncLabel = isProcessingSync
         ? 'SYNCING'
         : (isPendingSync ? 'SYNC PENDING' : null);
-    final dateStr = '${createdAt.day}_${_monthName(createdAt.month)}_${createdAt.year}'.toUpperCase();
+    final dateStr =
+        '${createdAt.day}_${_monthName(createdAt.month)}_${createdAt.year}'
+            .toUpperCase();
 
     final paceSec = distanceKm > 0 ? (durationSec / distanceKm) : 0.0;
-    final pace = paceSec > 0 
-        ? '${(paceSec / 60).floor().toString().padLeft(2, '0')}:${(paceSec % 60).floor().toString().padLeft(2, '0')}' 
+    final pace = paceSec > 0
+        ? '${(paceSec / 60).floor().toString().padLeft(2, '0')}:${(paceSec % 60).floor().toString().padLeft(2, '0')}'
         : '--:--';
 
     return GestureDetector(
@@ -102,33 +103,66 @@ class MissionDossierCard extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Text(dateStr, style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: Colors.white24)),
+                            Text(
+                              dateStr,
+                              style: StrideTypography.labelTactical.copyWith(
+                                fontSize: 8,
+                                color: Colors.white24,
+                              ),
+                            ),
                             const Spacer(),
                             if (syncLabel != null) ...[
-                              V3SkewBox(
-                                skewAmount: -0.1,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  color: isProcessingSync ? StrideColors.neonGreen : StrideColors.warning,
-                                  child: Text(
-                                    syncLabel,
-                                    style: StrideTypography.labelBold.copyWith(
-                                      fontSize: 7,
-                                      color: Colors.black,
-                                    ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isProcessingSync
+                                      ? StrideColors.neonGreen
+                                      : StrideColors.warning,
+                                  border: Border.all(
+                                    color:
+                                        (isProcessingSync
+                                                ? StrideColors.neonGreen
+                                                : StrideColors.warning)
+                                            .withValues(alpha: 0.65),
+                                  ),
+                                ),
+                                child: Text(
+                                  syncLabel,
+                                  style: StrideTypography.labelBold.copyWith(
+                                    fontSize: 7,
+                                    color: Colors.black,
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 4),
                             ],
-                            V3SkewBox(
-                              skewAmount: -0.1,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                color: isCaptured ? StrideColors.neonGreen : Colors.white12,
-                                child: Text(
-                                  isCaptured ? 'TERRITORY' : 'ROUTE',
-                                  style: StrideTypography.labelBold.copyWith(fontSize: 7, color: isCaptured ? Colors.black : Colors.white),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isCaptured
+                                    ? StrideColors.neonGreen
+                                    : Colors.white12,
+                                border: Border.all(
+                                  color: isCaptured
+                                      ? StrideColors.neonGreen.withValues(
+                                          alpha: 0.6,
+                                        )
+                                      : Colors.white24,
+                                ),
+                              ),
+                              child: Text(
+                                isCaptured ? 'TERRITORY' : 'ROUTE',
+                                style: StrideTypography.labelBold.copyWith(
+                                  fontSize: 7,
+                                  color: isCaptured
+                                      ? Colors.black
+                                      : Colors.white,
                                 ),
                               ),
                             ),
@@ -139,12 +173,18 @@ class MissionDossierCard extends StatelessWidget {
                           title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: StrideTypography.headlineMD.copyWith(fontSize: 18, letterSpacing: 0),
+                          style: StrideTypography.headlineMD.copyWith(
+                            fontSize: 18,
+                            letterSpacing: 0,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Row(
                           children: [
-                            _miniStat('DIST', '${distanceKm.toStringAsFixed(1)}KM'),
+                            _miniStat(
+                              'DIST',
+                              '${distanceKm.toStringAsFixed(1)}KM',
+                            ),
                             const SizedBox(width: 20),
                             _miniStat('PACE', pace),
                           ],
@@ -175,7 +215,10 @@ class MissionDossierCard extends StatelessWidget {
 
   Widget _buildRoutePreview() {
     if (pathWkt == null || !pathWkt!.startsWith('LINESTRING')) {
-      return Container(color: Colors.white12, child: const Icon(Icons.route, color: Colors.white24));
+      return Container(
+        color: Colors.white12,
+        child: const Icon(Icons.route, color: Colors.white24),
+      );
     }
 
     final points = _parseWKT(pathWkt!);
@@ -207,14 +250,39 @@ class MissionDossierCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: Colors.white24)),
-        Text(value, style: StrideTypography.displayXL.copyWith(fontSize: 16, color: StrideColors.white)),
+        Text(
+          label,
+          style: StrideTypography.labelTactical.copyWith(
+            fontSize: 7,
+            color: Colors.white24,
+          ),
+        ),
+        Text(
+          value,
+          style: StrideTypography.displayXL.copyWith(
+            fontSize: 16,
+            color: StrideColors.white,
+          ),
+        ),
       ],
     );
   }
 
   String _monthName(int month) {
-    const names = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+    const names = [
+      'JANUARY',
+      'FEBRUARY',
+      'MARCH',
+      'APRIL',
+      'MAY',
+      'JUNE',
+      'JULY',
+      'AUGUST',
+      'SEPTEMBER',
+      'OCTOBER',
+      'NOVEMBER',
+      'DECEMBER',
+    ];
     return names[month - 1];
   }
 }

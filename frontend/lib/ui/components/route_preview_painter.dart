@@ -10,6 +10,18 @@ class RoutePreviewPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final gridPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..strokeWidth = 1;
+
+    const step = 18.0;
+    for (double x = 0; x <= size.width; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+    }
+    for (double y = 0; y <= size.height; y += step) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
     if (points.length < 2) return;
 
     final paint = Paint()
@@ -39,8 +51,13 @@ class RoutePreviewPainter extends CustomPainter {
 
     final path = Path();
     for (int i = 0; i < points.length; i++) {
-      final x = (points[i].longitude - minLng) * scale + (size.width - lngRange * scale) / 2;
-      final y = size.height - ((points[i].latitude - minLat) * scale + (size.height - latRange * scale) / 2);
+      final x =
+          (points[i].longitude - minLng) * scale +
+          (size.width - lngRange * scale) / 2;
+      final y =
+          size.height -
+          ((points[i].latitude - minLat) * scale +
+              (size.height - latRange * scale) / 2);
 
       if (i == 0) {
         path.moveTo(x, y);
