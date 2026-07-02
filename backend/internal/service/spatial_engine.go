@@ -7,6 +7,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -15,21 +16,28 @@ type SpatialEngine struct {
 }
 
 type ConquestResult struct {
-	CapturedAreaSqm      float64
-	RunStatus            string
-	ClaimReason          string
-	PendingTrailActive   bool
+	CapturedAreaSqm       float64
+	RunStatus             string
+	ClaimReason           string
+	PendingTrailActive    bool
 	PendingTrailExpiresAt *time.Time
 }
 
-// minConquestAreaSqm is the minimum enclosed area (in square meters) required
+// SELECT
+    user_id,
+    total_area_sqm,
+    ST_AsText(merged_boundary)
+  FROM user_territories
+  WHERE sector_id = 'DEFAULT';minConquestAreaSqm is the minimum enclosed area (in square meters) required
 // to register a territory capture. This prevents accidental micro-loops from
 // GPS jitter near the start point from claiming territory.
 // 50 m² ≈ roughly the size of a large room — intentional loops will be much larger.
 const minConquestAreaSqm = 50.0
-const loopClosureToleranceMeters = 25.0
-const minLoopDisplacementMeters = 30.0
+const loopClosureToleranceMeters = 5.0
+const minLoopDisplacementMeters = 50.0
 const pendingTrailContinuationWindowHours = 72
+const minRetainedTerritoryFragmentSqm = 200.0
+const minRetainedTerritoryFragmentRatio = 0.12
 
 func NewSpatialEngine(db *pgxpool.Pool) *SpatialEngine {
 	return &SpatialEngine{db: db}
@@ -39,11 +47,11 @@ func NewSpatialEngine(db *pgxpool.Pool) *SpatialEngine {
 // Tactical Requirement: Snapping boundary is 20m.
 func (s *SpatialEngine) MapMatchPoints(ctx context.Context, points []Point) ([]Point, error) {
 	// TODO: Integrate with local OSRM instance /match service.
-	
-	// ARCHITECTURAL RULE: 
+
+	// ARCHITECTURAL RULE:
 	// If distance from point to nearest road > 20m, DO NOT SNAP (Off-Road Mode).
 	// This preserves the "Elastic Trail" integrity for agents in parks/fields.
-	
+
 	return points, nil
 }
 
@@ -103,12 +111,18 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 			return result, fmt.Errorf("failed to merge lines: %w", err)
 		}
 		// Delete the old segment as it will be updated or turned into a polygon
-		_, _ = tx.Exec(ctx, "DELETE FROM pending_trails WHERE id = $1", pendingID)
-	} else {
-		// No connection found. 
+		if _, err = tx.Exec(ctx, "DELETE FROM pending_trails WHERE id = $1", pendingID); err != nil {
+			return result, fmt.Errorf("failed to delete consumed pending trail: %w", err)
+		}
+	} else if err == pgx.ErrNoRows {
+		// No connection found.
 		// "Chain or Crash": Clear any existing pending trails for this user (they've started a new chain elsewhere)
-		_, _ = tx.Exec(ctx, "DELETE FROM pending_trails WHERE user_id = $1", userID)
+		if _, err = tx.Exec(ctx, "DELETE FROM pending_trails WHERE user_id = $1", userID); err != nil {
+			return result, fmt.Errorf("failed to clear stale pending trails: %w", err)
+		}
 		fullTrailWKT = wktLine
+	} else {
+		return result, fmt.Errorf("failed to lookup pending trail: %w", err)
 	}
 
 	// 3. Detect Loops via ST_BuildArea
@@ -118,47 +132,21 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 
 	// Use noded linework + polygonize so lasso-shaped trails (A -> B -> ... -> B)
 	// can produce a valid polygon while the dangling tail remains as leftover pending trail.
-	err = tx.QueryRow(ctx, `
-		WITH raw_geom AS (
-			SELECT ST_SnapToGrid(ST_GeomFromText($1, 4326), 0.00001) as g
-		),
-		noded AS (
-			SELECT ST_Node(g) as g FROM raw_geom
-		),
-		polys AS (
-			SELECT ST_CollectionExtract(ST_UnaryUnion(ST_Collect((ST_Dump(ST_Polygonize(g))).geom)), 3) as p
-			FROM noded
-		),
-		captured_wkt AS (
-			SELECT ST_AsText(p) as wkt FROM polys WHERE p IS NOT NULL AND NOT ST_IsEmpty(p)
-		),
-		area_calc AS (
-			SELECT ST_Area(p::geography) as area FROM polys WHERE p IS NOT NULL AND NOT ST_IsEmpty(p)
-		),
-		leftovers AS (
-			SELECT ST_AsText(
-				ST_Difference(
-					ST_GeomFromText($1, 4326),
-					ST_Boundary((SELECT p FROM polys))
-				)
-			) as residue
-			FROM polys
-		)
-		SELECT 
-			COALESCE((SELECT area FROM area_calc), 0), 
-			COALESCE((SELECT residue FROM leftovers), $1),
-			COALESCE((SELECT wkt FROM captured_wkt), '')
-	`, fullTrailWKT).Scan(&areaSqm, &remainingLinesWKT, &capturedPolyWKT)
-
+	areaSqm, remainingLinesWKT, capturedPolyWKT, err = s.polygonizeTrail(ctx, fullTrailWKT)
 	if err != nil {
-		// If polygonization fails or no loops, just keep the full trail
+		log.Printf("CONQUEST_POLYGONIZE_FALLBACK: user_id=%s error=%v", userID, err)
 		remainingLinesWKT = fullTrailWKT
 		areaSqm = 0
 		capturedPolyWKT = ""
 	}
 
 	// 4. Update Pending Trails with leftovers
-	if remainingLinesWKT != "" && remainingLinesWKT != "GEOMETRYCOLLECTION EMPTY" {
+	pendingTrailWKT, err := s.normalizePendingTrailWKT(ctx, remainingLinesWKT)
+	if err != nil {
+		return result, fmt.Errorf("failed to normalize pending trail: %w", err)
+	}
+
+	if pendingTrailWKT != "" {
 		var pendingExpiresAt time.Time
 		_, err = tx.Exec(ctx, `
 			INSERT INTO pending_trails (user_id, geom, start_point, end_point, expires_at)
@@ -169,7 +157,7 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 				ST_EndPoint(ST_GeomFromText($2, 4326)),
 				NOW() + INTERVAL '72 hours'
 			)
-		`, userID, remainingLinesWKT)
+		`, userID, pendingTrailWKT)
 		if err != nil {
 			return result, fmt.Errorf("failed to save pending trail: %w", err)
 		}
@@ -180,23 +168,70 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 
 	// 5. If area > minConquestAreaSqm, PROCESS CONQUEST (Clip others, then merge for self)
 	if areaSqm >= minConquestAreaSqm && capturedPolyWKT != "" {
+		minRetainedFragmentAreaSqm := math.Max(
+			minRetainedTerritoryFragmentSqm,
+			areaSqm*minRetainedTerritoryFragmentRatio,
+		)
+
 		// A. COOKIE CUTTER: Subtract this area from ALL OTHER agents
-		tag, err := tx.Exec(ctx, `
-			UPDATE user_territories 
-			SET 
-				merged_boundary = ST_Multi(ST_Difference(merged_boundary, ST_GeomFromText($2, 4326))),
-				total_area_sqm = ST_Area(ST_Difference(merged_boundary, ST_GeomFromText($2, 4326))::geography)
-			WHERE user_id != $1 
-			  AND sector_id = 'DEFAULT' 
+		rows, err := tx.Query(ctx, `
+			SELECT user_id, ST_AsText(merged_boundary)
+			FROM user_territories
+			WHERE user_id != $1
+			  AND sector_id = 'DEFAULT'
 			  AND ST_Intersects(merged_boundary, ST_GeomFromText($2, 4326))
 		`, userID, capturedPolyWKT)
 		if err != nil {
-			return result, fmt.Errorf("failed to clip rival territories: %w", err)
+			return result, fmt.Errorf("failed to fetch rival territories for clipping: %w", err)
+		}
+		defer rows.Close()
+
+		clippedRows := int64(0)
+		for rows.Next() {
+			var rivalUserID string
+			var rivalBoundaryWKT string
+			if err := rows.Scan(&rivalUserID, &rivalBoundaryWKT); err != nil {
+				return result, fmt.Errorf("failed to scan rival territory: %w", err)
+			}
+
+			prunedBoundaryWKT, prunedAreaSqm, err := s.prunePolygonFragments(
+				ctx,
+				"ST_Difference(ST_GeomFromText($1, 4326), ST_GeomFromText($2, 4326))",
+				[]any{rivalBoundaryWKT, capturedPolyWKT},
+				minRetainedFragmentAreaSqm,
+			)
+			if err != nil {
+				return result, fmt.Errorf("failed to prune clipped rival territory: %w", err)
+			}
+
+			if prunedBoundaryWKT == "" || prunedAreaSqm <= 0 {
+				if _, err = tx.Exec(ctx, `
+					DELETE FROM user_territories
+					WHERE user_id = $1 AND sector_id = 'DEFAULT'
+				`, rivalUserID); err != nil {
+					return result, fmt.Errorf("failed to delete emptied rival territory: %w", err)
+				}
+				clippedRows++
+				continue
+			}
+
+			if _, err = tx.Exec(ctx, `
+				UPDATE user_territories
+				SET merged_boundary = ST_Multi(ST_GeomFromText($2, 4326)),
+				    total_area_sqm = $3
+				WHERE user_id = $1 AND sector_id = 'DEFAULT'
+			`, rivalUserID, prunedBoundaryWKT, prunedAreaSqm); err != nil {
+				return result, fmt.Errorf("failed to update pruned rival territory: %w", err)
+			}
+			clippedRows++
+		}
+		if err := rows.Err(); err != nil {
+			return result, fmt.Errorf("failed while iterating rival territories: %w", err)
 		}
 		log.Printf(
 			"CONQUEST_COOKIE_CUTTER: user_id=%s clipped_rows=%d captured_area_sqm=%.2f",
 			userID,
-			tag.RowsAffected(),
+			clippedRows,
 			areaSqm,
 		)
 
@@ -207,22 +242,49 @@ func (s *SpatialEngine) ProcessConquest(ctx context.Context, userID string, guil
 		} else {
 			guildIDVal = guildID
 		}
+		var existingBoundaryWKT string
+		err = tx.QueryRow(ctx, `
+			SELECT ST_AsText(merged_boundary)
+			FROM user_territories
+			WHERE user_id = $1 AND sector_id = 'DEFAULT'
+		`, userID).Scan(&existingBoundaryWKT)
+		if err != nil && err != pgx.ErrNoRows {
+			return result, fmt.Errorf("failed to fetch existing territory: %w", err)
+		}
+
+		var selfBoundaryWKT string
+		var selfAreaSqm float64
+		if err == pgx.ErrNoRows {
+			selfBoundaryWKT, selfAreaSqm, err = s.prunePolygonFragments(
+				ctx,
+				"ST_GeomFromText($1, 4326)",
+				[]any{capturedPolyWKT},
+				minRetainedFragmentAreaSqm,
+			)
+		} else {
+			selfBoundaryWKT, selfAreaSqm, err = s.prunePolygonFragments(
+				ctx,
+				"ST_UnaryUnion(ST_Collect(ST_GeomFromText($1, 4326), ST_GeomFromText($2, 4326)))",
+				[]any{existingBoundaryWKT, capturedPolyWKT},
+				minRetainedFragmentAreaSqm,
+			)
+		}
+		if err != nil {
+			return result, fmt.Errorf("failed to prune merged player territory: %w", err)
+		}
+		if selfBoundaryWKT == "" || selfAreaSqm <= 0 {
+			return result, fmt.Errorf("merged player territory became empty unexpectedly")
+		}
 
 		_, err = tx.Exec(ctx, `
 			INSERT INTO user_territories (user_id, guild_id, sector_id, merged_boundary, total_area_sqm)
-			VALUES (
-				$1, 
-				$2, 
-				'DEFAULT', 
-				ST_Multi(ST_GeomFromText($3, 4326)), 
-				$4
-			)
+			VALUES ($1, $2, 'DEFAULT', ST_Multi(ST_GeomFromText($3, 4326)), $4)
 			ON CONFLICT (user_id, sector_id) DO UPDATE SET
-				merged_boundary = ST_Multi(ST_Union(user_territories.merged_boundary, EXCLUDED.merged_boundary)),
-				total_area_sqm = ST_Area(ST_Union(user_territories.merged_boundary, EXCLUDED.merged_boundary)::geography),
+				merged_boundary = ST_Multi(ST_GeomFromText($3, 4326)),
+				total_area_sqm = $4,
 				last_expanded_at = NOW(),
 				guild_id = EXCLUDED.guild_id
-		`, userID, guildIDVal, capturedPolyWKT, areaSqm)
+		`, userID, guildIDVal, selfBoundaryWKT, selfAreaSqm)
 		if err != nil {
 			return result, fmt.Errorf("failed to update territories: %w", err)
 		}
@@ -308,4 +370,139 @@ func (s *SpatialEngine) haversineMeters(p1, p2 Point) float64 {
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 
 	return earthRadius * c
+}
+
+func (s *SpatialEngine) polygonizeTrail(ctx context.Context, fullTrailWKT string) (float64, string, string, error) {
+	var areaSqm float64
+	var remainingLinesWKT string
+	var capturedPolyWKT string
+
+	err := s.db.QueryRow(ctx, `
+		WITH raw_geom AS (
+			SELECT ST_SnapToGrid(ST_GeomFromText($1, 4326), 0.00001) as g
+		),
+		noded AS (
+			SELECT ST_Node(g) as g FROM raw_geom
+		),
+		polygon_parts AS (
+			SELECT (ST_Dump(ST_Polygonize(g))).geom AS geom
+			FROM noded
+		),
+		polys AS (
+			SELECT ST_CollectionExtract(ST_UnaryUnion(ST_Collect(geom)), 3) as p
+			FROM polygon_parts
+		),
+		captured_wkt AS (
+			SELECT ST_AsText(p) as wkt FROM polys WHERE p IS NOT NULL AND NOT ST_IsEmpty(p)
+		),
+		area_calc AS (
+			SELECT ST_Area(p::geography) as area FROM polys WHERE p IS NOT NULL AND NOT ST_IsEmpty(p)
+		),
+		leftovers AS (
+			SELECT ST_AsText(
+				ST_LineMerge(
+					ST_CollectionExtract(
+						ST_Difference(
+							ST_GeomFromText($1, 4326),
+							ST_Boundary((SELECT p FROM polys))
+						),
+						2
+					)
+				)
+			) as residue
+			FROM polys
+		)
+		SELECT
+			COALESCE((SELECT area FROM area_calc), 0),
+			COALESCE((SELECT residue FROM leftovers), $1),
+			COALESCE((SELECT wkt FROM captured_wkt), '')
+	`, fullTrailWKT).Scan(&areaSqm, &remainingLinesWKT, &capturedPolyWKT)
+	if err != nil {
+		return 0, "", "", err
+	}
+
+	return areaSqm, remainingLinesWKT, capturedPolyWKT, nil
+}
+
+func (s *SpatialEngine) normalizePendingTrailWKT(ctx context.Context, wkt string) (string, error) {
+	if wkt == "" || wkt == "GEOMETRYCOLLECTION EMPTY" || wkt == "LINESTRING EMPTY" || wkt == "MULTILINESTRING EMPTY" {
+		return "", nil
+	}
+
+	var normalized string
+	err := s.db.QueryRow(ctx, `
+		WITH input AS (
+			SELECT ST_GeomFromText($1, 4326) AS g
+		),
+		lines AS (
+			SELECT
+				(ST_Dump(ST_CollectionExtract(g, 2))).geom AS geom
+			FROM input
+		),
+		candidates AS (
+			SELECT
+				CASE
+					WHEN GeometryType(geom) = 'LINESTRING' THEN geom
+					ELSE ST_LineMerge(geom)
+				END AS geom
+			FROM lines
+		),
+		valid_lines AS (
+			SELECT geom
+			FROM candidates
+			WHERE geom IS NOT NULL
+			  AND NOT ST_IsEmpty(geom)
+			  AND GeometryType(geom) = 'LINESTRING'
+			  AND ST_NPoints(geom) >= 2
+			ORDER BY ST_Length(geom::geography) DESC
+			LIMIT 1
+		)
+		SELECT COALESCE((SELECT ST_AsText(geom) FROM valid_lines), '')
+	`, wkt).Scan(&normalized)
+	if err != nil {
+		return "", err
+	}
+
+	return normalized, nil
+}
+
+func (s *SpatialEngine) prunePolygonFragments(
+	ctx context.Context,
+	geometryExpr string,
+	args []any,
+	minAreaSqm float64,
+) (string, float64, error) {
+	query := fmt.Sprintf(`
+		WITH raw_geom AS (
+			SELECT ST_CollectionExtract(ST_MakeValid(%s), 3) AS geom
+		),
+		fragments AS (
+			SELECT (ST_Dump(geom)).geom AS geom
+			FROM raw_geom
+			WHERE geom IS NOT NULL AND NOT ST_IsEmpty(geom)
+		),
+		retained AS (
+			SELECT geom
+			FROM fragments
+			WHERE ST_Area(geom::geography) >= $%d
+		),
+		merged AS (
+			SELECT ST_UnaryUnion(ST_Collect(geom)) AS geom
+			FROM retained
+		)
+		SELECT
+			COALESCE((SELECT ST_AsText(ST_CollectionExtract(ST_MakeValid(geom), 3)) FROM merged), ''),
+			COALESCE((SELECT ST_Area(geom::geography) FROM merged), 0)
+	`, geometryExpr, len(args)+1)
+
+	queryArgs := append(append([]any{}, args...), minAreaSqm)
+	var wkt string
+	var areaSqm float64
+	if err := s.db.QueryRow(ctx, query, queryArgs...).Scan(&wkt, &areaSqm); err != nil {
+		return "", 0, err
+	}
+	if wkt == "MULTIPOLYGON EMPTY" || wkt == "POLYGON EMPTY" {
+		return "", 0, nil
+	}
+	return wkt, areaSqm, nil
 }
