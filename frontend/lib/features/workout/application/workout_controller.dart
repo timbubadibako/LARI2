@@ -12,16 +12,18 @@ import '../../profile/application/profile_controller.dart';
 import '../../history/application/history_controller.dart';
 import '../../map/application/territory_controller.dart';
 
-final workoutControllerProvider = NotifierProvider<WorkoutController, WorkoutSession>(() {
-  return WorkoutController();
-});
+final workoutControllerProvider =
+    NotifierProvider<WorkoutController, WorkoutSession>(() {
+      return WorkoutController();
+    });
 
 class WorkoutController extends Notifier<WorkoutSession> {
   static const _uuid = Uuid();
   static const double _autoPauseSpeedThresholdMps = 0.45;
   static const int _autoPauseDelaySeconds = 15;
-  static const double _loopClosureToleranceMeters = 25.0;
-  static const double _minLoopDisplacementMeters = 30.0;
+  static const double _loopClosureToleranceMeters = 5.0;
+  static const double _minLoopDisplacementMeters = 50.0;
+  static const int _trackingGapResetSeconds = 12;
   StreamSubscription? _positionSub;
   Timer? _timer;
   PositionSample? _lastObservedSample;
@@ -104,35 +106,39 @@ class WorkoutController extends Notifier<WorkoutSession> {
   Future<void> end() async {
     try {
       debugPrint('WorkoutController: Ending session ${state.id}');
-      
+
       // Guard: discard sessions with insufficient GPS data — do not inject dummy coords.
       if (state.points.length < 2) {
-        debugPrint('WorkoutController: Session discarded — insufficient GPS points (${state.points.length}). Minimum 2 required.');
+        debugPrint(
+          'WorkoutController: Session discarded — insufficient GPS points (${state.points.length}). Minimum 2 required.',
+        );
         pause();
         state = _idleState();
         return;
       }
 
       pause();
-      
+
       // Hand off to sync service
       final syncService = ref.read(lariSyncServiceProvider);
       debugPrint('WorkoutController: Enqueuing workout to Hive...');
       await syncService.enqueueWorkout(state);
-      
+
       debugPrint('WorkoutController: Triggering background sync queue...');
       // Fire and forget background sync
       syncService.processQueue();
-      
+
       // 🔥 UPDATE MAP & HISTORY UI immediately
       debugPrint('WorkoutController: Invalidating providers...');
       ref.invalidate(userHistoryProvider);
       ref.invalidate(allTerritoriesProvider);
-      
+
       debugPrint('WorkoutController: Resetting to idle state.');
       state = _idleState();
     } catch (e, stack) {
-      debugPrint('WorkoutController_ERROR: Failed to end session cleanly: $e\n$stack');
+      debugPrint(
+        'WorkoutController_ERROR: Failed to end session cleanly: $e\n$stack',
+      );
       rethrow; // Let the UI handle it
     }
   }
@@ -146,7 +152,9 @@ class WorkoutController extends Notifier<WorkoutSession> {
     });
 
     _positionSub?.cancel();
-    _positionSub = ref.read(trackingSourceProvider).watchPosition().listen((sample) {
+    _positionSub = ref.read(trackingSourceProvider).watchPosition().listen((
+      sample,
+    ) {
       final lastObserved = _lastObservedSample;
       _lastObservedSample = sample;
 
@@ -177,13 +185,21 @@ class WorkoutController extends Notifier<WorkoutSession> {
         return;
       }
 
+      if (motion != null && motion.elapsedSeconds >= _trackingGapResetSeconds) {
+        _resumeBaselineSample = sample;
+      }
+
       double gapFromPrevious = 0.0;
       if (_resumeBaselineSample != null) {
-        // TODO(production): model segmented routes so resume does not visually connect long gaps.
         gapFromPrevious = 0.0;
         _resumeBaselineSample = null;
       } else if (lastPoint != null) {
-        gapFromPrevious = Geolocator.distanceBetween(lastPoint.lat, lastPoint.lng, sample.lat, sample.lng);
+        gapFromPrevious = Geolocator.distanceBetween(
+          lastPoint.lat,
+          lastPoint.lng,
+          sample.lat,
+          sample.lng,
+        );
       }
 
       if (lastPoint != null) {
@@ -197,7 +213,7 @@ class WorkoutController extends Notifier<WorkoutSession> {
       points.add(sample);
 
       final isClosed = _findLatestClosedLoopStartIndex(points) != null;
-      
+
       state = state.copyWith(
         points: points,
         distanceMeters: dist,
@@ -243,7 +259,10 @@ class WorkoutController extends Notifier<WorkoutSession> {
     return null;
   }
 
-  void _handleAutoPausedSample(PositionSample? lastObserved, PositionSample sample) {
+  void _handleAutoPausedSample(
+    PositionSample? lastObserved,
+    PositionSample sample,
+  ) {
     final motion = _estimateMotion(lastObserved, sample);
     if (motion != null && motion.speedMps >= _autoPauseSpeedThresholdMps) {
       _movingSeconds += motion.elapsedSeconds;
@@ -276,6 +295,9 @@ class WorkoutController extends Notifier<WorkoutSession> {
       current.lat,
       current.lng,
     );
-    return (elapsedSeconds: elapsedSeconds, speedMps: gapMeters / elapsedSeconds);
+    return (
+      elapsedSeconds: elapsedSeconds,
+      speedMps: gapMeters / elapsedSeconds,
+    );
   }
 }
