@@ -1,8 +1,5 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../core/domain/models/position_sample.dart';
@@ -47,9 +44,10 @@ class LariDevLogEnabledNotifier extends Notifier<bool> {
   void toggle(bool value) => state = value;
 }
 
-final lariDevLogEnabledProvider = NotifierProvider<LariDevLogEnabledNotifier, bool>(() {
-  return LariDevLogEnabledNotifier();
-});
+final lariDevLogEnabledProvider =
+    NotifierProvider<LariDevLogEnabledNotifier, bool>(() {
+      return LariDevLogEnabledNotifier();
+    });
 
 class UseFakeLocationPrefNotifier extends Notifier<bool> {
   @override
@@ -76,7 +74,6 @@ final useFakeLocationPrefProvider =
 class DevFakeLocationConfigNotifier extends Notifier<FakeLocationConfig> {
   @override
   FakeLocationConfig build() {
-    final prefs = ref.read(sharedPreferencesProvider);
     // Since I updated the model, let's just default to fresh if it fails
     return const FakeLocationConfig.defaults();
   }
@@ -96,7 +93,8 @@ class DevFakeLocationConfigNotifier extends Notifier<FakeLocationConfig> {
       if (!enabled) return false;
 
       final permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
         return false;
       }
 

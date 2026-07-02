@@ -6,7 +6,6 @@ import 'core/services/lari_sync_service.dart';
 import 'core/services/workout_storage_service.dart';
 import 'core/services/shared_preferences_provider.dart';
 import 'features/auth/presentation/screens/splash_screen.dart';
-import 'features/auth/application/auth_controller.dart';
 import 'package:flutter_skill/flutter_skill.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();

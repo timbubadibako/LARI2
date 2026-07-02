@@ -5,7 +5,6 @@ import '../../../../ui/theme/stride_typography.dart';
 import '../../../../ui/components/v3_shapes.dart';
 import '../../../../ui/components/app_strings.dart';
 import '../widgets/stride_map_view.dart';
-import '../../../../core/services/lari_logger.dart';
 import '../../application/map_actions_provider.dart';
 import '../../application/current_address_provider.dart';
 import '../../../workout/presentation/screens/active_workout_screen.dart';

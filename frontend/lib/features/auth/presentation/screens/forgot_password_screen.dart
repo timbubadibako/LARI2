@@ -85,7 +85,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   letterSpacing: 2.0,
                   fontWeight: FontWeight.bold,
                   shadows: [
-                    Shadow(color: AppTheme.sapphire.withOpacity(0.5), blurRadius: 10),
+                    Shadow(color: AppTheme.sapphire.withValues(alpha: 0.5), blurRadius: 10),
                   ],
                 ),
               ),
@@ -113,7 +113,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 10,
-                  shadowColor: AppTheme.sapphire.withOpacity(0.5),
+                  shadowColor: AppTheme.sapphire.withValues(alpha: 0.5),
                 ),
                 child: _isLoading
                     ? const SizedBox(
@@ -154,9 +154,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: AppTheme.glassBase.withOpacity(0.3),
+            color: AppTheme.glassBase.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.sapphire.withOpacity(0.3)),
+            border: Border.all(color: AppTheme.sapphire.withValues(alpha: 0.3)),
           ),
           child: TextField(
             controller: controller,

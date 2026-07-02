@@ -63,7 +63,7 @@ class _TacticalButtonState extends State<TacticalButton> with SingleTickerProvid
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: themeColor.withOpacity(0.3),
+                color: themeColor.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),

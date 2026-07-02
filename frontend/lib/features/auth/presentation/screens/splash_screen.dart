@@ -77,7 +77,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                 'LARI_LARI',
                 style: StrideTypography.graffitiStyle.copyWith(
                   fontSize: 100,
-                  color: Colors.white.withOpacity(0.03),
+                  color: Colors.white.withValues(alpha: 0.03),
                 ),
               ),
             ),

@@ -151,7 +151,7 @@ class GuildScreen extends ConsumerWidget {
   Widget _sectionHeader(String title) {
     return Container(
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: StrideColors.white.withOpacity(0.05))),
+        border: Border(bottom: BorderSide(color: StrideColors.white.withValues(alpha: 0.05))),
       ),
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(title, style: StrideTypography.headlineMD.copyWith(fontSize: 18, fontStyle: FontStyle.italic)),
@@ -187,7 +187,7 @@ class GuildScreen extends ConsumerWidget {
             children: [
               Text(
                 hasGuild ? 'YOUR TEAM' : 'STATUS: NO TEAM',
-                style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: color.withOpacity(0.6)),
+                style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: color.withValues(alpha: 0.6)),
               ),
               if (hasGuild)
                 TextButton(
@@ -241,7 +241,7 @@ class GuildScreen extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
         color: StrideColors.surface,
-        border: Border(right: BorderSide(color: color.withOpacity(0.3), width: 2)),
+        border: Border(right: BorderSide(color: color.withValues(alpha: 0.3), width: 2)),
       ),
       child: Column(
         children: [
@@ -282,7 +282,7 @@ class GuildScreen extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: StrideColors.surface,
-        border: Border.all(color: StrideColors.white.withOpacity(0.05)),
+        border: Border.all(color: StrideColors.white.withValues(alpha: 0.05)),
       ),
       child: IntrinsicHeight(
         child: Row(

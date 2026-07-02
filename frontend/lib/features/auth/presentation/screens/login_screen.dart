@@ -100,7 +100,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 'STREET',
                 style: StrideTypography.graffitiStyle.copyWith(
                   fontSize: 120,
-                  color: StrideColors.white.withOpacity(0.05),
+                  color: StrideColors.white.withValues(alpha: 0.05),
                 ),
               ),
             ),

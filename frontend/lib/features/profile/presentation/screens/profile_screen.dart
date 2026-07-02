@@ -70,7 +70,7 @@ class ProfileScreen extends ConsumerWidget {
                           children: [
                             Expanded(child: _buildStatsCard('AREAS HELD', totals.sectors.toString(), 'ZONES', Colors.white)),
                             const SizedBox(width: 12),
-                            Expanded(child: _buildStatsCard('CURRENT LEVEL', '${totals.level}', 'LEVEL', StrideColors.neonGreen.withOpacity(0.7))),
+                            Expanded(child: _buildStatsCard('CURRENT LEVEL', '${totals.level}', 'LEVEL', StrideColors.neonGreen.withValues(alpha: 0.7))),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -84,9 +84,9 @@ class ProfileScreen extends ConsumerWidget {
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            Expanded(child: _buildStatsCard('AREAS HELD', '...', 'ZONES', StrideColors.white.withOpacity(0.2))),
+                            Expanded(child: _buildStatsCard('AREAS HELD', '...', 'ZONES', StrideColors.white.withValues(alpha: 0.2))),
                             const SizedBox(width: 12),
-                            Expanded(child: _buildStatsCard('CURRENT LEVEL', '...', 'LEVEL', StrideColors.neonGreen.withOpacity(0.2))),
+                            Expanded(child: _buildStatsCard('CURRENT LEVEL', '...', 'LEVEL', StrideColors.neonGreen.withValues(alpha: 0.2))),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -102,7 +102,7 @@ class ProfileScreen extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _sectionHeader('ACHIEVEMENTS'),
-                      Text('4 UNLOCKED', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textPrimary.withOpacity(0.3))),
+                      Text('4 UNLOCKED', style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textPrimary.withValues(alpha: 0.3))),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -131,7 +131,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget _sectionHeader(String title) {
     return Container(
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: StrideColors.white.withOpacity(0.05))),
+        border: Border(bottom: BorderSide(color: StrideColors.white.withValues(alpha: 0.05))),
       ),
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(title, style: StrideTypography.headlineMD.copyWith(fontSize: 18, fontStyle: FontStyle.italic)),
@@ -152,13 +152,13 @@ class ProfileScreen extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            StrideColors.neonGreen.withOpacity(0.10),
-            StrideColors.neonGreen.withOpacity(0.03),
+            StrideColors.neonGreen.withValues(alpha: 0.10),
+            StrideColors.neonGreen.withValues(alpha: 0.03),
             Colors.transparent,
           ],
           stops: const [0.0, 0.35, 1.0],
         ),
-        border: Border.all(color: StrideColors.neonGreen.withOpacity(0.16)),
+        border: Border.all(color: StrideColors.neonGreen.withValues(alpha: 0.16)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,10 +171,10 @@ class ProfileScreen extends ConsumerWidget {
                 height: 54,
                 decoration: BoxDecoration(
                   color: Colors.black,
-                  border: Border.all(color: StrideColors.neonGreen.withOpacity(0.6)),
+                  border: Border.all(color: StrideColors.neonGreen.withValues(alpha: 0.6)),
                   boxShadow: [
                     BoxShadow(
-                      color: StrideColors.neonGreen.withOpacity(0.12),
+                      color: StrideColors.neonGreen.withValues(alpha: 0.12),
                       blurRadius: 20,
                       spreadRadius: -4,
                     ),
@@ -269,7 +269,7 @@ class ProfileScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textPrimary.withOpacity(0.4))),
+          Text(label, style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textPrimary.withValues(alpha: 0.4))),
           const SizedBox(height: 4),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -295,12 +295,12 @@ class ProfileScreen extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            StrideColors.neonGreen.withOpacity(isLoading ? 0.05 : 0.09),
+            StrideColors.neonGreen.withValues(alpha: isLoading ? 0.05 : 0.09),
             Colors.transparent,
           ],
         ),
         border: Border(
-          left: BorderSide(color: StrideColors.neonGreen.withOpacity(isLoading ? 0.25 : 0.7), width: 3),
+          left: BorderSide(color: StrideColors.neonGreen.withValues(alpha: isLoading ? 0.25 : 0.7), width: 3),
         ),
       ),
       child: Column(
@@ -318,7 +318,7 @@ class ProfileScreen extends ConsumerWidget {
                 value,
                 style: StrideTypography.displayXL.copyWith(
                   fontSize: 44,
-                  color: isLoading ? StrideColors.neonGreen.withOpacity(0.35) : StrideColors.white,
+                  color: isLoading ? StrideColors.neonGreen.withValues(alpha: 0.35) : StrideColors.white,
                 ),
               ),
               const SizedBox(width: 8),
@@ -326,7 +326,7 @@ class ProfileScreen extends ConsumerWidget {
                 padding: const EdgeInsets.only(bottom: 7),
                 child: Text(
                   unit,
-                  style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.neonGreen.withOpacity(0.8)),
+                  style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.neonGreen.withValues(alpha: 0.8)),
                 ),
               ),
             ],
@@ -343,7 +343,7 @@ class ProfileScreen extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.black,
-        border: Border.all(color: StrideColors.white.withOpacity(0.06)),
+        border: Border.all(color: StrideColors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         children: [
@@ -368,8 +368,8 @@ class ProfileScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(isHighlighted ? 0.78 : 1),
-        border: Border.all(color: accent.withOpacity(isHighlighted ? 0.28 : 0.18)),
+        color: Colors.black.withValues(alpha: isHighlighted ? 0.78 : 1),
+        border: Border.all(color: accent.withValues(alpha: isHighlighted ? 0.28 : 0.18)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -387,7 +387,7 @@ class ProfileScreen extends ConsumerWidget {
       width: 50,
       height: 50,
       decoration: BoxDecoration(
-        color: isUnlocked ? StrideColors.neonGreen.withOpacity(0.05) : StrideColors.surface,
+        color: isUnlocked ? StrideColors.neonGreen.withValues(alpha: 0.05) : StrideColors.surface,
         border: Border.all(color: isUnlocked ? StrideColors.neonGreen : StrideColors.outline),
       ),
       child: Center(

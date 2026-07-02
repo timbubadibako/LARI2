@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geocoding/geocoding.dart';
-import 'current_location_provider.dart';
 import '../../../dev/dev_providers.dart';
 
 /// A provider that returns a human-readable address for the user's current location.

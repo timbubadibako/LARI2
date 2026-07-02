@@ -8,8 +8,8 @@ import '../core/domain/models/position_sample.dart';
 import '../core/domain/repositories/tracking_source.dart';
 
 enum FakeScenario {
-  circular,    // Traditional circle around current location
-  lasso        // A to B (linear), then B-C-B (loop), leaves A-B open
+  circular, // Traditional circle around current location
+  lasso, // A to B (linear), then B-C-B (loop), leaves A-B open
 }
 
 class FakeLocationConfig {
@@ -28,7 +28,7 @@ class FakeLocationConfig {
   final double dropoutProbability;
   final bool paused;
   final FakeScenario scenario;
-  
+
   // Debug Display Toggles
   final bool showRawPoints;
   final bool showDisplayPoints;
@@ -62,8 +62,8 @@ class FakeLocationConfig {
   const FakeLocationConfig.defaults()
     : centerLat = 0,
       centerLng = 0,
-      loopDistanceMeters = 1000, 
-      durationSeconds = 600,     
+      loopDistanceMeters = 1000,
+      durationSeconds = 600,
       sampleInterval = const Duration(seconds: 1),
       accuracyMeanMeters = 5,
       accuracyStdMeters = 1.5,
@@ -123,7 +123,8 @@ class FakeLocationConfig {
       showDisplayPoints: showDisplayPoints ?? this.showDisplayPoints,
       showSampleRate: showSampleRate ?? this.showSampleRate,
       showLastAccuracy: showLastAccuracy ?? this.showLastAccuracy,
-      showCumulativeDistance: showCumulativeDistance ?? this.showCumulativeDistance,
+      showCumulativeDistance:
+          showCumulativeDistance ?? this.showCumulativeDistance,
     );
   }
 
@@ -156,9 +157,12 @@ class FakeLocationConfig {
     return FakeLocationConfig(
       centerLat: (json['centerLat'] as num?)?.toDouble() ?? -6.225014,
       centerLng: (json['centerLng'] as num?)?.toDouble() ?? 106.827143,
-      loopDistanceMeters: (json['loopDistanceMeters'] as num?)?.toDouble() ?? 1000,
+      loopDistanceMeters:
+          (json['loopDistanceMeters'] as num?)?.toDouble() ?? 1000,
       durationSeconds: (json['durationSeconds'] as num?)?.toInt() ?? 600,
-      sampleInterval: Duration(seconds: (json['sampleIntervalSeconds'] as num?)?.toInt() ?? 1),
+      sampleInterval: Duration(
+        seconds: (json['sampleIntervalSeconds'] as num?)?.toInt() ?? 1,
+      ),
       accuracyMeanMeters: (json['accuracyMeanMeters'] as num?)?.toDouble() ?? 5,
       accuracyStdMeters: (json['accuracyStdMeters'] as num?)?.toDouble() ?? 1.5,
       includeJitter: json['includeJitter'] as bool? ?? true,
@@ -166,9 +170,13 @@ class FakeLocationConfig {
       startAngleDeg: (json['startAngleDeg'] as num?)?.toDouble(),
       variablePace: json['variablePace'] as bool? ?? true,
       simulateDropouts: json['simulateDropouts'] as bool? ?? false,
-      dropoutProbability: (json['dropoutProbability'] as num?)?.toDouble() ?? 0.02,
+      dropoutProbability:
+          (json['dropoutProbability'] as num?)?.toDouble() ?? 0.02,
       paused: json['paused'] as bool? ?? false,
-      scenario: FakeScenario.values.firstWhere((e) => e.name == json['scenario'], orElse: () => FakeScenario.circular),
+      scenario: FakeScenario.values.firstWhere(
+        (e) => e.name == json['scenario'],
+        orElse: () => FakeScenario.circular,
+      ),
       showRawPoints: json['showRawPoints'] as bool? ?? false,
       showDisplayPoints: json['showDisplayPoints'] as bool? ?? true,
       showSampleRate: json['showSampleRate'] as bool? ?? false,
@@ -177,23 +185,27 @@ class FakeLocationConfig {
     );
   }
 
-  String get debugLabel => 'scenario=${scenario.name} center=($centerLat,$centerLng) dist=${loopDistanceMeters}m';
+  String get debugLabel =>
+      'scenario=${scenario.name} center=($centerLat,$centerLng) dist=${loopDistanceMeters}m';
 }
 
 class FakeLocationService implements TrackingSource {
   static FakeLocationService? _instance;
-  
-  factory FakeLocationService({required FakeLocationConfig config, Random? random}) {
+
+  factory FakeLocationService({
+    required FakeLocationConfig config,
+    Random? random,
+  }) {
     _instance ??= FakeLocationService._internal(config: config, random: random);
     _instance!._config = config;
     return _instance!;
   }
 
-  FakeLocationService._internal({required FakeLocationConfig config, Random? random})
-    : _config = config,
-      _random = random ?? Random();
+  FakeLocationService._internal({
+    required FakeLocationConfig config,
+    Random? random,
+  }) : _config = config;
 
-  final Random _random;
   FakeLocationConfig _config;
 
   StreamController<PositionSample>? _controller;
@@ -207,9 +219,6 @@ class FakeLocationService implements TrackingSource {
   late double _targetLng;
   bool _reachedTarget = false;
 
-  FakeLocationConfig get config => _config;
-  set config(FakeLocationConfig value) => _config = value;
-
   @override
   Future<bool> requestPermission() async => true;
 
@@ -217,7 +226,9 @@ class FakeLocationService implements TrackingSource {
     if (_isStarted && _controller != null) return _controller!.stream;
 
     _controller = StreamController<PositionSample>.broadcast(
-      onCancel: () { if (_controller?.hasListener == false) stop(); },
+      onCancel: () {
+        if (_controller?.hasListener == false) stop();
+      },
     );
     _isStarted = true;
     _isPaused = _config.paused;
@@ -257,7 +268,6 @@ class FakeLocationService implements TrackingSource {
           sample = _generateLassoSample();
           break;
         case FakeScenario.circular:
-        default:
           sample = _generateCircularSample();
       }
 
@@ -277,7 +287,7 @@ class FakeLocationService implements TrackingSource {
     final intervalSeconds = _config.sampleInterval.inMilliseconds / 1000.0;
     final stepMeters = speedMps * intervalSeconds;
     final radiusMeters = max(1.0, _config.loopDistanceMeters / (2 * pi));
-    
+
     _angleRad = (_angleRad + stepMeters / radiusMeters) % (2 * pi);
 
     final x = radiusMeters * cos(_angleRad);
@@ -296,8 +306,13 @@ class FakeLocationService implements TrackingSource {
   PositionSample _generateLassoSample() {
     if (!_reachedTarget) {
       final currentLat = _config.centerLat + _metersToLat(_emittedSamples * 2);
-      final distToTarget = Geolocator.distanceBetween(currentLat, _config.centerLng, _targetLat, _targetLng);
-      
+      final distToTarget = Geolocator.distanceBetween(
+        currentLat,
+        _config.centerLng,
+        _targetLat,
+        _targetLng,
+      );
+
       if (distToTarget < 5) {
         _reachedTarget = true;
         _angleRad = pi;
@@ -311,8 +326,8 @@ class FakeLocationService implements TrackingSource {
         speedMps: 2.0,
         bearingDeg: 0,
       );
-    } 
-    
+    }
+
     final radiusMeters = 50.0;
     final speedMps = 2.0;
     final stepRad = speedMps / radiusMeters;

@@ -6,7 +6,6 @@ import '../../../../ui/components/v3_shapes.dart';
 import '../../../../ui/components/v3_input_field.dart';
 import '../../../main/presentation/screens/main_screen.dart';
 import '../../application/auth_controller.dart';
-import 'login_screen.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -60,7 +59,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
     try {
       final selectedColor = _factionColors[_selectedColorIndex];
-      final colorHex = '#${selectedColor.value.toRadixString(16).substring(2).toUpperCase()}';
+      final colorHex = '#${selectedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
       
       final success = await ref
           .read(authControllerProvider)
@@ -113,7 +112,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 'STREET',
                 style: StrideTypography.graffitiStyle.copyWith(
                   fontSize: 120,
-                  color: StrideColors.white.withOpacity(0.05),
+                  color: StrideColors.white.withValues(alpha: 0.05),
                 ),
               ),
             ),

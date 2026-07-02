@@ -90,7 +90,7 @@ class _SocialGridShareOverlayState
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-              child: Container(color: const Color(0xFF0A0A0B).withOpacity(0.8)),
+              child: Container(color: const Color(0xFF0A0A0B).withValues(alpha: 0.8)),
             ),
           ),
 
@@ -172,7 +172,7 @@ class _SocialGridShareOverlayState
                     ),
                     border: Border(
                       top: BorderSide(
-                        color: AppTheme.sapphire.withOpacity(0.3),
+                        color: AppTheme.sapphire.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -294,7 +294,7 @@ class _SocialGridShareOverlayState
         Text(
           label,
           style: TextStyle(
-            color: color?.withOpacity(0.7) ?? Colors.white54,
+            color: color?.withValues(alpha: 0.7) ?? Colors.white54,
             fontSize: 10,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.0,
@@ -349,8 +349,8 @@ class _SocialGridShareOverlayState
                   radius: 1.15,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withOpacity(0.18),
-                    Colors.black.withOpacity(0.42),
+                    Colors.black.withValues(alpha: 0.18),
+                    Colors.black.withValues(alpha: 0.42),
                   ],
                   stops: const [0.55, 0.8, 1.0],
                 ),
@@ -412,11 +412,11 @@ class _SocialGridShareOverlayState
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        Colors.white.withOpacity(0.1),
-                        Colors.white.withOpacity(0.02),
+                        Colors.white.withValues(alpha: 0.1),
+                        Colors.white.withValues(alpha: 0.02),
                       ],
                     ),
-                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -503,7 +503,7 @@ class _SocialGridShareOverlayState
           decoration: BoxDecoration(
             color: const Color(0xFF101019),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppTheme.sapphire.withOpacity(0.3)),
+            border: Border.all(color: AppTheme.sapphire.withValues(alpha: 0.3)),
           ),
           child: Column(
             children: [
@@ -613,10 +613,10 @@ class _SocialGridShareOverlayState
           decoration: BoxDecoration(
             color: const Color(0xFF1A1326),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: _purpleAccent.withOpacity(0.55)),
+            border: Border.all(color: _purpleAccent.withValues(alpha: 0.55)),
             boxShadow: [
               BoxShadow(
-                color: _purpleAccent.withOpacity(0.16),
+                color: _purpleAccent.withValues(alpha: 0.16),
                 blurRadius: 28,
                 spreadRadius: 1,
               ),
@@ -657,7 +657,7 @@ class _SocialGridShareOverlayState
                   ),
                 ),
               ),
-              Container(width: 1, color: _purpleAccent.withOpacity(0.35)),
+              Container(width: 1, color: _purpleAccent.withValues(alpha: 0.35)),
               Expanded(
                 flex: 4,
                 child: ClipRRect(
@@ -696,11 +696,11 @@ class _SocialGridShareOverlayState
                 padding: const EdgeInsets.all(24),
                 margin: const EdgeInsets.symmetric(horizontal: 24),
                 decoration: BoxDecoration(
-                  color: AppTheme.background.withOpacity(0.9),
+                  color: AppTheme.background.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.sapphire.withOpacity(0.2),
+                      color: AppTheme.sapphire.withValues(alpha: 0.2),
                       blurRadius: 20,
                     ),
                   ],
@@ -747,7 +747,7 @@ class _SocialGridShareOverlayState
           decoration: BoxDecoration(
             color: const Color(0xFF0D0D11),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.amber.withOpacity(0.3)),
+            border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
             image: const DecorationImage(
               image: NetworkImage(
                 'https://www.transparenttextures.com/patterns/cubes.png',
@@ -810,7 +810,7 @@ class _SocialGridShareOverlayState
           decoration: BoxDecoration(
             color: const Color(0xFFF7F3FF),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: _purpleAccent.withOpacity(0.22)),
+            border: Border.all(color: _purpleAccent.withValues(alpha: 0.22)),
           ),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           child: Column(
@@ -843,8 +843,8 @@ class _SocialGridShareOverlayState
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.white.withOpacity(0.04),
-                              _purpleAccent.withOpacity(0.08),
+                              Colors.white.withValues(alpha: 0.04),
+                              _purpleAccent.withValues(alpha: 0.08),
                             ],
                           ),
                         ),
@@ -916,7 +916,7 @@ class _SocialGridShareOverlayState
                   colors: [
                     Colors.transparent,
                     Colors.transparent,
-                    Colors.black.withOpacity(0.9),
+                    Colors.black.withValues(alpha: 0.9),
                   ],
                 ),
               ),

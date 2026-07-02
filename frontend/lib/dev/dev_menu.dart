@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 
 import '../core/theme/app_theme.dart';
 import '../features/workout/application/workout_controller.dart';
@@ -148,17 +147,19 @@ class _DevMenuState extends ConsumerState<DevMenu> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Circular Run (Simple Loop)'),
-                  leading: Radio<FakeScenario>(
-                    value: FakeScenario.circular,
-                    groupValue: config.scenario,
-                    onChanged: (v) {
-                      if (v != null) {
-                        ref.read(devFakeLocationConfigProvider.notifier).setField(scenario: v);
-                      }
-                    },
+                RadioGroup<FakeScenario>(
+                  groupValue: config.scenario,
+                  onChanged: (v) {
+                    ref
+                        .read(devFakeLocationConfigProvider.notifier)
+                        .setField(scenario: v);
+                  },
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Circular Run (Simple Loop)'),
+                    leading: const Radio<FakeScenario>(
+                      value: FakeScenario.circular,
+                    ),
                   ),
                 ),
               ],
@@ -315,14 +316,18 @@ class _DevMenuState extends ConsumerState<DevMenu> {
                   'Use Mock Backend',
                   ref.watch(useMockBackendPrefProvider),
                   (value) async {
-                    await ref.read(useMockBackendPrefProvider.notifier).setEnabled(value);
+                    await ref
+                        .read(useMockBackendPrefProvider.notifier)
+                        .setEnabled(value);
                   },
                 ),
                 _debugToggle(
                   'Connect to Local Go (localhost)',
                   ref.watch(useLocalBackendPrefProvider),
                   (value) async {
-                    await ref.read(useLocalBackendPrefProvider.notifier).setEnabled(value);
+                    await ref
+                        .read(useLocalBackendPrefProvider.notifier)
+                        .setEnabled(value);
                   },
                 ),
               ],
@@ -337,11 +342,14 @@ class _DevMenuState extends ConsumerState<DevMenu> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.glassBase.withOpacity(0.72),
+        color: AppTheme.glassBase.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.sapphire.withOpacity(0.15)),
+        border: Border.all(color: AppTheme.sapphire.withValues(alpha: 0.15)),
         boxShadow: [
-          BoxShadow(color: AppTheme.sapphire.withOpacity(0.06), blurRadius: 14),
+          BoxShadow(
+            color: AppTheme.sapphire.withValues(alpha: 0.06),
+            blurRadius: 14,
+          ),
         ],
       ),
       child: child,

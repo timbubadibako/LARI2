@@ -44,12 +44,12 @@ class TacticalHeader extends StatelessWidget {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
-                              Colors.white.withOpacity(0.03),
+                              Colors.white.withValues(alpha: 0.03),
                               Colors.transparent,
                             ],
                           ),
                           border: Border(
-                            bottom: BorderSide(color: StrideColors.white.withOpacity(0.06)),
+                            bottom: BorderSide(color: StrideColors.white.withValues(alpha: 0.06)),
                           ),
                         ),
                         child: Padding(
@@ -110,7 +110,7 @@ class TacticalHeader extends StatelessWidget {
                               color: statusColor ?? StrideColors.neonGreen,
                               boxShadow: [
                                 BoxShadow(
-                                  color: (statusColor ?? StrideColors.neonGreen).withOpacity(0.18),
+                                  color: (statusColor ?? StrideColors.neonGreen).withValues(alpha: 0.18),
                                   blurRadius: 16,
                                   spreadRadius: -6,
                                 ),
@@ -135,10 +135,10 @@ class TacticalHeader extends StatelessWidget {
                   margin: const EdgeInsets.only(top: 18),
                   padding: const EdgeInsets.only(left: 10, right: 10, top: 8, bottom: 8),
                   decoration: BoxDecoration(
-                    color: StrideColors.surface.withOpacity(0.92),
+                    color: StrideColors.surface.withValues(alpha: 0.92),
                     border: Border(
                       left: BorderSide(
-                        color: StrideColors.white.withOpacity(0.06),
+                        color: StrideColors.white.withValues(alpha: 0.06),
                       ),
                       right: BorderSide(
                         color: statusColor ?? StrideColors.neonGreen,
@@ -189,19 +189,19 @@ class TacticalIconButton extends StatelessWidget {
                 ? null
                 : [
                     BoxShadow(
-                      color: color.withOpacity(0.08),
+                      color: color.withValues(alpha: 0.08),
                       blurRadius: 18,
                       spreadRadius: -6,
                     ),
                   ],
             border: Border.all(
-              color: isDisabled ? color.withOpacity(0.05) : color.withOpacity(0.3), 
+              color: isDisabled ? color.withValues(alpha: 0.05) : color.withValues(alpha: 0.3), 
               width: 1.5,
             ),
           ),
           child: Icon(
             icon, 
-            color: isDisabled ? color.withOpacity(0.1) : color, 
+            color: isDisabled ? color.withValues(alpha: 0.1) : color, 
             size: 20,
           ),
         ),

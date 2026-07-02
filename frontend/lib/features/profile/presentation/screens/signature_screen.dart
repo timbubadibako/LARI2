@@ -111,7 +111,7 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
                 color: StrideColors.surface,
-                border: Border.all(color: StrideColors.white.withOpacity(0.05)),
+                border: Border.all(color: StrideColors.white.withValues(alpha: 0.05)),
               ),
               child: Stack(
                 children: [
@@ -183,7 +183,7 @@ class GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = StrideColors.white.withOpacity(0.02)
+      ..color = StrideColors.white.withValues(alpha: 0.02)
       ..strokeWidth = 1.0;
 
     const step = 20.0;

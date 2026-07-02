@@ -28,7 +28,7 @@ class SignaturePainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final glowPaint = Paint()
-      ..color = color.withOpacity(0.3)
+      ..color = color.withValues(alpha: 0.3)
       ..strokeWidth = (strokeWidth + 6.0) * scale
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round

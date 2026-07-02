@@ -6,7 +6,6 @@ import '../../../../ui/components/v3_shapes.dart';
 import '../../../../ui/components/tactical_header.dart';
 import '../../../../ui/components/app_strings.dart';
 import '../../../map/application/territory_controller.dart';
-import '../../../profile/application/profile_controller.dart';
 
 class AdminPanelScreen extends ConsumerWidget {
   const AdminPanelScreen({super.key});
@@ -77,8 +76,8 @@ class AdminPanelScreen extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        border: Border.all(color: StrideColors.white.withOpacity(0.1)),
+        color: Colors.black.withValues(alpha: 0.3),
+        border: Border.all(color: StrideColors.white.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
@@ -114,7 +113,7 @@ class AdminPanelScreen extends ConsumerWidget {
               // Implementation for Nuke/Reset
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: StrideColors.error.withOpacity(0.1),
+              backgroundColor: StrideColors.error.withValues(alpha: 0.1),
               side: const BorderSide(color: StrideColors.error),
               foregroundColor: StrideColors.error,
               shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),

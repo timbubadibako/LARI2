@@ -42,7 +42,7 @@ class LariLogger {
     scaffoldMessengerKey.currentState?.showSnackBar(
       SnackBar(
         content: Text(message, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
-        backgroundColor: color.withOpacity(0.9),
+        backgroundColor: color.withValues(alpha: 0.9),
         duration: const Duration(seconds: 2),
       ),
     );

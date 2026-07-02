@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import '../../../core/services/shared_preferences_provider.dart';
 import '../../../core/services/http_client_provider.dart';
 import '../../../core/services/lari_sync_service.dart';

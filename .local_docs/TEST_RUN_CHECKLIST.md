@@ -49,13 +49,15 @@ Ekspektasi:
 - tidak ada kehilangan archive lokal
 
 Hasil:
-- Status:
+- Status: `PASS`
 - Waktu finish:
 - Waktu territory muncul:
 - History:
 - Map:
 - Log backend terkait:
-- Catatan:
+- Catatan: lolos pada batch 2026-07-02, lanjut fokus ke skenario berikutnya besok.
+
+
 
 ## P0.2 Lasso Run A -> B -> ... -> B
 
@@ -75,10 +77,10 @@ Ekspektasi:
 - segmen A ke B tidak dianggap area tertutup
 
 Hasil:
-- Status:
+- Status: `NOT TESTED`
 - Claim valid:
 - Bentuk area sesuai:
-- Catatan:
+- Catatan: dijadwalkan lanjut besok.
 
 ## P0.3 Pending Trail 72 Jam
 
@@ -97,10 +99,10 @@ Ekspektasi:
 - tidak dibersihkan prematur
 
 Hasil:
-- Status:
+- Status: `NOT TESTED`
 - Pending trail terlihat:
 - Lanjutan berhasil:
-- Catatan:
+- Catatan: dijadwalkan lanjut besok.
 
 ## P0.4 Overlap A vs B
 
@@ -120,13 +122,13 @@ Ekspektasi:
 - hasil bukan sekadar overlay visual
 
 Hasil:
-- Status:
+- Status: `PASS`
 - Territory A sebelum:
 - Territory A sesudah:
 - Territory B sesudah:
 - Delay propagasi:
 - Log backend terkait:
-- Catatan:
+- Catatan: overlap/cookie-cutter sudah lolos pada batch 2026-07-02.
 
 ## P0.5 Sync Fail Preservation
 
@@ -146,12 +148,12 @@ Ekspektasi:
 - retry tidak membuat run dobel
 
 Hasil:
-- Status:
+- Status: `PASS`
 - Run tetap terlihat:
 - Retry berhasil:
 - Duplicate claim:
 - Error message:
-- Catatan:
+- Catatan: preservasi history lokal saat sync fail sudah lolos pada batch 2026-07-02.
 
 ## P1.1 Finish Saat Koneksi Buruk
 
@@ -169,10 +171,10 @@ Ekspektasi:
 - sync bisa diulang
 
 Hasil:
-- Status:
+- Status: `NOT TESTED`
 - Queue lokal:
 - History:
-- Catatan:
+- Catatan: dijadwalkan lanjut besok.
 
 ## P1.2 Pause Resume Noise
 
@@ -191,10 +193,10 @@ Ekspektasi:
 - route tetap masuk akal
 
 Hasil:
-- Status:
+- Status: `NOT TESTED`
 - Distance jump:
 - Route:
-- Catatan:
+- Catatan: dijadwalkan lanjut besok.
 
 ## P2.1 Contested Zone Severity
 
@@ -213,11 +215,11 @@ Ekspektasi:
 - 5+ merah
 
 Hasil:
-- Status:
+- Status: `FAIL`
 - 1-2 runner:
 - 3-4 runner:
 - 5+ runner:
-- Catatan:
+- Catatan: masih ada gap pada contested zone severity, perlu dilanjutkan besok.
 
 ## P2.2 Contested Zone Fade Down
 
@@ -234,10 +236,10 @@ Ekspektasi:
 - hotspot hilang saat tidak ada runner aktif
 
 Hasil:
-- Status:
+- Status: `NOT TESTED`
 - Urutan fade:
 - Waktu hilang:
-- Catatan:
+- Catatan: dijadwalkan lanjut besok.
 
 ## P3.1 Share Readiness
 
@@ -245,17 +247,17 @@ Tujuan:
 - menentukan apakah build layak dibagikan ke tester umum
 
 Checklist:
-- [ ] P0.1 lolos
+- [x] P0.1 lolos
 - [ ] P0.2 lolos
-- [ ] P0.4 lolos
-- [ ] P0.5 lolos
+- [x] P0.4 lolos
+- [x] P0.5 lolos
 - [ ] P2.1 lolos
 - [ ] P2.2 minimal `PARTIAL` tanpa bug berat
 - [ ] log backend cukup untuk debug masalah lapangan
 
 Keputusan:
-- Layak dibagikan: `YES / NO`
-- Alasan:
+- Layak dibagikan: `NO`
+- Alasan: P0 inti sebagian sudah lolos, tetapi P0.2, P0.3, P1.1, P1.2, P2.2 belum diuji dan P2.1 masih gagal. Lanjut besok dari item-item ini.
 - Catatan final:
 
 ## Bug Log Tambahan

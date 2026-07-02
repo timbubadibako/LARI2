@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/domain/models/user_profile.dart';
 import '../../../core/services/shared_preferences_provider.dart';
 import '../../../core/services/http_client_provider.dart';

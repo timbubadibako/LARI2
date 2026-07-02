@@ -1,7 +1,4 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../dev/dev_providers.dart';
 
 class ApiConfig {
   static const String hfUrl = 'https://chivasy1-lari2.hf.space';

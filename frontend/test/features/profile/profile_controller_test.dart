@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lari_lari/core/services/http_client_provider.dart';
 import 'package:lari_lari/features/profile/application/profile_controller.dart';
 import 'package:lari_lari/features/auth/application/auth_controller.dart';
-import 'package:lari_lari/core/domain/models/user_profile.dart';
 
 class MockHttpClient extends Mock implements http.Client {}
 

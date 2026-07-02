@@ -30,7 +30,7 @@ class StrideGlassCard extends StatelessWidget {
         boxShadow: glowColor != null
             ? [
                 BoxShadow(
-                  color: glowColor!.withOpacity(0.15),
+                  color: glowColor!.withValues(alpha: 0.15),
                   blurRadius: 40,
                   spreadRadius: -5,
                 )
@@ -44,7 +44,7 @@ class StrideGlassCard extends StatelessWidget {
           child: Container(
             padding: padding,
             decoration: BoxDecoration(
-              color: StrideColors.glassBase.withOpacity(opacity),
+              color: StrideColors.glassBase.withValues(alpha: opacity),
               borderRadius: BorderRadius.circular(borderRadius),
               border: Border.all(
                 color: borderColor ?? StrideColors.glassBorder,
@@ -54,7 +54,7 @@ class StrideGlassCard extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.white.withOpacity(0.05),
+                  Colors.white.withValues(alpha: 0.05),
                   Colors.transparent,
                 ],
               ),
