@@ -219,7 +219,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                       radius: 1.2,
                       colors: [
                         Colors.transparent,
-                        StrideColors.background.withOpacity(0.9),
+                        StrideColors.background.withValues(alpha: 0.9),
                       ],
                       stops: const [0.1, 1.0],
                     ),
@@ -261,7 +261,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                       V3SlantBox(
                         slantWidth: 20,
                         isRightSlant: true,
-                        color: Colors.black.withOpacity(0.7),
+                        color: Colors.black.withValues(alpha: 0.7),
                         child: Container(
                           padding: const EdgeInsets.fromLTRB(24, 24, 48, 24),
                           decoration: const BoxDecoration(
@@ -302,8 +302,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: StrideColors.surface.withOpacity(0.9),
-                          border: Border.all(color: StrideColors.white.withOpacity(0.1)),
+                          color: StrideColors.surface.withValues(alpha: 0.9),
+                          border: Border.all(color: StrideColors.white.withValues(alpha: 0.1)),
                         ),
                         child: Row(
                           children: [
@@ -312,11 +312,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('CURRENT_LOCATION', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textSecondary.withOpacity(0.5))),
+                                Text('CURRENT_LOCATION', style: StrideTypography.labelTactical.copyWith(fontSize: 7, color: StrideColors.textSecondary.withValues(alpha: 0.5))),
                                 ref.watch(currentAddressProvider).when(
                                   data: (address) => Text(address, style: StrideTypography.labelBold.copyWith(fontSize: 11)),
-                                  loading: () => Text('SYNCING_GRID...', style: StrideTypography.labelBold.copyWith(fontSize: 11, color: StrideColors.textSecondary.withOpacity(0.5))),
-                                  error: (e, s) => Text('OFFLINE_GRID', style: StrideTypography.labelBold.copyWith(fontSize: 11, color: StrideColors.error.withOpacity(0.5))),
+                                  loading: () => Text('SYNCING_GRID...', style: StrideTypography.labelBold.copyWith(fontSize: 11, color: StrideColors.textSecondary.withValues(alpha: 0.5))),
+                                  error: (e, s) => Text('OFFLINE_GRID', style: StrideTypography.labelBold.copyWith(fontSize: 11, color: StrideColors.error.withValues(alpha: 0.5))),
                                 ),
                               ],
                             ),
@@ -372,7 +372,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                                       LinearProgressIndicator(
                                         value: _finishProgress,
                                         backgroundColor: Colors.transparent,
-                                        color: Colors.black.withOpacity(0.3),
+                                        color: Colors.black.withValues(alpha: 0.3),
                                       ),
                                       Center(
                                         child: Text(
@@ -409,7 +409,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: Container(
-          color: StrideColors.neonGreen.withOpacity(0.1),
+          color: StrideColors.neonGreen.withValues(alpha: 0.1),
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -452,7 +452,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
+        color: Colors.black.withValues(alpha: 0.8),
         border: const Border(left: BorderSide(color: StrideColors.white, width: 2)),
       ),
       child: Column(
@@ -472,15 +472,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 80),
         child: Column(
           children: [
-            Text('STATUS: LOCKED', style: StrideTypography.labelTactical.copyWith(color: StrideColors.neonGreen.withOpacity(0.3))),
+            Text('STATUS: LOCKED', style: StrideTypography.labelTactical.copyWith(color: StrideColors.neonGreen.withValues(alpha: 0.3))),
             const Spacer(),
-            Text('KILOMETERS', style: StrideTypography.labelTactical.copyWith(fontSize: 12, color: StrideColors.white.withOpacity(0.4))),
+            Text('KILOMETERS', style: StrideTypography.labelTactical.copyWith(fontSize: 12, color: StrideColors.white.withValues(alpha: 0.4))),
             const SizedBox(height: 24),
             RichText(
               text: TextSpan(
                 children: [
                   TextSpan(text: mainDist, style: StrideTypography.displayXL.copyWith(fontSize: 120, color: StrideColors.neonGreen)),
-                  TextSpan(text: '.$decimalDist', style: StrideTypography.displayXL.copyWith(fontSize: 60, color: StrideColors.neonGreen.withOpacity(0.5))),
+                  TextSpan(text: '.$decimalDist', style: StrideTypography.displayXL.copyWith(fontSize: 60, color: StrideColors.neonGreen.withValues(alpha: 0.5))),
                 ],
               ),
             ),
@@ -490,14 +490,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
               children: [
                 Column(
                   children: [
-                    Text(AppStrings.pace, style: StrideTypography.labelTactical.copyWith(color: StrideColors.white.withOpacity(0.3))),
+                    Text(AppStrings.pace, style: StrideTypography.labelTactical.copyWith(color: StrideColors.white.withValues(alpha: 0.3))),
                     Text(pace, style: StrideTypography.headlineMD.copyWith(fontSize: 40)),
                   ],
                 ),
                 const SizedBox(width: 40, child: Center(child: Text('|', style: TextStyle(color: Colors.white10)))),
                 Column(
                   children: [
-                    Text(AppStrings.duration, style: StrideTypography.labelTactical.copyWith(color: StrideColors.white.withOpacity(0.3))),
+                    Text(AppStrings.duration, style: StrideTypography.labelTactical.copyWith(color: StrideColors.white.withValues(alpha: 0.3))),
                     Text(time, style: StrideTypography.headlineMD.copyWith(fontSize: 40)),
                   ],
                 ),
@@ -522,8 +522,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                         height: trackHeight,
                         clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
-                          color: StrideColors.white.withOpacity(0.05),
-                          border: Border.all(color: StrideColors.white.withOpacity(0.5), width: 1.5),
+                          color: StrideColors.white.withValues(alpha: 0.05),
+                          border: Border.all(color: StrideColors.white.withValues(alpha: 0.5), width: 1.5),
                         ),
                         child: Stack(
                           children: [
@@ -535,7 +535,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                                 width: _dragValue * maxDrag,
                                 child: CustomPaint(
                                   painter: HazardStripePainter(
-                                    color: StrideColors.neonGreen.withOpacity(0.5), 
+                                    color: StrideColors.neonGreen.withValues(alpha: 0.5), 
                                     stripeWidth: 8.0,
                                   ),
                                 ),
@@ -544,7 +544,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                               child: Text(
                                 'SLIDE_TO_UNLOCK', 
                                 style: StrideTypography.labelTactical.copyWith(
-                                  color: StrideColors.white.withOpacity(0.2),
+                                  color: StrideColors.white.withValues(alpha: 0.2),
                                   letterSpacing: 4,
                                   fontSize: 10,
                                 )
@@ -596,7 +596,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> with 
                   '[ ACTION_REQUIRED: GESTURE_SYNC_DEACTIVATION ]',
                   style: StrideTypography.labelTactical.copyWith(
                     fontSize: 7,
-                    color: StrideColors.neonGreen.withOpacity(0.4),
+                    color: StrideColors.neonGreen.withValues(alpha: 0.4),
                     fontStyle: FontStyle.italic,
                   ),
                 ),

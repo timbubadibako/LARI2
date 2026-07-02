@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -43,6 +44,7 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
   final GeospatialService _geoService = GeospatialService();
   MapLibreMapController? mapController;
   late final MapRouteLineLayerController _routeLayerController;
+  Timer? _territoryRefreshTimer;
 
   @override
   void initState() {
@@ -52,6 +54,17 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
     Future.microtask(() {
       ref.invalidate(allTerritoriesProvider);
     });
+    if (!widget.isPreviewMode) {
+      _territoryRefreshTimer = Timer.periodic(const Duration(seconds: 12), (_) {
+        ref.invalidate(allTerritoriesProvider);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _territoryRefreshTimer?.cancel();
+    super.dispose();
   }
 
   void _onMapCreated(MapLibreMapController controller) {
@@ -63,12 +76,16 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
     if (mapController == null) return;
     try {
       final bounds = await mapController!.getVisibleRegion();
-      ref.read(territoryViewportBoundsProvider.notifier).updateBounds(TerritoryViewportBounds(
-        lonMin: bounds.southwest.longitude,
-        latMin: bounds.southwest.latitude,
-        lonMax: bounds.northeast.longitude,
-        latMax: bounds.northeast.latitude,
-      ));
+      ref
+          .read(territoryViewportBoundsProvider.notifier)
+          .updateBounds(
+            TerritoryViewportBounds(
+              lonMin: bounds.southwest.longitude,
+              latMin: bounds.southwest.latitude,
+              lonMax: bounds.northeast.longitude,
+              latMax: bounds.northeast.latitude,
+            ),
+          );
     } catch (e) {
       debugPrint('Error getting visible region bounds: $e');
     }
@@ -84,22 +101,27 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
     if (profile?.territoryColor != null) {
       await _routeLayerController.updateRouteColor(profile!.territoryColor!);
     } else {
-      await _routeLayerController.updateRouteColor('#CCFF00'); // Default Neon Green
+      await _routeLayerController.updateRouteColor(
+        '#CCFF00',
+      ); // Default Neon Green
     }
 
     // 🔥 STATIC PATH PRIORITY
     if (widget.staticPath != null && widget.staticPath!.isNotEmpty) {
       await _routeLayerController.updateRoute(widget.staticPath!);
       if (widget.isCaptured) {
-         await _routeLayerController.updateTerritoryPolygon(widget.staticPath!);
+        await _routeLayerController.updateTerritoryPolygon(widget.staticPath!);
       }
-      await _fitRouteBounds(widget.staticPath!, isPreviewMode: widget.isPreviewMode);
+      await _fitRouteBounds(
+        widget.staticPath!,
+        isPreviewMode: widget.isPreviewMode,
+      );
     } else {
-      final route = ref.read(workoutControllerProvider.notifier).route;
+      final route = ref.read(workoutControllerProvider).points;
       final routePoints = route
           .map((point) => latlong.LatLng(point.lat, point.lng))
           .toList();
-      await _routeLayerController.updateRoute(routePoints);
+      await _routeLayerController.updateRouteSamples(route);
       await _routeLayerController.updateTerritoryPolygon(routePoints);
       if (routePoints.isNotEmpty) {
         if (!widget.isPreviewMode) {
@@ -112,15 +134,32 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
         await _fitRouteBounds(routePoints, isPreviewMode: widget.isPreviewMode);
       }
     }
-    
+
     final presenceData = ref.read(presenceLinesProvider);
     await _routeLayerController.updatePresenceLines(
       presenceData.map((p) => (route: p.route, color: p.color)).toList(),
     );
+    final contestedZones = ref.read(contestedZonesProvider);
+    await _routeLayerController.updateContestedZones(
+      contestedZones
+          .map(
+            (zone) => (
+              center: zone.center,
+              radiusMeters: zone.radiusMeters,
+              color: zone.colorHex,
+              runnerCount: zone.runnerCount,
+              severity: zone.severity,
+            ),
+          )
+          .toList(),
+    );
 
-    final territories = ref.read(allTerritoriesProvider).value ?? <UserTerritory>[];
+    final territories =
+        ref.read(allTerritoriesProvider).value ?? <UserTerritory>[];
     await _routeLayerController.updateMasteredTerritories(
-      territories.map((UserTerritory t) => (geoJson: t.geoJson, color: t.color)).toList(),
+      territories
+          .map((UserTerritory t) => (geoJson: t.geoJson, color: t.color))
+          .toList(),
     );
 
     // Initial history load
@@ -128,7 +167,10 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
     _updateHistoryFromData(history);
   }
 
-  Future<void> _fitRouteBounds(List<latlong.LatLng> route, {bool isPreviewMode = false}) async {
+  Future<void> _fitRouteBounds(
+    List<latlong.LatLng> route, {
+    bool isPreviewMode = false,
+  }) async {
     if (mapController == null || route.isEmpty) return;
 
     if (route.length == 1) {
@@ -136,7 +178,9 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
       await mapController!.animateCamera(
         CameraUpdate.newLatLngZoom(
           LatLng(point.latitude, point.longitude),
-          isPreviewMode ? 16.6 : (ref.read(fakeLocationActiveProvider) ? 17.0 : 16.0),
+          isPreviewMode
+              ? 16.6
+              : (ref.read(fakeLocationActiveProvider) ? 17.0 : 16.0),
         ),
       );
       if (isPreviewMode) {
@@ -165,7 +209,10 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
 
     if (isPreviewMode) {
       final dominantSpan = math.max(latSpan, lngSpan);
-      final zoom = (16.9 - (math.log(dominantSpan / minSpan) / math.ln2)).clamp(14.3, 17.2);
+      final zoom = (16.9 - (math.log(dominantSpan / minSpan) / math.ln2)).clamp(
+        14.3,
+        17.2,
+      );
       await mapController!.moveCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(
@@ -197,7 +244,7 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
 
   void _generateGrid() {
     if (mapController == null) return;
-    
+
     final target = mapController!.cameraPosition?.target ?? const LatLng(0, 0);
     if (target.latitude == 0 && target.longitude == 0) return;
 
@@ -210,15 +257,17 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
 
     for (String hex in neighbors) {
       final boundary = _geoService.getH3Boundary(hex);
-      final points = boundary.map((coord) => LatLng(coord.lat, coord.lon)).toList();
+      final points = boundary
+          .map((coord) => LatLng(coord.lat, coord.lon))
+          .toList();
       String hexColor = '#ffffff';
       double opacity = 0.02;
       mapController!.addFill(
         FillOptions(
-          geometry: [points], 
-          fillColor: hexColor, 
-          fillOpacity: opacity, 
-          fillOutlineColor: hexColor
+          geometry: [points],
+          fillColor: hexColor,
+          fillOpacity: opacity,
+          fillOutlineColor: hexColor,
         ),
       );
     }
@@ -227,7 +276,8 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
   void _updateHistoryFromData(List<RunHistory> history) {
     final List<List<latlong.LatLng>> lines = [];
     for (var mission in history) {
-      if (mission.pathWkt != null && mission.pathWkt!.startsWith('LINESTRING')) {
+      if (mission.pathWkt != null &&
+          mission.pathWkt!.startsWith('LINESTRING')) {
         final coords = _parseWKTLineString(mission.pathWkt!);
         if (coords.isNotEmpty) lines.add(coords);
       }
@@ -269,7 +319,7 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
           timeLimit: Duration(seconds: 5),
         ),
       );
-      
+
       mapController!.animateCamera(
         CameraUpdate.newLatLngZoom(
           LatLng(position.latitude, position.longitude),
@@ -285,7 +335,7 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
   Widget build(BuildContext context) {
     final initialPositionAsync = ref.watch(userInitialPositionProvider);
     final fakeActive = ref.watch(fakeLocationActiveProvider);
-    
+
     // Listen for recenter trigger
     ref.listen<int>(mapRecenterTriggerProvider, (previous, next) {
       if (next > 0) {
@@ -305,13 +355,18 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
     // 1. Listeners for reactive updates
     if (widget.staticPath == null) {
       ref.listen(workoutControllerProvider, (previous, next) {
-        final route = next.points.map((p) => latlong.LatLng(p.lat, p.lng)).toList();
+        final route = next.points
+            .map((p) => latlong.LatLng(p.lat, p.lng))
+            .toList();
         if (route.isNotEmpty) {
           _routeLayerController.updateRoute(route);
           _routeLayerController.updateTerritoryPolygon(route);
           if (!widget.isPreviewMode) {
             _routeLayerController.updateCurrentPosition(route.last);
-            _routeLayerController.updateRunnerMarker(route.last, bearingDeg: next.points.last.bearingDeg);
+            _routeLayerController.updateRunnerMarker(
+              route.last,
+              bearingDeg: next.points.last.bearingDeg,
+            );
           }
         }
       });
@@ -321,13 +376,31 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
           next.map((p) => (route: p.route, color: p.color)).toList(),
         );
       });
+
+      ref.listen(contestedZonesProvider, (previous, next) {
+        _routeLayerController.updateContestedZones(
+          next
+              .map(
+                (zone) => (
+                  center: zone.center,
+                  radiusMeters: zone.radiusMeters,
+                  color: zone.colorHex,
+                  runnerCount: zone.runnerCount,
+                  severity: zone.severity,
+                ),
+              )
+              .toList(),
+        );
+      });
     }
 
     ref.listen(allTerritoriesProvider, (previous, next) {
       if (next.hasValue && next.value != null) {
         final List<UserTerritory> territories = next.value!;
         _routeLayerController.updateMasteredTerritories(
-          territories.map((UserTerritory t) => (geoJson: t.geoJson, color: t.color)).toList(),
+          territories
+              .map((UserTerritory t) => (geoJson: t.geoJson, color: t.color))
+              .toList(),
         );
       }
     });
@@ -339,7 +412,7 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
     });
 
     // 2. Conditional Rendering
-    
+
     // Override case (History / Detail)
     if (widget.initialCameraPositionOverride != null) {
       return _buildMap(context, widget.initialCameraPositionOverride!);
@@ -348,10 +421,13 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
     // Fake GPS case
     if (fakeActive) {
       final config = ref.read(devFakeLocationConfigProvider);
-      return _buildMap(context, CameraPosition(
-        target: LatLng(config.centerLat, config.centerLng),
-        zoom: 16.0,
-      ));
+      return _buildMap(
+        context,
+        CameraPosition(
+          target: LatLng(config.centerLat, config.centerLng),
+          zoom: 16.0,
+        ),
+      );
     }
 
     // Real GPS Lifecycle
@@ -380,10 +456,15 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
       onMapCreated: _onMapCreated,
       onStyleLoadedCallback: _onStyleLoadedCallback,
       initialCameraPosition: initialPos,
-      styleString: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      styleString:
+          'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
       myLocationEnabled: isStaticMode ? false : !isFake,
       compassEnabled: false,
-      myLocationRenderMode: isStaticMode ? MyLocationRenderMode.normal : (isFake ? MyLocationRenderMode.normal : MyLocationRenderMode.compass),
+      myLocationRenderMode: isStaticMode
+          ? MyLocationRenderMode.normal
+          : (isFake
+                ? MyLocationRenderMode.normal
+                : MyLocationRenderMode.compass),
       scrollGesturesEnabled: !widget.isPreviewMode,
       zoomGesturesEnabled: !widget.isPreviewMode,
       rotateGesturesEnabled: !widget.isPreviewMode,
@@ -405,7 +486,10 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
             const SizedBox(height: 24),
             Text(
               'ESTABLISHING SATELLITE LINK...',
-              style: StrideTypography.labelTactical.copyWith(fontSize: 10, color: StrideColors.neonGreen),
+              style: StrideTypography.labelTactical.copyWith(
+                fontSize: 10,
+                color: StrideColors.neonGreen,
+              ),
             ),
           ],
         ),
@@ -421,23 +505,35 @@ class _StrideMapViewState extends ConsumerState<StrideMapView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.location_off_outlined, color: StrideColors.white, size: 48),
+            const Icon(
+              Icons.location_off_outlined,
+              color: StrideColors.white,
+              size: 48,
+            ),
             const SizedBox(height: 24),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: StrideTypography.headlineMD.copyWith(fontSize: 18, color: StrideColors.white),
+              style: StrideTypography.headlineMD.copyWith(
+                fontSize: 18,
+                color: StrideColors.white,
+              ),
             ),
             const SizedBox(height: 12),
             Text(
               'GRID SYNC REQUIRES ACTIVE GPS SIGNAL.',
               textAlign: TextAlign.center,
-              style: StrideTypography.labelTactical.copyWith(fontSize: 8, color: StrideColors.textSecondary.withValues(alpha: 0.5)),
+              style: StrideTypography.labelTactical.copyWith(
+                fontSize: 8,
+                color: StrideColors.textSecondary.withValues(alpha: 0.5),
+              ),
             ),
             const SizedBox(height: 32),
             V3SkewBox(
               child: ElevatedButton(
-                onPressed: () => ref.read(locationPermissionProvider.notifier).requestPermission(),
+                onPressed: () => ref
+                    .read(locationPermissionProvider.notifier)
+                    .requestPermission(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: StrideColors.white,
                   foregroundColor: StrideColors.background,

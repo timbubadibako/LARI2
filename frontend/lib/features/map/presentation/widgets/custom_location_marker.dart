@@ -96,7 +96,7 @@ class _CustomLocationMarkerState extends State<CustomLocationMarker>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: AppTheme.sapphire.withOpacity(0.12),
+                        color: AppTheme.sapphire.withValues(alpha: 0.12),
                         width: 1,
                         strokeAlign: BorderSide.strokeAlignOutside,
                       ),
@@ -113,7 +113,7 @@ class _CustomLocationMarkerState extends State<CustomLocationMarker>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppTheme.sapphire.withOpacity(
+                    color: AppTheme.sapphire.withValues(alpha: 
                       0.6 * (1.0 - _pulseController.value),
                     ),
                     width: 1.5,
@@ -131,7 +131,7 @@ class _CustomLocationMarkerState extends State<CustomLocationMarker>
                     decoration: const BoxDecoration(),
                     child: CustomPaint(
                       painter: _HeadingConePainter(
-                        color: AppTheme.sapphire.withOpacity(0.4),
+                        color: AppTheme.sapphire.withValues(alpha: 0.4),
                         size: widget.size * 0.35,
                       ),
                       size: Size(widget.size * 0.7, widget.size * 0.7),
@@ -148,12 +148,12 @@ class _CustomLocationMarkerState extends State<CustomLocationMarker>
                   color: AppTheme.sapphire,
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.sapphire.withOpacity(0.8),
+                      color: AppTheme.sapphire.withValues(alpha: 0.8),
                       blurRadius: 16,
                       spreadRadius: 1,
                     ),
                     BoxShadow(
-                      color: AppTheme.sapphire.withOpacity(0.4),
+                      color: AppTheme.sapphire.withValues(alpha: 0.4),
                       blurRadius: 6,
                       spreadRadius: 2,
                     ),

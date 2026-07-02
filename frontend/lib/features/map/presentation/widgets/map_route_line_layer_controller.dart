@@ -1,16 +1,29 @@
+import 'dart:math' as math;
 import 'package:latlong2/latlong.dart' as latlong;
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import '../../../../core/domain/models/position_sample.dart';
 
 class MapRouteLineLayerController {
+  static const double loopCloseToleranceMeters = 5.0;
+  static const double minLoopDisplacementMeters = 50.0;
+  static const int routeGapSplitSeconds = 12;
+  static const double masteredTerritoryFillOpacity = 0.24;
+  static const double previewTerritoryFillOpacity = 0.20;
+  static const double territoryOutlineOpacity = 0.42;
+  static const double territoryHatchOpacity = 0.20;
   static const String routeSourceId = 'route-source';
   static const String territorySourceId = 'territory-source';
   static const String masteredTerritorySourceId = 'mastered-territory-source';
+  static const String masteredTerritoryHatchSourceId =
+      'mastered-territory-hatch-source';
   static const String routeGlowLayerId = 'route-glow-layer';
   static const String routeCoreLayerId = 'route-core-layer';
   static const String territoryFillLayerId = 'territory-fill-layer';
   static const String territoryOutlineLayerId = 'territory-outline-layer';
   static const String masteredTerritoryLayerId = 'mastered-territory-layer';
+  static const String masteredTerritoryHatchLayerId =
+      'mastered-territory-hatch-layer';
   static const String currentPosSourceId = 'current-pos-source';
   static const String currentPosGlowLayerId = 'current-pos-glow-layer';
   static const String currentPosLayerId = 'current-pos-layer';
@@ -18,7 +31,9 @@ class MapRouteLineLayerController {
   static const String presenceLayerId = 'presence-layer';
   static const String historySourceId = 'history-source';
   static const String historyLayerId = 'history-layer';
-
+  static const String contestedSourceId = 'contested-source';
+  static const String contestedFillLayerId = 'contested-fill-layer';
+  static const String contestedOutlineLayerId = 'contested-outline-layer';
 
   final Duration throttleDuration = const Duration(milliseconds: 800);
   DateTime _lastRouteUpdate = DateTime.fromMillisecondsSinceEpoch(0);
@@ -42,10 +57,16 @@ class MapRouteLineLayerController {
 
     await _mapController!.addSource(
       masteredTerritorySourceId,
-      GeojsonSourceProperties(data: {
-        'type': 'FeatureCollection',
-        'features': [],
-      }),
+      GeojsonSourceProperties(
+        data: {'type': 'FeatureCollection', 'features': []},
+      ),
+    );
+
+    await _mapController!.addSource(
+      masteredTerritoryHatchSourceId,
+      GeojsonSourceProperties(
+        data: {'type': 'FeatureCollection', 'features': []},
+      ),
     );
 
     await _mapController!.addFillLayer(
@@ -53,8 +74,20 @@ class MapRouteLineLayerController {
       masteredTerritoryLayerId,
       FillLayerProperties(
         fillColor: ['get', 'color'],
-        fillOpacity: 0.60, // Increased for vibrancy
+        fillOpacity: masteredTerritoryFillOpacity,
         fillOutlineColor: ['get', 'color'],
+      ),
+    );
+
+    await _mapController!.addLineLayer(
+      masteredTerritoryHatchSourceId,
+      masteredTerritoryHatchLayerId,
+      LineLayerProperties(
+        lineColor: ['get', 'color'],
+        lineWidth: 1.1,
+        lineOpacity: territoryHatchOpacity,
+        lineJoin: 'round',
+        lineCap: 'round',
       ),
     );
 
@@ -62,8 +95,8 @@ class MapRouteLineLayerController {
       territorySourceId,
       territoryFillLayerId,
       FillLayerProperties(
-        fillColor: '#CCFF00', // Default color
-        fillOpacity: 0.60, // Increased for vibrancy
+        fillColor: '#CCFF00',
+        fillOpacity: previewTerritoryFillOpacity,
         fillOutlineColor: '#CCFF00',
       ),
     );
@@ -72,9 +105,9 @@ class MapRouteLineLayerController {
       territorySourceId,
       territoryOutlineLayerId,
       LineLayerProperties(
-        lineColor: '#CCFF00', 
-        lineWidth: 3.0, // Thicker
-        lineOpacity: 0.8, // More solid
+        lineColor: '#CCFF00',
+        lineWidth: 1.4,
+        lineOpacity: territoryOutlineOpacity,
         lineJoin: 'round',
         lineCap: 'round',
       ),
@@ -145,7 +178,11 @@ class MapRouteLineLayerController {
       presenceSourceId,
       presenceLayerId,
       LineLayerProperties(
-        lineColor: ['coalesce', ['get', 'color'], '#FFA500'],
+        lineColor: [
+          'coalesce',
+          ['get', 'color'],
+          '#FFA500',
+        ],
         lineWidth: 3.0,
         lineOpacity: 0.4,
         lineDasharray: [2.0, 2.0],
@@ -170,8 +207,46 @@ class MapRouteLineLayerController {
         lineCap: 'round',
       ),
     );
-  }
 
+    await _mapController!.addSource(
+      contestedSourceId,
+      GeojsonSourceProperties(data: _emptyTerritoryGeoJson()),
+    );
+
+    await _mapController!.addFillLayer(
+      contestedSourceId,
+      contestedFillLayerId,
+      FillLayerProperties(
+        fillColor: [
+          'coalesce',
+          ['get', 'color'],
+          '#FFD60A',
+        ],
+        fillOpacity: 0.18,
+        fillOutlineColor: [
+          'coalesce',
+          ['get', 'color'],
+          '#FFD60A',
+        ],
+      ),
+    );
+
+    await _mapController!.addLineLayer(
+      contestedSourceId,
+      contestedOutlineLayerId,
+      LineLayerProperties(
+        lineColor: [
+          'coalesce',
+          ['get', 'color'],
+          '#FFD60A',
+        ],
+        lineWidth: 2.5,
+        lineOpacity: 0.75,
+        lineJoin: 'round',
+        lineCap: 'round',
+      ),
+    );
+  }
 
   Future<void> updateRoute(List<latlong.LatLng> route) async {
     if (_mapController == null) return;
@@ -183,9 +258,19 @@ class MapRouteLineLayerController {
     await _mapController!.setGeoJsonSource(routeSourceId, geoJson);
   }
 
+  Future<void> updateRouteSamples(List<PositionSample> route) async {
+    if (_mapController == null) return;
+    final now = DateTime.now();
+    if (now.difference(_lastRouteUpdate) < throttleDuration) return;
+    _lastRouteUpdate = now;
+
+    final geoJson = _buildRouteSamplesGeoJson(route);
+    await _mapController!.setGeoJsonSource(routeSourceId, geoJson);
+  }
+
   Future<void> updateRouteColor(String color) async {
     if (_mapController == null) return;
-    
+
     await _mapController!.setLayerProperties(
       routeGlowLayerId,
       LineLayerProperties(lineColor: color),
@@ -194,12 +279,11 @@ class MapRouteLineLayerController {
       routeCoreLayerId,
       LineLayerProperties(lineColor: color),
     );
-    // Also update territory colors with specific opacity
     await _mapController!.setLayerProperties(
       territoryFillLayerId,
       FillLayerProperties(
         fillColor: color,
-        fillOpacity: 0.35, // Enforce transparency to see map underneath
+        fillOpacity: previewTerritoryFillOpacity,
         fillOutlineColor: color,
       ),
     );
@@ -207,7 +291,8 @@ class MapRouteLineLayerController {
       territoryOutlineLayerId,
       LineLayerProperties(
         lineColor: color,
-        lineOpacity: 0.8,
+        lineOpacity: territoryOutlineOpacity,
+        lineWidth: 1.4,
       ),
     );
     // Also update current position color to match
@@ -223,7 +308,7 @@ class MapRouteLineLayerController {
 
   Future<void> updateTerritoryPolygon(
     List<latlong.LatLng> route, {
-    double closeToleranceMeters = 25.0,
+    double closeToleranceMeters = loopCloseToleranceMeters,
   }) async {
     if (_mapController == null) return;
 
@@ -270,7 +355,9 @@ class MapRouteLineLayerController {
     await _mapController!.setGeoJsonSource(currentPosSourceId, geoJson);
   }
 
-  Future<void> updatePresenceLines(List<({List<latlong.LatLng> route, String color})> lines) async {
+  Future<void> updatePresenceLines(
+    List<({List<latlong.LatLng> route, String color})> lines,
+  ) async {
     if (_mapController == null) return;
     final geoJson = _buildPresenceGeoJson(lines);
     await _mapController!.setGeoJsonSource(presenceSourceId, geoJson);
@@ -282,10 +369,12 @@ class MapRouteLineLayerController {
     await _mapController!.setGeoJsonSource(historySourceId, geoJson);
   }
 
-  Future<void> updateMasteredTerritories(List<({Map<String, dynamic> geoJson, String color})> territories) async {
+  Future<void> updateMasteredTerritories(
+    List<({Map<String, dynamic> geoJson, String color})> territories,
+  ) async {
     if (_mapController == null) return;
 
-    final geoJson = {
+    final fillGeoJson = {
       'type': 'FeatureCollection',
       'features': territories.map((t) {
         return {
@@ -296,9 +385,70 @@ class MapRouteLineLayerController {
       }).toList(),
     };
 
-    await _mapController!.setGeoJsonSource(masteredTerritorySourceId, geoJson);
+    final hatchGeoJson = {
+      'type': 'FeatureCollection',
+      'features': territories
+          .expand((t) => _buildTerritoryHatchFeatures(t.geoJson, t.color))
+          .toList(),
+    };
+
+    await _mapController!.setGeoJsonSource(
+      masteredTerritorySourceId,
+      fillGeoJson,
+    );
+    await _mapController!.setGeoJsonSource(
+      masteredTerritoryHatchSourceId,
+      hatchGeoJson,
+    );
   }
 
+  Future<void> updateContestedZones(
+    List<
+      ({
+        latlong.LatLng center,
+        double radiusMeters,
+        String color,
+        int runnerCount,
+        String severity,
+      })
+    >
+    zones,
+  ) async {
+    if (_mapController == null) return;
+
+    if (zones.isEmpty) {
+      await _mapController!.setGeoJsonSource(
+        contestedSourceId,
+        _emptyTerritoryGeoJson(),
+      );
+      return;
+    }
+
+    final geoJson = {
+      'type': 'FeatureCollection',
+      'features': zones.map((zone) {
+        return {
+          'type': 'Feature',
+          'properties': {
+            'color': zone.color,
+            'runner_count': zone.runnerCount,
+            'severity': zone.severity,
+          },
+          'geometry': {
+            'type': 'Polygon',
+            'coordinates': [
+              _buildCircleRing(
+                zone.center,
+                zone.radiusMeters,
+              ).map((point) => [point.longitude, point.latitude]).toList(),
+            ],
+          },
+        };
+      }).toList(),
+    };
+
+    await _mapController!.setGeoJsonSource(contestedSourceId, geoJson);
+  }
 
   Map<String, dynamic> _emptyRouteGeoJson() {
     return {
@@ -325,6 +475,51 @@ class MapRouteLineLayerController {
             'coordinates': route
                 .map((point) => [point.longitude, point.latitude])
                 .toList(),
+          },
+        },
+      ],
+    };
+  }
+
+  Map<String, dynamic> _buildRouteSamplesGeoJson(List<PositionSample> route) {
+    if (route.isEmpty) {
+      return _emptyRouteGeoJson();
+    }
+
+    final segments = <List<List<double>>>[];
+    var currentSegment = <List<double>>[];
+
+    for (int i = 0; i < route.length; i++) {
+      final point = route[i];
+      if (i > 0) {
+        final previous = route[i - 1];
+        final elapsed = point.ts.difference(previous.ts).inSeconds;
+        if (elapsed >= routeGapSplitSeconds && currentSegment.length >= 2) {
+          segments.add(currentSegment);
+          currentSegment = <List<double>>[];
+        }
+      }
+
+      currentSegment.add([point.lng, point.lat]);
+    }
+
+    if (currentSegment.length >= 2) {
+      segments.add(currentSegment);
+    } else if (segments.isEmpty && currentSegment.isNotEmpty) {
+      segments.add(currentSegment);
+    }
+
+    return {
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'properties': {},
+          'geometry': {
+            'type': segments.length <= 1 ? 'LineString' : 'MultiLineString',
+            'coordinates': segments.length <= 1
+                ? (segments.isEmpty ? <List<double>>[] : segments.first)
+                : segments,
           },
         },
       ],
@@ -363,11 +558,12 @@ class MapRouteLineLayerController {
         }
       }
 
-      if (maxDisplacement > 30.0) {
+      if (maxDisplacement > minLoopDisplacementMeters) {
         final loop = route.sublist(i).toList();
         final first = loop.first;
         final loopLast = loop.last;
-        if (first.latitude != loopLast.latitude || first.longitude != loopLast.longitude) {
+        if (first.latitude != loopLast.latitude ||
+            first.longitude != loopLast.longitude) {
           loop.add(first);
         }
         return loop;
@@ -378,7 +574,7 @@ class MapRouteLineLayerController {
   }
 
   Map<String, dynamic> _buildTerritoryGeoJson(List<latlong.LatLng> route) {
-    // ARCHITECTURAL FIX: 
+    // ARCHITECTURAL FIX:
     // To avoid "holes" caused by self-intersections (even-odd rule),
     // we should ideally compute a Convex Hull or Alpha Shape.
     // For now, we ensure the ring is closed and use a simple polygon.
@@ -457,7 +653,9 @@ class MapRouteLineLayerController {
     };
   }
 
-  Map<String, dynamic> _buildPresenceGeoJson(List<({List<latlong.LatLng> route, String color})> lines) {
+  Map<String, dynamic> _buildPresenceGeoJson(
+    List<({List<latlong.LatLng> route, String color})> lines,
+  ) {
     if (lines.isEmpty) return _emptyRouteGeoJson();
 
     return {
@@ -469,7 +667,9 @@ class MapRouteLineLayerController {
         for (int i = 0; i < line.route.length; i += step) {
           simplified.add(line.route[i]);
         }
-        if (simplified.isNotEmpty && simplified.last != line.route.last) simplified.add(line.route.last);
+        if (simplified.isNotEmpty && simplified.last != line.route.last) {
+          simplified.add(line.route.last);
+        }
 
         return {
           'type': 'Feature',
@@ -478,8 +678,8 @@ class MapRouteLineLayerController {
             'type': 'LineString',
             'coordinates': simplified
                 .map((p) => [p.longitude, p.latitude])
-                .toList()
-          }
+                .toList(),
+          },
         };
       }).toList(),
     };
@@ -496,7 +696,9 @@ class MapRouteLineLayerController {
         for (int i = 0; i < line.length; i += step) {
           simplified.add(line[i]);
         }
-        if (simplified.isNotEmpty && simplified.last != line.last) simplified.add(line.last);
+        if (simplified.isNotEmpty && simplified.last != line.last) {
+          simplified.add(line.last);
+        }
 
         return {
           'type': 'Feature',
@@ -505,10 +707,198 @@ class MapRouteLineLayerController {
             'type': 'LineString',
             'coordinates': simplified
                 .map((p) => [p.longitude, p.latitude])
-                .toList()
-          }
+                .toList(),
+          },
         };
       }).toList(),
     };
+  }
+
+  List<latlong.LatLng> _buildCircleRing(
+    latlong.LatLng center,
+    double radiusMeters,
+  ) {
+    const segments = 28;
+    final ring = <latlong.LatLng>[];
+    final latRadians = center.latitude * math.pi / 180.0;
+    final metersPerLat = 111320.0;
+    final metersPerLng = 111320.0 * math.cos(latRadians);
+
+    for (int i = 0; i <= segments; i++) {
+      final angle = (i / segments) * 2 * math.pi;
+      final dx = math.cos(angle) * radiusMeters;
+      final dy = math.sin(angle) * radiusMeters;
+      final lat = center.latitude + (dy / metersPerLat);
+      final lng =
+          center.longitude + (metersPerLng == 0 ? 0 : dx / metersPerLng);
+      ring.add(latlong.LatLng(lat, lng));
+    }
+
+    return ring;
+  }
+
+  List<Map<String, dynamic>> _buildTerritoryHatchFeatures(
+    Map<String, dynamic> geometry,
+    String color,
+  ) {
+    final type = geometry['type'];
+    final rawCoordinates = geometry['coordinates'];
+    if (rawCoordinates is! List) {
+      return const [];
+    }
+
+    final features = <Map<String, dynamic>>[];
+    if (type == 'Polygon') {
+      features.addAll(_buildPolygonHatchFeatures(rawCoordinates, color));
+    } else if (type == 'MultiPolygon') {
+      for (final polygon in rawCoordinates) {
+        if (polygon is List) {
+          features.addAll(_buildPolygonHatchFeatures(polygon, color));
+        }
+      }
+    }
+    return features;
+  }
+
+  List<Map<String, dynamic>> _buildPolygonHatchFeatures(
+    List<dynamic> polygonCoordinates,
+    String color,
+  ) {
+    if (polygonCoordinates.isEmpty) {
+      return const [];
+    }
+
+    final outerRing = _toRing(polygonCoordinates.first);
+    if (outerRing.length < 3) {
+      return const [];
+    }
+
+    final holes = polygonCoordinates.skip(1).map(_toRing).toList();
+    final bbox = _computeRingBounds(outerRing);
+    final width = bbox.$3 - bbox.$1;
+    final height = bbox.$4 - bbox.$2;
+    if (width <= 0 || height <= 0) {
+      return const [];
+    }
+
+    final spacing = math.max(width, height) / 9;
+    final padding = spacing * 1.5;
+    final segments = <Map<String, dynamic>>[];
+    final minOffset = -height - padding;
+    final maxOffset = width + padding;
+
+    for (double offset = minOffset; offset <= maxOffset; offset += spacing) {
+      final start = <double>[bbox.$1 + offset, bbox.$2 - padding];
+      final end = <double>[
+        bbox.$1 + offset + height + padding * 2,
+        bbox.$4 + padding,
+      ];
+      final clipped = _clipSegmentToPolygon(start, end, outerRing, holes);
+      if (clipped.length < 2) {
+        continue;
+      }
+
+      segments.add({
+        'type': 'Feature',
+        'properties': {'color': color},
+        'geometry': {'type': 'LineString', 'coordinates': clipped},
+      });
+    }
+
+    return segments;
+  }
+
+  List<List<double>> _clipSegmentToPolygon(
+    List<double> start,
+    List<double> end,
+    List<List<double>> outerRing,
+    List<List<List<double>>> holes,
+  ) {
+    const samples = 28;
+    final insidePoints = <List<double>>[];
+    for (int i = 0; i <= samples; i++) {
+      final t = i / samples;
+      final point = <double>[
+        start[0] + (end[0] - start[0]) * t,
+        start[1] + (end[1] - start[1]) * t,
+      ];
+      if (_pointInPolygon(point, outerRing, holes)) {
+        insidePoints.add(point);
+      }
+    }
+
+    if (insidePoints.length < 2) {
+      return const [];
+    }
+
+    return insidePoints;
+  }
+
+  bool _pointInPolygon(
+    List<double> point,
+    List<List<double>> outerRing,
+    List<List<List<double>>> holes,
+  ) {
+    if (!_pointInRing(point, outerRing)) {
+      return false;
+    }
+    for (final hole in holes) {
+      if (_pointInRing(point, hole)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _pointInRing(List<double> point, List<List<double>> ring) {
+    var inside = false;
+    for (int i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      final xi = ring[i][0];
+      final yi = ring[i][1];
+      final xj = ring[j][0];
+      final yj = ring[j][1];
+      final intersects =
+          ((yi > point[1]) != (yj > point[1])) &&
+          (point[0] <
+              (xj - xi) *
+                      (point[1] - yi) /
+                      ((yj - yi) == 0 ? 0.0000001 : (yj - yi)) +
+                  xi);
+      if (intersects) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }
+
+  List<List<double>> _toRing(dynamic rawRing) {
+    if (rawRing is! List) {
+      return const [];
+    }
+    return rawRing
+        .whereType<List>()
+        .map(
+          (point) => [
+            (point[0] as num).toDouble(),
+            (point[1] as num).toDouble(),
+          ],
+        )
+        .toList();
+  }
+
+  (double, double, double, double) _computeRingBounds(List<List<double>> ring) {
+    var minLng = ring.first[0];
+    var minLat = ring.first[1];
+    var maxLng = ring.first[0];
+    var maxLat = ring.first[1];
+
+    for (final point in ring.skip(1)) {
+      minLng = math.min(minLng, point[0]);
+      minLat = math.min(minLat, point[1]);
+      maxLng = math.max(maxLng, point[0]);
+      maxLat = math.max(maxLat, point[1]);
+    }
+
+    return (minLng, minLat, maxLng, maxLat);
   }
 }

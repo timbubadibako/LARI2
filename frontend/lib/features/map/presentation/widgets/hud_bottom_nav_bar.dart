@@ -73,7 +73,7 @@ class _HudBottomNavBarState extends State<HudBottomNavBar> with SingleTickerProv
                   child: Transform(
                     transform: Matrix4.skewX(0.05)..rotateZ(-0.02),
                     child: Container(
-                      color: StrideColors.neonGreen.withOpacity(0.5),
+                      color: StrideColors.neonGreen.withValues(alpha: 0.5),
                     ),
                   ),
                 ),
@@ -142,7 +142,7 @@ class _HudBottomNavBarState extends State<HudBottomNavBar> with SingleTickerProv
       case 0: // Triangle (Segitiga)
         iconWidget = CustomPaint(
           size: const Size(18, 18),
-          painter: TrianglePainter(color: color.withOpacity(opacity), isSolid: isActive),
+          painter: TrianglePainter(color: color.withValues(alpha: opacity), isSolid: isActive),
         );
         break;
       case 1: // Square (Kotak)
@@ -151,14 +151,14 @@ class _HudBottomNavBarState extends State<HudBottomNavBar> with SingleTickerProv
           height: 18,
           decoration: BoxDecoration(
             color: isActive ? color : Colors.transparent,
-            border: Border.all(color: color.withOpacity(opacity), width: 2),
+            border: Border.all(color: color.withValues(alpha: opacity), width: 2),
           ),
         );
         break;
       case 2: // Cross (X)
         iconWidget = CustomPaint(
           size: const Size(16, 16),
-          painter: CrossPainter(color: color.withOpacity(opacity), strokeWidth: 2.5),
+          painter: CrossPainter(color: color.withValues(alpha: opacity), strokeWidth: 2.5),
         );
         break;
       case 3: // Circle (Bulat)
@@ -168,7 +168,7 @@ class _HudBottomNavBarState extends State<HudBottomNavBar> with SingleTickerProv
           height: 20,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: color.withOpacity(opacity), width: 2),
+            border: Border.all(color: color.withValues(alpha: opacity), width: 2),
           ),
         );
     }
