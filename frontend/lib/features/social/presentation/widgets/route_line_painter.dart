@@ -41,7 +41,7 @@ class RouteLinePainter extends CustomPainter {
     // Draw Cyber-Grid background
     if (drawGrid) {
       final gridPaint = Paint()
-        ..color = primaryColor.withOpacity(isLightMode ? 0.05 : 0.1)
+        ..color = primaryColor.withValues(alpha: isLightMode ? 0.05 : 0.1)
         ..strokeWidth = 1.0;
 
       for (double i = 0; i < size.width; i += 20) {
@@ -93,7 +93,7 @@ class RouteLinePainter extends CustomPainter {
     fillPath.close();
 
     final fillPaint = Paint()
-      ..color = primaryColor.withOpacity(isLightMode ? 0.1 : 0.15)
+      ..color = primaryColor.withValues(alpha: isLightMode ? 0.1 : 0.15)
       ..style = PaintingStyle.fill;
 
     canvas.drawPath(fillPath, fillPaint);
@@ -108,7 +108,7 @@ class RouteLinePainter extends CustomPainter {
     // Add glow
     if (!isLightMode) {
       final glowPaint = Paint()
-        ..color = primaryColor.withOpacity(0.4)
+        ..color = primaryColor.withValues(alpha: 0.4)
         ..strokeWidth = 12.0
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round

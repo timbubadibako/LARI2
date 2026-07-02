@@ -109,7 +109,7 @@ class GlobalActivity {
       durationSec: json['duration_sec'] ?? 0,
       status: json['status'] ?? 'pending',
       pathWkt: json['path_geometry'] as String?,
-      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
+      createdAt: _parseDateTime(json['created_at']),
     );
   }
 
@@ -144,10 +144,12 @@ class Graffiti {
     final List<dynamic> rawStrokes = json['data'] ?? [];
     final List<List<Offset>> strokes = rawStrokes.map((s) {
       final List<dynamic> points = s as List<dynamic>;
-      return points.map((p) => Offset(
-        (p['x'] as num).toDouble(),
-        (p['y'] as num).toDouble(),
-      )).toList();
+      return points
+          .map(
+            (p) =>
+                Offset((p['x'] as num).toDouble(), (p['y'] as num).toDouble()),
+          )
+          .toList();
     }).toList();
 
     return Graffiti(
@@ -156,7 +158,7 @@ class Graffiti {
       displayName: json['display_name'] ?? 'Agent',
       territoryColor: json['color'] ?? json['territory_color'] ?? '#ffffff',
       strokes: strokes,
-      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
+      createdAt: _parseDateTime(json['created_at']),
     );
   }
 
@@ -168,4 +170,12 @@ class Graffiti {
       return Colors.white;
     }
   }
+}
+
+DateTime _parseDateTime(dynamic raw) {
+  if (raw is DateTime) return raw;
+  if (raw is String && raw.trim().isNotEmpty) {
+    return DateTime.tryParse(raw) ?? DateTime.now();
+  }
+  return DateTime.now();
 }
